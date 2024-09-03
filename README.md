@@ -13,11 +13,11 @@ AI-Powered Summarizer, Q&amp;A Assistant on Youtube Videos 🤖
 ---
 ## The Idea / Architecture
 ### Phase 1: Extract data from given URL
-![P1.png](../docs/P1.png)
+![P1.png](docs/P1.png)
 ### Phase 2: Storing embedding chapter subtitles
-![P2.png](../docs/P2.png)
+![P2.png](docs/P2.png)
 ### Phase 3: Asking (included enrich question)
-![P3.png](../docs/P3.png)
+![P3.png](docs/P3.png)
 ---
 
 ## Notice
