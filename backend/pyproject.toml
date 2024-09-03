@@ -1,14 +1,23 @@
 [tool.poetry]
-name = "backend"
+name = "asktube-backend"
 version = "0.1.0"
-description = ""
-authors = ["Jonas <tuyendev@gmail.com>"]
+description = "Backend to handle application logic"
+authors = ["Jonas <me@ifelse.com>"]
 readme = "README.md"
-packages = [{include = "backend", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.12"
-
+python = ">=3.10,<=3.12"
+sanic = "^24.6.0"
+pytubefix = "^6.13.0"
+audio-extract = "^0.6.0"
+peewee = "^3.17.6"
+ujson = "^5.10.0"
+chromadb = "^0.5.5"
+faster-whisper = "^1.0.3"
+langdetect = "^1.0.9"
+iso639-lang = "^2.3.0"
+jinja2 = "^3.1.4"
+google-generativeai = "^0.7.2"
 
 [build-system]
 requires = ["poetry-core"]
