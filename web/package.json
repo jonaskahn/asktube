@@ -1,5 +1,6 @@
 {
-  "name": "nuxt-app",
+  "name": "asktube-weba",
+  "description": "WebUI interface to interact with backend API",
   "private": true,
   "type": "module",
   "scripts": {
