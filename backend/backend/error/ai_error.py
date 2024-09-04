@@ -4,3 +4,7 @@ class AiError(Exception):
 
 class AiSegmentError(AiError):
     pass
+
+
+class AiApiKeyError(AiError):
+    pass

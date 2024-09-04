@@ -8,17 +8,18 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = ">=3.10,<=3.12"
 sanic = "^24.6.0"
-pytubefix = "6.14.0"
+pytubefix = "^6.15.1"
 audio-extract = "^0.6.0"
 peewee = "^3.17.6"
 ujson = "^5.10.0"
 chromadb = "^0.5.5"
 faster-whisper = "^1.0.3"
 langdetect = "^1.0.9"
-iso639-lang = "^2.3.0"
 jinja2 = "^3.1.4"
 google-generativeai = "^0.7.2"
 python-dotenv = "^1.0.1"
+openai = "^1.43.0"
+python-iso639 = "^2024.4.27"
 
 [build-system]
 requires = ["poetry-core"]

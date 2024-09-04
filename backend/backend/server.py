@@ -1,11 +1,14 @@
 import asyncio
 from json import dumps
 
-from sanic import Sanic, json, text
+from playhouse.shortcuts import model_to_dict
+from sanic import Sanic
+from sanic import json, text
 
-from backend.db.models import Video, VideoChapter
+from backend.db.models import Video, VideoChapter, Chat
 from backend.db.specs import sqlite_client
 from backend.error.base import LogicError
+from backend.services.video_service import VideoService
 from backend.services.youtube_service import YoutubeService
 from backend.utils.logger import log
 
@@ -19,7 +22,7 @@ app.config.RESPONSE_TIMEOUT = 600
 async def connect_db(app, loop):
     log.debug("Open DB Connection")
     sqlite_client.connect()
-    sqlite_client.create_tables([Video, VideoChapter])
+    sqlite_client.create_tables([Video, VideoChapter, Chat])
 
 
 @app.listener('after_server_stop')
@@ -80,15 +83,43 @@ async def process_youtube_video(request):
     video = await asyncio.create_task(youtube_service.fetch_video_data())
     return json({
         "message": "Successfully fetched video data",
-        "payload": video
+        "payload": model_to_dict(video)
     })
 
 
 @app.post("/api/video/analysis")
 async def analysis_youtube_video(request):
-    video_id = request.json['video_id']
+    vid = request.json['video_id']
+    provider = request.json['provider']
+    await asyncio.create_task(VideoService.analysis_video(vid, provider))
     return json({
         "message": "Successfully fetched video analysis"
+    })
+
+
+@app.post("/api/video/chat")
+async def chat(request):
+    vid = request.json['video_id']
+    question = request.json['question']
+    provider = request.json['provider']
+    model = request.json.get("model", None)
+    data = await  asyncio.create_task(VideoService.ask(question, vid, provider, model))
+    return json({
+        "message": "Successfully ask chat",
+        "payload": data
+    })
+
+
+@app.post("/api/video/summary")
+async def summary(request):
+    vid = request.json['video_id']
+    lang_code = request.json['lang_code']
+    provider = request.json['provider']
+    model = request.json.get("model", None)
+    data = await asyncio.create_task(VideoService.summary_video(vid, lang_code, provider, model))
+    return json({
+        "message": "Successfully request summary",
+        "payload": data
     })
 
 

@@ -1,5 +1,3 @@
-import json
-
 from peewee import Model, AutoField, CharField, TextField, IntegerField, BooleanField, ForeignKeyField
 
 from backend.db.specs import sqlite_client
@@ -18,16 +16,11 @@ class Video(Model):
     transcript = TextField(null=False, default="")
     summary = TextField(null=False, default="")
     is_analyzed = BooleanField(default=False)
+    embedding_provider = CharField(null=True)
     language = CharField(null=True)
 
     def __repr__(self):
         return f"Video(youtube_id={self.youtube_id}, url={self.url})"
-
-    def set_languages(self, languages):
-        self.languages = json.dumps(languages)
-
-    def get_languages(self):
-        return json.loads(self.languages.__str__())
 
     class Meta:
         database = sqlite_client
@@ -46,6 +39,18 @@ class VideoChapter(Model):
 
     def __repr__(self):
         return f"VideoChapter(title={self.title}, start_time={self.start_time}, start_label={self.start_label}, duration={self.duration})"
+
+    class Meta:
+        database = sqlite_client
+
+
+class Chat(Model):
+    id = AutoField(primary_key=True, index_type=True)
+    video = ForeignKeyField(Video, backref="chats", index=True)
+    question = TextField(null=False)
+    answer = TextField(null=False)
+    context = TextField(null=False, default=""),
+    prompt = TextField(null=False, default="")
 
     class Meta:
         database = sqlite_client

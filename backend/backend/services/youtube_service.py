@@ -6,9 +6,8 @@ import pytubefix
 from pytubefix import YouTube, Caption
 from pytubefix.cli import on_progress
 
-from backend.constants import YT_AUDIO_ABS_FILE_NAME, YT_AUDIO_FILE_NAME
+from backend import env, constants
 from backend.db.models import VideoChapter, Video
-from backend.env import APP_DIR, VIDEO_CHUNK_LENGTH, LANGUAGE_PREFER_USAGE
 from backend.services.ai_service import AiService
 from backend.services.video_service import VideoService
 from backend.utils.logger import log
@@ -37,7 +36,7 @@ class YoutubeService:
         }
 
     async def fetch_video_data(self):
-        video = self.__video_service.find_video_by_youtube_id(self.__agent.video_id)
+        video = VideoService.find_video_by_youtube_id(self.__agent.video_id)
         if video is not None:
             return video
 
@@ -56,7 +55,7 @@ class YoutubeService:
         video.amount_chapters = len(video_chapters)
         video.transcript = video_transcript
         video.language = language
-        self.__video_service.save(video, video_chapters)
+        VideoService.save(video, video_chapters)
         return video
 
     def __extract_chapters(self):
@@ -107,15 +106,15 @@ class YoutubeService:
         return predict_parts
 
     def __get_potential_step(self):
-        default_chunk_step = VIDEO_CHUNK_LENGTH
+        default_chunk_step = env.AUDIO_CHUNK_DURATION
         if default_chunk_step is not None:
             return int(default_chunk_step)
         return min(self.__agent.length, 600)
 
     def __extract_transcript(self):
         transcripts = self.__agent.caption_tracks
-        prefer_lang = LANGUAGE_PREFER_USAGE
         if transcripts is not None and transcripts:
+            prefer_lang = env.LANGUAGE_PREFER_USAGE
             for transcript in transcripts:
                 if prefer_lang in transcript.code:
                     return transcript.code.replace("a.", ""), self.__combine_youtube_caption_data(transcript)
@@ -149,16 +148,16 @@ class YoutubeService:
     def __download_audio(self):
         log.debug(f"Start to download audio {self.__agent.title}")
 
-        output_audio_dir = os.path.join(APP_DIR, f"{self.__agent.video_id}")
+        output_audio_dir = os.path.join(env.APP_DIR, f"{self.__agent.video_id}")
         Path(output_audio_dir).mkdir(parents=True, exist_ok=True)
 
         ys = self.__agent.streams.get_audio_only()
-        ys.download(mp3=True, output_path=output_audio_dir, filename=YT_AUDIO_FILE_NAME, skip_existing=True)
-        output_audio_file = os.path.join(output_audio_dir, YT_AUDIO_ABS_FILE_NAME)
+        ys.download(mp3=True, output_path=output_audio_dir, filename=constants.YT_AUDIO_FILE_NAME, skip_existing=True)
+        output_audio_file = os.path.join(output_audio_dir, constants.YT_AUDIO_ABS_FILE_NAME)
         log.info(f"Finished download audio {self.__agent.title} to {output_audio_file}")
 
         language = self.__ai_service.recognize_audio_language(
-            audio_path=os.path.join(output_audio_dir, YT_AUDIO_ABS_FILE_NAME),
+            audio_path=os.path.join(output_audio_dir, constants.YT_AUDIO_ABS_FILE_NAME),
             duration=self.__agent.length
         )
         return language, output_audio_file

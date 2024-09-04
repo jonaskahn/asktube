@@ -4,12 +4,16 @@ import tempfile
 from collections import Counter
 from uuid import uuid4
 
+import google.generativeai as genai
 from audio_extract import extract_audio
 from faster_whisper import WhisperModel
 from future.backports.datetime import timedelta
+from openai import OpenAI
 
-from backend.env import WHISPER_DEVICE, WHISPER_MODEL, LANGUAGE_DETECT_SEGMENT_LENGTH
-from backend.error.ai_error import AiSegmentError
+from backend import env
+from backend.db.specs import chromadb_client
+from backend.error.ai_error import AiSegmentError, AiApiKeyError
+from backend.utils.prompts import SYSTEM_PROMPT
 
 
 class AiService:
@@ -18,8 +22,8 @@ class AiService:
 
     @staticmethod
     def __get_whisper_model():
-        compute_type = 'int8' if WHISPER_DEVICE == 'cpu' else 'fp16'
-        return WhisperModel(WHISPER_MODEL, device=WHISPER_DEVICE, compute_type=compute_type)
+        compute_type = 'int8' if env.WHISPER_DEVICE == 'cpu' else 'fp16'
+        return WhisperModel(env.WHISPER_MODEL, device=env.WHISPER_DEVICE, compute_type=compute_type)
 
     def recognize_audio_language(self, audio_path, duration):
         """
@@ -57,12 +61,12 @@ class AiService:
             input_path=audio_path,
             output_path=start_segment_audio_path,
             start_time=f"{timedelta(seconds=0)}",
-            duration=LANGUAGE_DETECT_SEGMENT_LENGTH
+            duration=env.AUDIO_CHUNK_SHORT_DURATION
         )
 
         middle_start = random.randint(
-            duration // LANGUAGE_DETECT_SEGMENT_LENGTH,
-            duration // 3 - LANGUAGE_DETECT_SEGMENT_LENGTH
+            duration // env.AUDIO_CHUNK_SHORT_DURATION,
+            duration // 3 - env.AUDIO_CHUNK_SHORT_DURATION
         )
         middle_segment_audio_path = os.path.join(tempfile.gettempdir(), f"{uuid4()}.mp3")
 
@@ -70,14 +74,14 @@ class AiService:
             input_path=audio_path,
             output_path=middle_segment_audio_path,
             start_time=f"{timedelta(seconds=middle_start)}",
-            duration=LANGUAGE_DETECT_SEGMENT_LENGTH
+            duration=env.AUDIO_CHUNK_SHORT_DURATION
         )
 
         end_segment_audio_path = os.path.join(tempfile.gettempdir(), f"{uuid4()}.mp3")
         extract_audio(
             input_path=audio_path,
             output_path=end_segment_audio_path,
-            start_time=f"{timedelta(seconds=duration - LANGUAGE_DETECT_SEGMENT_LENGTH * 2)}"
+            start_time=f"{timedelta(seconds=duration - env.AUDIO_CHUNK_SHORT_DURATION * 2)}"
         )
 
         return start_segment_audio_path, middle_segment_audio_path, end_segment_audio_path
@@ -94,5 +98,116 @@ class AiService:
             for segment in segments
         ]
 
-    def embedding_documents(self, ids: list[str], documents: list[str]):
-        pass
+    @staticmethod
+    def embedding_document_with_gemini(text: str):
+        if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":
+            raise AiApiKeyError()
+        genai.configure(api_key=env.GEMINI_API_KEY)
+        result = genai.embed_content(model=env.GEMINI_EMBEDDING_MODEL, content=text)
+        return result['embedding']
+
+    @staticmethod
+    def embedding_document_with_openai(text: str):
+        if env.OPENAI_API_KEY is None or env.OPENAI_API_KEY.strip() == "":
+            raise AiApiKeyError()
+        client = OpenAI(api_key=env.OPENAI_API_KEY)
+        result = client.embeddings.create(model=env.OPENAI_EMBEDDING_MODEL, input=[text])
+        return result.data[0].embedding
+
+    @staticmethod
+    def store_embeddings(table: str, ids: list[str], texts: list[str], embeddings: list[list[float]]):
+        collection = chromadb_client.get_or_create_collection(table)
+        collection.add(ids=ids, embeddings=embeddings, documents=texts)
+
+    @staticmethod
+    def query_embeddings(table: str, query: list[list[float]], fetch_size: int = 5, expect_size: int = 2, max_distance: float = 1.2):
+        collection = chromadb_client.get_or_create_collection(table)
+        results = collection.query(query_embeddings=query, n_results=fetch_size, include=['documents', 'distances'])
+
+        distances = results['distances']
+        documents = results['documents']
+        flat_distances = [dist for sublist in distances for dist in sublist]
+        flat_documents = [doc for sublist in documents for doc in sublist]
+
+        distance_doc_pairs = list(zip(flat_distances, flat_documents))
+        filtered_pairs = [pair for pair in distance_doc_pairs if pair[0] <= max_distance]
+        sorted_pairs = sorted(filtered_pairs, key=lambda pair: pair[0])
+        top_closest = sorted_pairs[:max(1, expect_size)]
+
+        unique_documents = []
+        seen_docs = set()
+        for _, doc in top_closest:
+            doc_id = id(doc)
+            if doc_id not in seen_docs:
+                unique_documents.append(doc)
+                seen_docs.add(doc_id)
+        return "\n".join(unique_documents)
+
+    @staticmethod
+    def generate_text_with_openai(
+            model: str,
+            prompt: str,
+            max_tokens: int = 2048,
+            temperature: float = 0.7,
+            top_p: float = 1.0
+    ):
+        if env.OPENAI_API_KEY is None or env.OPENAI_API_KEY.strip() == "":
+            raise AiApiKeyError()
+        client = OpenAI(api_key=env.OPENAI_API_KEY)
+        return ""
+
+    @staticmethod
+    def generate_text_with_gemini(
+            prompt: str,
+            model: str,
+            max_tokens: int = 4096,
+            temperature: float = 0.6,
+            top_p: float = 0.6,
+            top_k: int = 32
+    ):
+        if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":
+            raise AiApiKeyError()
+        genai.configure(api_key=env.GEMINI_API_KEY)
+        agent = genai.GenerativeModel(model_name=model if model is not None else "gemini-1.5-flash", system_instruction=SYSTEM_PROMPT)
+        response = agent.generate_content(
+            prompt,
+            generation_config=genai.GenerationConfig(
+                max_output_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k
+            )
+        )
+        return response.text.replace("\n", " ").strip()
+
+    @staticmethod
+    def chat_with_openai(
+            model: str,
+            prompt: str,
+            previous_chats: list,
+            max_tokens: int = 2048,
+            temperature: float = 0.7,
+            top_p: float = 1.0
+    ):
+        if env.OPENAI_API_KEY is None or env.OPENAI_API_KEY.strip() == "":
+            raise AiApiKeyError()
+        client = OpenAI(api_key=env.OPENAI_API_KEY)
+        return ""
+
+    @staticmethod
+    def chat_with_gemini(
+            prompt: str,
+            model: str,
+            previous_chats: list,
+            max_tokens: int = 4096,
+            temperature: float = 0.6,
+            top_p: float = 0.6,
+            top_k: int = 32
+    ):
+        if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":
+            raise AiApiKeyError()
+        genai.configure(api_key=env.GEMINI_API_KEY)
+        agent = genai.GenerativeModel(model_name=model if model is not None else "gemini-1.5-flash", system_instruction=SYSTEM_PROMPT)
+        chat = agent.start_chat(history=previous_chats)
+        response = chat.send_message(prompt)
+        return response.text

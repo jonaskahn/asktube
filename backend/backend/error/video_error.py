@@ -4,3 +4,7 @@ class VideoError(Exception):
 
 class VideoNotFoundError(VideoError):
     pass
+
+
+class VideoNotAnalyzedError(VideoError):
+    pass
