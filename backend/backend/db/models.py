@@ -18,7 +18,7 @@ class Video(Model):
     transcript = TextField(null=False, default="")
     summary = TextField(null=False, default="")
     is_analyzed = BooleanField(default=False)
-    languages = TextField(null=True)
+    language = CharField(null=True)
 
     def __repr__(self):
         return f"Video(youtube_id={self.youtube_id}, url={self.url})"
@@ -43,7 +43,6 @@ class VideoChapter(Model):
     start_time = IntegerField(null=False, default=0)
     start_label = CharField(null=False, default="00:00:00")
     duration = IntegerField(null=False, default=0)
-    language = CharField(null=False, index=True)
 
     def __repr__(self):
         return f"VideoChapter(title={self.title}, start_time={self.start_time}, start_label={self.start_label}, duration={self.duration})"

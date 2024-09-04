@@ -7,9 +7,10 @@ from pytubefix import YouTube, Caption
 from pytubefix.cli import on_progress
 
 from backend.constants import YT_AUDIO_ABS_FILE_NAME, YT_AUDIO_FILE_NAME
-from backend.db.models import VideoChapter
-from backend.env import APP_DIR, VIDEO_CHUNK_LENGTH
+from backend.db.models import VideoChapter, Video
+from backend.env import APP_DIR, VIDEO_CHUNK_LENGTH, LANGUAGE_PREFER_USAGE
 from backend.services.ai_service import AiService
+from backend.services.video_service import VideoService
 from backend.utils.logger import log
 
 
@@ -22,6 +23,7 @@ class YoutubeService:
             allow_oauth_cache=True
         )
         self.__ai_service = AiService()
+        self.__video_service = VideoService()
 
     def fetch_basic_info(self):
         captions = list(map(lambda c: {'name': c.name, 'value': c.code}, self.__agent.captions))
@@ -34,10 +36,27 @@ class YoutubeService:
             'captions': captions
         }
 
-    def fetch_video_data(self):
-        video_chapters = self.__extract_chapters()
-        raw_transcript = self.__extract_transcript()
-        log.debug("Extracted transcript: %s", raw_transcript)
+    async def fetch_video_data(self):
+        video = self.__video_service.find_video_by_youtube_id(self.__agent.video_id)
+        if video is not None:
+            return video
+
+        video = Video(
+            youtube_id=self.__agent.video_id,
+            url=self.__agent.watch_url,
+            author=self.__agent.author,
+            title=self.__agent.title,
+            description=self.__agent.description,
+            thumbnail=self.__agent.thumbnail_url,
+            duration=self.__agent.length
+        )
+        extracted_chapters = self.__extract_chapters()
+        language, extracted_transcripts = self.__extract_transcript()
+        video_transcript, video_chapters = self.__paring_video_chapters(video, extracted_chapters, extracted_transcripts)
+        video.amount_chapters = len(video_chapters)
+        video.transcript = video_transcript
+        video.language = language
+        self.__video_service.save(video, video_chapters)
 
     def __extract_chapters(self):
         chapters: list[pytubefix.Chapter] = self.__agent.chapters
@@ -93,15 +112,16 @@ class YoutubeService:
         return min(self.__agent.length, 600)
 
     def __extract_transcript(self):
-        # transcripts = self.__agent.caption_tracks
-        # if transcripts is not None and transcripts:
-        #     for transcript in transcripts:
-        #         if LANGUAGE_PREFER_USAGE in transcript.code:
-        #             return transcript.code.replace("a.", ""), self.__combine_youtube_caption_data(transcript)
-        #     transcript = transcripts[0]
-        #     return transcript.code, self.__combine_youtube_caption_data(transcript)
+        transcripts = self.__agent.caption_tracks
+        prefer_lang = LANGUAGE_PREFER_USAGE
+        if transcripts is not None and transcripts:
+            for transcript in transcripts:
+                if prefer_lang in transcript.code:
+                    return transcript.code.replace("a.", ""), self.__combine_youtube_caption_data(transcript)
+            transcript = transcripts[0]
+            return transcript.code.replace("a.", ""), self.__combine_youtube_caption_data(transcript)
         language, audio_file = self.__download_audio()
-        return self.__ai_service.speech_to_text(audio_file)
+        return language, self.__ai_service.speech_to_text(audio_file)
 
     @staticmethod
     def __combine_youtube_caption_data(caption: Caption):
@@ -133,11 +153,38 @@ class YoutubeService:
 
         ys = self.__agent.streams.get_audio_only()
         ys.download(mp3=True, output_path=output_audio_dir, filename=YT_AUDIO_FILE_NAME, skip_existing=True)
-
-        log.info(f"Finished download audio {self.__agent.title} to {output_audio_dir}")
+        output_audio_file = os.path.join(output_audio_dir, YT_AUDIO_ABS_FILE_NAME)
+        log.info(f"Finished download audio {self.__agent.title} to {output_audio_file}")
 
         language = self.__ai_service.recognize_audio_language(
             audio_path=os.path.join(output_audio_dir, YT_AUDIO_ABS_FILE_NAME),
             duration=self.__agent.length
         )
-        return language, os.path.join(output_audio_dir, YT_AUDIO_ABS_FILE_NAME)
+        return language, output_audio_file
+
+    @staticmethod
+    def __paring_video_chapters(video: Video, chapters: list[VideoChapter], transcripts: [{}]):
+        sorted_chapters = sorted(chapters, key=lambda chapter: chapter.chapter_no)
+        result: list[VideoChapter] = []
+        for sorted_chapter in sorted_chapters:
+            sorted_chapter.video = video
+            start_ms = sorted_chapter.start_time * 1000
+            end_ms = (sorted_chapter.start_time + sorted_chapter.duration) * 1000
+            chapter_transcript: str = ""
+            for transcript in transcripts:
+                start_transcript_ms = transcript['start_time']
+                duration_transcript_ms = transcript['duration']
+                if not start_transcript_ms or not duration_transcript_ms:
+                    log.warn("skip this invalid transcript part")
+                    continue
+
+                end_transcript_ms = start_transcript_ms + duration_transcript_ms
+                if start_transcript_ms < start_ms or end_transcript_ms > end_ms:
+                    continue
+                chapter_transcript += f"{transcript['text']}\n"
+            if chapter_transcript != "":
+                log.debug(f"title: {sorted_chapter.title}\nno: {sorted_chapter.chapter_no}\ntranscript: {chapter_transcript}")
+                sorted_chapter.transcript = chapter_transcript
+                result.append(sorted_chapter)
+        video_transcript = "\n".join([f"## {x.title}\n-----\n{x.transcript}" for x in result if x.transcript])
+        return f"# {video.title}\n-----\n\n{video_transcript}", result

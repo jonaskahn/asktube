@@ -30,12 +30,13 @@ class AiService:
         :param duration:
         :return:
         """
-        start_segment, middle_segment, end_segment = self.__segment_audio(audio_path, duration)
+        model = self.__get_whisper_model()
+        if duration <= 120:
+            _, info = model.transcribe(audio_path)
+            return info.language
+        start_segment, middle_segment, end_segment = None, None, None
         try:
-            model = self.__get_whisper_model()
-            if duration <= 600:
-                _, info = model.transcribe(audio_path)
-                return info.language
+            start_segment, middle_segment, end_segment = self.__segment_audio(audio_path, duration)
             _, start_info = model.transcribe(start_segment)
             _, middle_info = model.transcribe(middle_segment)
             _, end_info = model.transcribe(end_segment)
@@ -44,12 +45,12 @@ class AiService:
             return most_common_lang if count >= 2 else None
         finally:
             for segment in [start_segment, middle_segment, end_segment]:
-                if os.path.exists(segment):
+                if segment is not None and os.path.exists(segment):
                     os.remove(segment)
 
     @staticmethod
     def __segment_audio(audio_path, duration):
-        if duration < 600:
+        if duration < 120:
             raise AiSegmentError("Duration must be greater than 600 seconds")
         start_segment_audio_path = os.path.join(tempfile.gettempdir(), f"{uuid4()}.mp3")
         extract_audio(
@@ -83,11 +84,11 @@ class AiService:
 
     def speech_to_text(self, audio_path):
         model = self.__get_whisper_model()
-        segments, _ = model.transcribe(audio=audio_path, beam_size=10)
+        segments, _ = model.transcribe(audio=audio_path, beam_size=5)
         return [
             {
-                'start_time': segment.start,
-                'duration': segment.end - segment.start,
+                'start_time': int(segment.start * 1000.0),
+                'duration': int((segment.end - segment.start) * 1000.0),
                 'text': segment.text,
             }
             for segment in segments

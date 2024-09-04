@@ -16,6 +16,6 @@ WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
 
 # SETTINGS
 LANGUAGE_DETECT_SEGMENT_LENGTH: int = os.getenv("LANGUAGE_DETECT_SEGMENT_LENGTH", 30)
-LANGUAGE_PREFER_USAGE: str = os.getenv("LANGUAGE_PREFER_USAGE",
-                                       "en")  # Get your own preference (set1): https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes
+## Get your own preference (set1): https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes
+LANGUAGE_PREFER_USAGE: str = os.getenv("LANGUAGE_PREFER_USAGE", "en")
 VIDEO_CHUNK_LENGTH: int = os.getenv("VIDEO_CHUNK_LENGTH", 600)
