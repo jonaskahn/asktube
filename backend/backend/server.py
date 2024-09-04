@@ -77,9 +77,18 @@ async def fetch_youtube_video_info(request):
 async def process_youtube_video(request):
     url = request.json['url']
     youtube_service = YoutubeService(url)
-    await asyncio.create_task(youtube_service.fetch_video_data())
+    video = await asyncio.create_task(youtube_service.fetch_video_data())
     return json({
         "message": "Successfully fetched video data",
+        "payload": video
+    })
+
+
+@app.post("/api/video/analysis")
+async def analysis_youtube_video(request):
+    video_id = request.json['video_id']
+    return json({
+        "message": "Successfully fetched video analysis"
     })
 
 

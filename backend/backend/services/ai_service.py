@@ -9,7 +9,7 @@ from faster_whisper import WhisperModel
 from future.backports.datetime import timedelta
 
 from backend.env import WHISPER_DEVICE, WHISPER_MODEL, LANGUAGE_DETECT_SEGMENT_LENGTH
-from backend.error.ai_service_error import AiSegmentError
+from backend.error.ai_error import AiSegmentError
 
 
 class AiService:
@@ -93,3 +93,6 @@ class AiService:
             }
             for segment in segments
         ]
+
+    def embedding_documents(self, ids: list[str], documents: list[str]):
+        pass

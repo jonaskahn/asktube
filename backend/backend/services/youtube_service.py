@@ -57,6 +57,7 @@ class YoutubeService:
         video.transcript = video_transcript
         video.language = language
         self.__video_service.save(video, video_chapters)
+        return video
 
     def __extract_chapters(self):
         chapters: list[pytubefix.Chapter] = self.__agent.chapters
