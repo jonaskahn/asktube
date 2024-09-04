@@ -3,8 +3,8 @@ from pathlib import Path
 import chromadb
 from peewee import SqliteDatabase
 
-from backend.src.constants import SQL_DATABASE, VECTOR_DATABASE
-from backend.src.env import APP_DIR
+from backend.constants import SQL_DATABASE, VECTOR_DATABASE
+from backend.env import APP_DIR
 
 Path(APP_DIR).mkdir(parents=True, exist_ok=True)
 

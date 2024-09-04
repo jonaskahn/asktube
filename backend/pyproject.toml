@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "asktube-backend"
+name = "backend"
 version = "0.1.0"
 description = "Backend to handle application logic"
 authors = ["Jonas <me@ifelse.com>"]
@@ -13,7 +13,7 @@ audio-extract = "^0.6.0"
 peewee = "^3.17.6"
 ujson = "^5.10.0"
 chromadb = "^0.5.5"
-faster-whisper = "^1.0.3"
+faster-whisper = { url = "https://github.com/SYSTRAN/faster-whisper/archive/refs/heads/master.tar.gz" }
 langdetect = "^1.0.9"
 iso639-lang = "^2.3.0"
 jinja2 = "^3.1.4"

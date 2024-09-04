@@ -1,12 +1,13 @@
+import asyncio
 from json import dumps
 
 from sanic import Sanic, json, text
 
-from backend.src.db.models import Video, VideoChapter
-from backend.src.db.specs import sqlite_client
-from backend.src.error.base import LogicException
-from backend.src.services.youtube_service import YoutubeService
-from backend.src.utils.logger import log
+from backend.db.models import Video, VideoChapter
+from backend.db.specs import sqlite_client
+from backend.error.base import LogicError
+from backend.services.youtube_service import YoutubeService
+from backend.utils.logger import log
 
 app = Sanic("AskTube", dumps=dumps)
 app.config.KEEP_ALIVE = False
@@ -42,8 +43,8 @@ async def handle_exception(request, exception: Exception):
     )
 
 
-@app.exception(LogicException)
-async def handle_exception(request, exception: LogicException):
+@app.exception(LogicError)
+async def handle_exception(request, exception: LogicError):
     log.error(exception, exc_info=True)
     return json(
         {
@@ -62,13 +63,23 @@ async def health(request):
 
 
 @app.post("/api/youtube/prefetch")
-async def fetch_video_info(request):
+async def fetch_youtube_video_info(request):
     url = request.json['url']
     youtube_service = YoutubeService(url)
     data = youtube_service.fetch_basic_info()
     return json({
         "message": "Successfully fetched video info",
         "payload": data
+    })
+
+
+@app.post("/api/youtube/process")
+async def process_youtube_video(request):
+    url = request.json['url']
+    youtube_service = YoutubeService(url)
+    await asyncio.create_task(youtube_service.fetch_video_data())
+    return json({
+        "message": "Successfully fetched video data",
     })
 
 

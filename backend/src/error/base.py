@@ -1,2 +1,0 @@
-class LogicException(Exception):
-    pass
