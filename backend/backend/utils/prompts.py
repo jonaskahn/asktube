@@ -32,12 +32,14 @@ Title: {title}
 Summary: 
 {summary}
 
-Question: "{question}"
+Base Question: "{question}"
 
 TASK:
 ----
-- Requestioning the question, make a clear, concise, relevant question based on video summary and question follow chat history.
-- If the question does not related to the video content, straightforwardly translate the question to {video_lang} follow chat history context.
+- According the "Base Question", make a short, clear, concise, relevant question based on video
+- New question should follow chat history context.
+- If the question does not related to the video content, straightforwardly translate the question to {video_lang}
+
 OUTPUT:
 ----
 - Response in language: {video_lang}

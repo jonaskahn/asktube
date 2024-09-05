@@ -150,7 +150,7 @@ class VideoService:
         amount, context = AiService.query_embeddings(
             table=f"video_chapter_{video.id}",
             query=embedding_question,
-            fetch_size=video.amount_chapters
+            fetch_size=video.amount_chapters * 3
         )
         asking_prompt = ASKING_PROMPT.format(**{
             "title": video.title,

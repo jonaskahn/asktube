@@ -33,7 +33,7 @@ class AiService:
 
     @staticmethod
     def __get_local_embedding_encoder():
-        local_model_path = os.path.join(env.APP_DIR, env.LOCAL_EMBEDDING_MODEL)
+        local_model_path: str = os.path.join(env.APP_DIR, env.LOCAL_EMBEDDING_MODEL)
         if not os.path.exists(local_model_path):
             encoder = SentenceTransformer(model_name_or_path=env.LOCAL_EMBEDDING_MODEL, device=env.LOCAL_EMBEDDING_DEVICE, trust_remote_code=True)
             encoder.save(local_model_path)
@@ -176,7 +176,7 @@ class AiService:
         collection.add(ids=ids, embeddings=embeddings, documents=texts)
 
     @staticmethod
-    def query_embeddings(table: str, query: list[list[float]], fetch_size: int = 5, thresholds: list[float] = None):
+    def query_embeddings(table: str, query: list[list[float]], fetch_size: int = 10, thresholds: list[float] = None):
         if thresholds is None:
             thresholds = [0.3, 0.6, 0.9]
         collection = chromadb_client.get_or_create_collection(table)
@@ -214,7 +214,7 @@ class AiService:
             top_k: int = 32
     ):
         if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":
-            raise AiApiKeyError()
+            raise AiApiKeyError("Refine your Gemini API key in the .env file")
         chat_histories = AiService.__build_gemini_chat_history(previous_chats)
         genai.configure(api_key=env.GEMINI_API_KEY)
         agent = genai.GenerativeModel(
@@ -255,7 +255,7 @@ class AiService:
             top_p: float = 0.8
     ):
         if env.OPENAI_API_KEY is None or env.OPENAI_API_KEY.strip() == "":
-            raise AiApiKeyError()
+            raise AiApiKeyError("Refine your OpenAI API key in the .env file")
         client = OpenAI(api_key=env.OPENAI_API_KEY)
         messages = AiService.__build_openai_chat_history(previous_chats)
         messages.append({
@@ -299,7 +299,7 @@ class AiService:
             top_k: int = 16
     ):
         if env.CLAUDE_API_KEY is None or env.CLAUDE_API_KEY.strip() == "":
-            raise AiApiKeyError()
+            raise AiApiKeyError("Refine your Claude API key in the .env file")
         client = anthropic.Anthropic(api_key=env.CLAUDE_API_KEY)
         messages = AiService.__build_claude_chat_history(chats=previous_chats)
         messages.append({
