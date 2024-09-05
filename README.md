@@ -8,7 +8,7 @@ AI-Powered Summarizer, Q&amp;A Assistant on Youtube Videos 🤖
 - Language: Python, JS
 - Framework/Lib: Sanic, Peewee, Pytubefix, Sentence Transformers, Sqlite, Chroma, VueJs
 - Embedding Provider: OpenAI, Gemini, VoyageAI, Local (Sentence Transformers)
-- Q&A Provider: OpenAI(GPT), Gemini, Claude, Local (Ollama)
+- AI Provider: OpenAI(GPT), Gemini, Claude, Local (Ollama)
 
 ---
 ## Why does this project exist?
