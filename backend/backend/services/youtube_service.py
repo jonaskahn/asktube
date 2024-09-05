@@ -3,14 +3,13 @@ from datetime import timedelta
 from pathlib import Path
 
 import pytubefix
-from pytubefix import YouTube, Caption
-from pytubefix.cli import on_progress
-
 from backend import env, constants
 from backend.db.models import VideoChapter, Video
 from backend.services.ai_service import AiService
 from backend.services.video_service import VideoService
 from backend.utils.logger import log
+from pytubefix import YouTube, Caption
+from pytubefix.cli import on_progress
 
 
 class YoutubeService:
@@ -25,6 +24,12 @@ class YoutubeService:
         self.__video_service = VideoService()
 
     def fetch_basic_info(self):
+        """
+        Fetches the basic information of a YouTube video.
+
+        Returns:
+            dict: A dictionary containing the title, description, duration, author, thumbnail, and captions of the video.
+        """
         captions = list(map(lambda c: {'name': c.name, 'value': c.code}, self.__agent.captions))
         return {
             'title': self.__agent.title,
@@ -36,6 +41,20 @@ class YoutubeService:
         }
 
     async def fetch_video_data(self):
+        """
+        Fetches and processes video data from a YouTube video.
+
+        This function checks if the video data is already available in the database.
+        If it is, the function returns the existing video data.
+        Otherwise, it creates a new video object, extracts chapters and transcripts,
+        and saves the video data to the database.
+
+        Args:
+            self: The YoutubeService instance.
+
+        Returns:
+            Video: The video data object.
+        """
         video = VideoService.find_video_by_youtube_id(self.__agent.video_id)
         if video is not None:
             return video

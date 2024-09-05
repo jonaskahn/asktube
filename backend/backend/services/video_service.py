@@ -39,6 +39,19 @@ class VideoService:
 
     @staticmethod
     async def analysis_video(vid: int, provider: str = "gemini"):
+        """
+        Analyzes a video by its ID and updates its analysis status.
+
+        Fetch all chapter transcripts of video then embedding them with the specified provider.
+        After that, all embeddings will be stored in the database.
+
+        Args:
+            vid (int): The ID of the video to be analyzed.
+            provider (str, optional): The provider for the analysis. Defaults to "gemini".
+
+        Returns:
+            Video: The analyzed video object.
+        """
         video: Video = VideoService.find_video_by_id(vid)
         if video is None:
             raise VideoNotFoundError("Video not found")
@@ -51,6 +64,16 @@ class VideoService:
 
     @staticmethod
     async def __analysis_chapters(provider, video):
+        """
+        Analyzes video chapters using a specified provider.
+
+        Args:
+            provider (str): The provider for the analysis.
+            video (Video): The video object containing the chapters to be analyzed.
+
+        Returns:
+            None
+        """
         video_chapters = list(VideoChapter.select().where(VideoChapter.video == video))
         with ThreadPoolExecutor(max_workers=len(video_chapters)) as executor:
             if provider == "gemini":
@@ -69,11 +92,33 @@ class VideoService:
 
     @staticmethod
     def __analysis_video_with_gemini(vid: int, chapter: VideoChapter):
+        """
+        Analyzes a video chapter using the Gemini AI service.
+
+        Args:
+            vid (int): The ID of the video.
+            chapter (VideoChapter): The chapter of the video to be analyzed.
+
+        Returns:
+            None
+        """
         texts, embeddings = AiService.embedding_document_with_gemini(chapter.transcript)
         VideoService.__store_embedding_chunked_transcript(chapter, embeddings, texts, vid)
 
     @staticmethod
     def __store_embedding_chunked_transcript(chapter, embeddings, texts, vid):
+        """
+        Stores the embedding of a video chapter transcript in a chunked manner.
+
+        Args:
+            chapter: The video chapter object containing the transcript to be stored.
+            embeddings: The embeddings of the transcript.
+            texts: The text chunks of the transcript.
+            vid: The ID of the video.
+
+        Returns:
+            None
+        """
         ids: list[str] = []
         documents: list[str] = []
 
@@ -88,21 +133,71 @@ class VideoService:
 
     @staticmethod
     def __analysis_video_with_openai(vid: int, chapter: VideoChapter):
+        """
+        Analyzes a video chapter using the OpenAI service.
+
+        Args:
+            vid (int): The ID of the video.
+            chapter (VideoChapter): The chapter of the video to be analyzed.
+
+        Returns:
+            None
+        """
         texts, embeddings = AiService.embedding_document_with_openai(chapter.transcript)
         VideoService.__store_embedding_chunked_transcript(chapter, embeddings, texts, vid)
 
     @staticmethod
     def __analysis_video_with_voyageai(vid: int, chapter: VideoChapter):
+        """
+        Analyzes a video chapter using the VoyageAI service.
+
+        Args:
+            vid (int): The ID of the video.
+            chapter (VideoChapter): The chapter of the video to be analyzed.
+
+        Returns:
+            None
+        """
         texts, embeddings = AiService.embedding_document_with_voyageai(chapter.transcript)
         VideoService.__store_embedding_chunked_transcript(chapter, embeddings, texts, vid)
 
     @staticmethod
     def __analysis_video_with_local(vid: int, chapter: VideoChapter):
+        """
+        Analyzes a video chapter using a local service.
+
+        Args:
+            vid (int): The ID of the video.
+            chapter (VideoChapter): The chapter of the video to be analyzed.
+
+        Returns:
+            None
+        """
         texts, embeddings = AiService.embedding_document_with_local(chapter.transcript)
         VideoService.__store_embedding_chunked_transcript(chapter, embeddings, texts, vid)
 
     @staticmethod
     async def summary_video(vid: int, lang_code: str, provider: str, model: str = None):
+        """
+        Retrieves the summary of a video using transcript.
+
+        After generate requested summary, a "system summary" will be generated,
+        then embedded using Provider same as video chapters and store to ChromaDB.
+
+        Args:
+            vid (int): The ID of the video.
+            lang_code (str): The language code of the video.
+            provider (str): The provider of the video.
+            model (str, optional): The model to use for summarization. Defaults to None.
+
+        Returns:
+            str: The summary of the video.
+
+        Raises:
+            VideoNotFoundError: If the video is not found.
+            VideoNotAnalyzedError: If the video is not analyzed.
+
+        """
         video: Video = VideoService.find_video_by_id(vid)
         if video is None:
             raise VideoNotFoundError("Video is not found")
@@ -137,6 +232,28 @@ class VideoService:
 
     @staticmethod
     async def ask(question: str, vid: int, provider: str, model: str = None):
+        """
+        Asks a question about a video and returns the answer.
+
+        Since question adn video chapter transcript may not same language, a small call to AI Provider
+        will be trigger to translate question if needed. In the next step, refined question will be
+        embbeding and query compare in the ChromaDB to find the similiar transcript. Finally, when we
+        have enough information to enrich the question, we will ask it to AI Provider to get the answer.
+
+
+        Args:
+            question (str): The question to ask about the video.
+            vid (int): The ID of the video.
+            provider (str): The provider of the video.
+            model (str, optional): The model to use for answering the question. Defaults to None.
+
+        Returns:
+            str: The answer to the question.
+
+        Raises:
+            VideoNotFoundError: If the video is not found.
+            VideoNotAnalyzedError: If the video is not analyzed.
+        """
         video: Video = VideoService.find_video_by_id(vid)
         if video is None:
             raise VideoNotFoundError("Video is not found")
