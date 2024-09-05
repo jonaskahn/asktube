@@ -93,7 +93,7 @@ async def analysis_youtube_video(request):
     provider = request.json['provider']
     await asyncio.create_task(VideoService.analysis_video(vid, provider))
     return json({
-        "message": "Successfully analysis video analysis"
+        "message": "Successfully analysis video"
     })
 
 

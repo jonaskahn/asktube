@@ -178,7 +178,7 @@ class AiService:
     @staticmethod
     def query_embeddings(table: str, query: list[list[float]], fetch_size: int = 10, thresholds: list[float] = None):
         if thresholds is None:
-            thresholds = [0.3, 0.6, 0.9]
+            thresholds = [0.3, 0.6]
         collection = chromadb_client.get_or_create_collection(table)
         results = collection.query(query_embeddings=query, n_results=fetch_size, include=['documents', 'distances'])
 
