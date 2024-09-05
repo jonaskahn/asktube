@@ -49,6 +49,7 @@ class Chat(Model):
     id = AutoField(primary_key=True, index_type=True)
     video = ForeignKeyField(Video, backref="chats", index=True)
     question = TextField(null=False)
+    refined_question = TextField(null=False)
     answer = TextField(null=False)
     context = TextField(null=False, default=""),
     prompt = TextField(null=False, default="")

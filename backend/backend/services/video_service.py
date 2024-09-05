@@ -63,6 +63,8 @@ class VideoService:
             else:
                 raise LogicError("Unknown provider")
             concurrent.futures.as_completed(futures)
+            for future in concurrent.futures.as_completed(futures):
+                future.result()
 
     @staticmethod
     def __analysis_video_with_gemini(vid: int, chapter: VideoChapter):
@@ -73,9 +75,14 @@ class VideoService:
     def __store_embedding_chunked_transcript(chapter, embeddings, texts, vid):
         ids: list[str] = []
         documents: list[str] = []
-        for index, text in enumerate(texts):
-            ids.append(f"{vid}_{chapter.id}_{index}")
-            documents.append(f"## {chapter.title} - Part {index + 1}: \n---\n{text}")
+
+        if len(texts) == 1:
+            ids.append(f"{vid}_{chapter.id}")
+            documents.append(f"## {chapter.title}: \n---\n{texts[0]}")
+        else:
+            for index, text in enumerate(texts):
+                ids.append(f"{vid}_{chapter.id}_{index}")
+                documents.append(f"## {chapter.title} - Part {index + 1}: \n---\n{text}")
         AiService.store_embeddings(f"video_chapter_{vid}", ids, documents, embeddings)
 
     @staticmethod
@@ -155,6 +162,7 @@ class VideoService:
         chat = Chat.create(
             video=video,
             question=question,
+            refined_question=refined_question,
             answer=result,
             context=context,
             prompt=asking_prompt
@@ -164,16 +172,14 @@ class VideoService:
 
     @staticmethod
     def __refine_question(model: str, provider: str, question: str, question_lang: str, video: Video, chats: list[Chat]):
-        if question_lang != video.language:
-            prompt = RE_QUESTION_PROMPT.format(**{
-                "video_lang": iso639.Language.from_part1(video.language).name,
-                "question_lang": iso639.Language.from_part1(question_lang).name,
-                "title": video.title,
-                "summary": video.summary,
-                "question": question
-            })
-            return VideoService.__get_response_from_ai(prompt=prompt, model=model, provider=provider, chats=chats)
-        return question
+        prompt = RE_QUESTION_PROMPT.format(**{
+            "video_lang": iso639.Language.from_part1(video.language).name,
+            "question_lang": iso639.Language.from_part1(question_lang).name,
+            "title": video.title,
+            "summary": video.summary,
+            "question": question
+        })
+        return VideoService.__get_response_from_ai(prompt=prompt, model=model, provider=provider, chats=chats)
 
     @staticmethod
     def __get_response_from_ai(prompt: str, model: str, provider: str, chats: list[Chat] = None):

@@ -116,12 +116,25 @@ class AiService:
     @staticmethod
     def __chunk_text(text, max_tokens):
         encoding = tiktoken.get_encoding("cl100k_base")
-        tokens = encoding.encode(text)
+        words = text.split()
         chunks = []
-        for i in range(0, len(tokens), max_tokens):
-            chunk = tokens[i:i + max_tokens]
-            chunks.append(chunk)
-        return [encoding.decode(chunk) for chunk in chunks]
+        current_chunk = []
+        current_length = 0
+
+        for word in words:
+            word_tokens = encoding.encode(word)
+            if current_length + len(word_tokens) > max_tokens:
+                chunks.append(" ".join(current_chunk))
+                current_chunk = [word]
+                current_length = len(word_tokens)
+            else:
+                current_chunk.append(word)
+                current_length += len(word_tokens)
+
+        if current_chunk:
+            chunks.append(" ".join(current_chunk))
+
+        return chunks
 
     @staticmethod
     def embedding_document_with_gemini(text: str, max_tokens=2000):
@@ -226,7 +239,7 @@ class AiService:
         for chat in chats:
             chat_histories.extend(
                 (
-                    {"role": "user", "parts": chat.question},
+                    {"role": "user", "parts": chat.refined_question},
                     {"role": "model", "parts": chat.answer},
                 )
             )
@@ -269,7 +282,7 @@ class AiService:
         for chat in chats:
             chat_histories.extend(
                 (
-                    {"role": "user", "content": chat.question},
+                    {"role": "user", "content": chat.refined_question},
                     {"role": "assistant", "content": chat.answer},
                 )
             )
@@ -311,7 +324,7 @@ class AiService:
         for chat in chats:
             chat_histories.extend(
                 (
-                    {"role": "user", "content": chat.question},
+                    {"role": "user", "content": chat.refined_question},
                     {"role": "assistant", "content": chat.answer},
                 )
             )
