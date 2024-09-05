@@ -23,6 +23,7 @@ python-iso639 = "^2024.4.27"
 voyageai = "^0.2.3"
 anthropic = "^0.34.2"
 sentence-transformers = "^3.0.1"
+tiktoken = "^0.7.0"
 
 [build-system]
 requires = ["poetry-core"]

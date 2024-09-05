@@ -51,46 +51,47 @@ class VideoService:
     @staticmethod
     async def __analysis_chapters(provider, video):
         video_chapters = list(VideoChapter.select().where(VideoChapter.video == video))
-        result: list[dict] = []
         with ThreadPoolExecutor(max_workers=len(video_chapters)) as executor:
             if provider == "gemini":
-                futures = [executor.submit(VideoService.__analysis_video_with_gemini, chapter) for chapter in video_chapters]
+                futures = [executor.submit(VideoService.__analysis_video_with_gemini, video.id, chapter) for chapter in video_chapters]
             elif provider == "openai":
-                futures = [executor.submit(VideoService.__analysis_video_with_openai, chapter) for chapter in video_chapters]
+                futures = [executor.submit(VideoService.__analysis_video_with_openai, video.id, chapter) for chapter in video_chapters]
             elif provider == "voyageai":
-                futures = [executor.submit(VideoService.__analysis_video_with_voyageai, chapter) for chapter in video_chapters]
+                futures = [executor.submit(VideoService.__analysis_video_with_voyageai, video.id, chapter) for chapter in video_chapters]
             elif provider == "local":
-                futures = [executor.submit(VideoService.__analysis_video_with_local, chapter) for chapter in video_chapters]
+                futures = [executor.submit(VideoService.__analysis_video_with_local, video.id, chapter) for chapter in video_chapters]
             else:
                 raise LogicError("Unknown provider")
-            result.extend(future.result() for future in concurrent.futures.as_completed(futures))
+            concurrent.futures.as_completed(futures)
+
+    @staticmethod
+    def __analysis_video_with_gemini(vid: int, chapter: VideoChapter):
+        texts, embeddings = AiService.embedding_document_with_gemini(chapter.transcript)
+        VideoService.__store_embedding_chunked_transcript(chapter, embeddings, texts, vid)
+
+    @staticmethod
+    def __store_embedding_chunked_transcript(chapter, embeddings, texts, vid):
         ids: list[str] = []
-        texts: list[str] = []
-        embeddings: list[list[float]] = []
-        for r in result:
-            ids.append(r[0])
-            texts.append(r[1])
-            embeddings.append(r[2])
-        AiService.store_embeddings(f"video_chapter_{video.id}", ids, texts, embeddings)
+        documents: list[str] = []
+        for index, text in enumerate(texts):
+            ids.append(f"{vid}_{chapter.id}_{index}")
+            documents.append(f"## {chapter.title} - Part {index + 1}: \n---\n{text}")
+        AiService.store_embeddings(f"video_chapter_{vid}", ids, documents, embeddings)
 
     @staticmethod
-    def __analysis_video_with_gemini(chapter: VideoChapter):
-        text = f"## {chapter.title}\n---\n{chapter.transcript}"
-        return str(chapter.id), text, AiService.embedding_document_with_gemini(text)
+    def __analysis_video_with_openai(vid: int, chapter: VideoChapter):
+        texts, embeddings = AiService.embedding_document_with_openai(chapter.transcript)
+        VideoService.__store_embedding_chunked_transcript(chapter, embeddings, texts, vid)
 
     @staticmethod
-    def __analysis_video_with_openai(chapter: VideoChapter):
-        text = f"## {chapter.title}\n---\n{chapter.transcript}"
-        return str(chapter.id), text, AiService.embedding_document_with_openai(text)
+    def __analysis_video_with_voyageai(vid: int, chapter: VideoChapter):
+        texts, embeddings = AiService.embedding_document_with_voyageai(chapter.transcript)
+        VideoService.__store_embedding_chunked_transcript(chapter, embeddings, texts, vid)
 
     @staticmethod
-    def __analysis_video_with_voyageai(chapter: VideoChapter):
-        text = f"## {chapter.title}\n---\n{chapter.transcript}"
-        return str(chapter.id), text, AiService.embedding_document_with_voyageai(text)
-
-    @staticmethod
-    def __analysis_video_with_local(chapter: VideoChapter):
-        return str(chapter.id), chapter.transcript, AiService.embedding_document_with_local(f"## {chapter.title}\n---\n{chapter.transcript}")
+    def __analysis_video_with_local(vid: int, chapter: VideoChapter):
+        texts, embeddings = AiService.embedding_document_with_local(chapter.transcript)
+        VideoService.__store_embedding_chunked_transcript(chapter, embeddings, texts, vid)
 
     @staticmethod
     async def summary_video(vid: int, lang_code: str, provider: str, model: str = None):
@@ -111,8 +112,8 @@ class VideoService:
         if video.is_summary_analyzed:
             return
         system_summary = await VideoService.__summary_content(video.language, model, provider, video)
-        summary_embedding = VideoService.__get_query_embedding(video.embedding_provider, system_summary)
-        AiService.store_embeddings(f"video_summary_{vid}", [str(0)], [system_summary], [summary_embedding])
+        texts, embeddings = VideoService.__get_query_embedding(video.embedding_provider, system_summary)
+        AiService.store_embeddings(f"video_summary_{vid}", [str(0)], texts, embeddings)
 
     @staticmethod
     async def __summary_content(lang_code, model, provider, video):
@@ -138,7 +139,7 @@ class VideoService:
             await VideoService.summary_video(vid, question_lang, provider, model)
         chats: list[Chat] = list(Chat.select().where(Chat.video == video).limit(10))
         refined_question = VideoService.__refine_question(model, provider, question, question_lang, video, chats)
-        embedding_question = VideoService.__get_query_embedding(video.embedding_provider, refined_question)
+        _, embedding_question = VideoService.__get_query_embedding(video.embedding_provider, refined_question)
         amount, context = AiService.query_embeddings(
             table=f"video_chapter_{video.id}",
             query=embedding_question,

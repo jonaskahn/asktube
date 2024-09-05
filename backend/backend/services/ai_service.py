@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import anthropic
 import google.generativeai as genai
+import tiktoken
 import voyageai
 from audio_extract import extract_audio
 from faster_whisper import WhisperModel
@@ -113,38 +114,48 @@ class AiService:
         ]
 
     @staticmethod
-    def embedding_document_with_gemini(text: str):
+    def __chunk_text(text, max_tokens):
+        encoding = tiktoken.get_encoding("cl100k_base")
+        tokens = encoding.encode(text)
+        chunks = []
+        for i in range(0, len(tokens), max_tokens):
+            chunk = tokens[i:i + max_tokens]
+            chunks.append(chunk)
+        return [encoding.decode(chunk) for chunk in chunks]
+
+    @staticmethod
+    def embedding_document_with_gemini(text: str, max_tokens=2000):
         if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":
             raise AiApiKeyError()
         try:
+            texts = AiService.__chunk_text(text, max_tokens)
             genai.configure(api_key=env.GEMINI_API_KEY)
-            result = genai.embed_content(model=env.GEMINI_EMBEDDING_MODEL, content=text)
-            return result['embedding']
+            return texts, [genai.embed_content(model=env.GEMINI_EMBEDDING_MODEL, content=text)['embedding'] for text in texts]
         except Exception as e:
             log.debug(f"\nError in embedding_document_with_gemini: \n{text}", exc_info=True)
             raise e
 
     @staticmethod
-    def embedding_document_with_openai(text: str):
+    def embedding_document_with_openai(text: str, max_tokens=8000):
         if env.OPENAI_API_KEY is None or env.OPENAI_API_KEY.strip() == "":
             raise AiApiKeyError()
+        texts = AiService.__chunk_text(text, max_tokens)
         client = OpenAI(api_key=env.OPENAI_API_KEY)
-        result = client.embeddings.create(model=env.OPENAI_EMBEDDING_MODEL, input=[text])
-        return result.data[0].embedding
+        return texts, [client.embeddings.create(model=env.OPENAI_EMBEDDING_MODEL, input=[text]).data[0].embedding for text in texts]
 
     @staticmethod
-    def embedding_document_with_voyageai(text: str):
+    def embedding_document_with_voyageai(text: str, max_tokens=16000):
         if env.VOYAGEAI_API_KEY is None or env.VOYAGEAI_API_KEY.strip() == "":
             raise AiApiKeyError()
+        texts = AiService.__chunk_text(text, max_tokens)
         client = voyageai.Client(api_key=env.VOYAGEAI_API_KEY)
-        result = client.embed(texts=[text], model=env.VOYAGEAI_EMBEDDING_MODEL, input_type="document")
-        return result.embeddings[0]
+        return texts, [client.embed(texts=[text], model=env.VOYAGEAI_EMBEDDING_MODEL, input_type="document").embeddings[0] for text in texts]
 
     @staticmethod
-    def embedding_document_with_local(text: str):
+    def embedding_document_with_local(text: str, max_tokens=500):
+        texts = AiService.__chunk_text(text, max_tokens)
         encoder = AiService.__get_local_embedding_encoder()
-        embeddings = encoder.encode([text], normalize_embeddings=True, convert_to_numpy=True)
-        return embeddings.tolist()[0]
+        return texts, [encoder.encode([text], normalize_embeddings=True, convert_to_numpy=True).tolist()[0] for text in texts]
 
     @staticmethod
     def store_embeddings(table: str, ids: list[str], texts: list[str], embeddings: list[list[float]]):

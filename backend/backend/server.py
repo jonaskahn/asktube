@@ -71,7 +71,7 @@ async def fetch_youtube_video_info(request):
     youtube_service = YoutubeService(url)
     data = youtube_service.fetch_basic_info()
     return json({
-        "message": "Successfully fetched video info",
+        "message": "Successfully fetch video info",
         "payload": data
     })
 
@@ -82,7 +82,7 @@ async def process_youtube_video(request):
     youtube_service = YoutubeService(url)
     video = await asyncio.create_task(youtube_service.fetch_video_data())
     return json({
-        "message": "Successfully fetched video data",
+        "message": "Successfully fetch video data",
         "payload": model_to_dict(video)
     })
 
@@ -93,7 +93,7 @@ async def analysis_youtube_video(request):
     provider = request.json['provider']
     await asyncio.create_task(VideoService.analysis_video(vid, provider))
     return json({
-        "message": "Successfully fetched video analysis"
+        "message": "Successfully analysis video analysis"
     })
 
 
@@ -105,7 +105,7 @@ async def chat(request):
     model = request.json.get("model", None)
     data = await  asyncio.create_task(VideoService.ask(question, vid, provider, model))
     return json({
-        "message": "Successfully ask chat",
+        "message": "Successfully asking question",
         "payload": data
     })
 
