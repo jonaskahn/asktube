@@ -65,7 +65,7 @@ class YoutubeService:
             video_chapters.extend(
                 VideoChapter(
                     chapter_no=index + 1,
-                    title=chapter.title,
+                    title=f"Part {index + 1} : {chapter.title} ({timedelta(seconds=chapter.start_seconds)} - {timedelta(seconds=chapter.start_seconds + chapter.duration)})",
                     start_time=chapter.start_seconds,
                     start_label=chapter.start_label,
                     duration=chapter.duration,

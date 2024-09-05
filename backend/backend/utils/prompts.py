@@ -57,12 +57,14 @@ SUGGESTION CONTEXT:
 
 TASK:
 ----
-- According on the "Suggestion Context" and "Question", give me a right answer, following chat history.
-- If you do not know the answer, just say "I don't know, please add a different question" or something like this -> Do not try to make up the answer.
+- According on the "SUGGESTION CONTEXT" and "QUESTION", give me a right answer, following chat history.
+- If the question beyond of "SUGGESTION CONTEXT":
+    + If you do not have information and ability to answer the question, say provide a creative answer alternative for "I do not know" ] . 
+    + If you have information and ability to answer the question, please provide the answer include a warning to me that your answer from your training knowledge, not from video.
 
 OUTPUT:
 ----
-- Response in language: {language}.
+- If the question do not specific target language, please provide the answer in: {language}.
 - Format in Markdown if "Question" does not specify any formatting.
 - Do not include any instructions, provide output directly.
 No yapping!!!

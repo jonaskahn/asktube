@@ -38,7 +38,7 @@ class VideoService:
         return Video.get_or_none(Video.id == vid)
 
     @staticmethod
-    async def analysis_video(vid: int, provider: str = "google"):
+    async def analysis_video(vid: int, provider: str = "gemini"):
         video: Video = VideoService.find_video_by_id(vid)
         if video is None:
             raise VideoNotFoundError("Video not found")
@@ -51,8 +51,10 @@ class VideoService:
                 futures = [executor.submit(VideoService.__analysis_video_with_gemini, chapter) for chapter in video_chapters]
             elif provider == "openai":
                 futures = [executor.submit(VideoService.__analysis_video_with_openai, chapter) for chapter in video_chapters]
-            elif provider == "ollama":
-                raise LogicError("Not implemented yet")
+            elif provider == "voyageai":
+                futures = [executor.submit(VideoService.__analysis_video_with_voyageai, chapter) for chapter in video_chapters]
+            elif provider == "local":
+                futures = [executor.submit(VideoService.__analysis_video_with_local, chapter) for chapter in video_chapters]
             else:
                 raise LogicError("Unknown provider")
             result.extend(future.result() for future in concurrent.futures.as_completed(futures))
@@ -72,11 +74,19 @@ class VideoService:
 
     @staticmethod
     def __analysis_video_with_gemini(chapter: VideoChapter):
-        return str(chapter.id), chapter.transcript, AiService.embedding_document_with_gemini(f"{chapter.title}\n{chapter.transcript}")
+        return str(chapter.id), chapter.transcript, AiService.embedding_document_with_gemini(f"## {chapter.title}\n---\n{chapter.transcript}")
 
     @staticmethod
     def __analysis_video_with_openai(chapter: VideoChapter):
         return str(chapter.id), chapter.transcript, AiService.embedding_document_with_openai(chapter.transcript)
+
+    @staticmethod
+    def __analysis_video_with_voyageai(chapter: VideoChapter):
+        return str(chapter.id), chapter.transcript, AiService.embedding_document_with_voyageai(chapter.transcript)
+
+    @staticmethod
+    def __analysis_video_with_local(chapter: VideoChapter):
+        return str(chapter.id), chapter.transcript, AiService.embedding_document_with_local(chapter.transcript)
 
     @staticmethod
     async def summary_video(vid: int, lang_code: str, provider: str, model: str = None):
@@ -118,7 +128,7 @@ class VideoService:
         if video.summary is None:
             await VideoService.summary_video(vid, question_lang, provider, model)
         re_question = VideoService.__re_question(model, provider, question, question_lang, video)
-        embedding_question = VideoService.__get_query_embedding(model, provider, re_question)
+        embedding_question = VideoService.__get_query_embedding(video.embedding_provider, re_question)
         context = AiService.query_embeddings(
             table=f"video_chapter_{video.id}",
             query=embedding_question,
@@ -179,12 +189,14 @@ class VideoService:
         return question
 
     @staticmethod
-    def __get_query_embedding(model, provider, question):
+    def __get_query_embedding(provider, question):
         if provider == "gemini":
             return AiService.embedding_document_with_gemini(question)
         elif provider == "openai":
             return AiService.embedding_document_with_openai(question)
-        elif provider == "ollama":
-            raise LogicError("Not implemented yet")
+        elif provider == "voyageai":
+            return AiService.embedding_document_with_voyageai(question)
+        elif provider == "local":
+            return AiService.embedding_document_with_local(question)
         else:
             raise LogicError("Unknown provider")

@@ -5,6 +5,7 @@ from collections import Counter
 from uuid import uuid4
 
 import google.generativeai as genai
+import voyageai
 from audio_extract import extract_audio
 from faster_whisper import WhisperModel
 from future.backports.datetime import timedelta
@@ -13,6 +14,7 @@ from openai import OpenAI
 from backend import env
 from backend.db.specs import chromadb_client
 from backend.error.ai_error import AiSegmentError, AiApiKeyError
+from backend.utils.logger import log
 from backend.utils.prompts import SYSTEM_PROMPT
 
 
@@ -22,8 +24,17 @@ class AiService:
 
     @staticmethod
     def __get_whisper_model():
-        compute_type = 'int8' if env.WHISPER_DEVICE == 'cpu' else 'fp16'
-        return WhisperModel(env.WHISPER_MODEL, device=env.WHISPER_DEVICE, compute_type=compute_type)
+        compute_type = 'int8' if env.LOCAL_WHISPER_DEVICE == 'cpu' else 'fp16'
+        return WhisperModel(env.LOCAL_WHISPER_MODEL, device=env.LOCAL_WHISPER_DEVICE, compute_type=compute_type)
+
+    @staticmethod
+    def __get_local_embedding_model():
+        local_model_path = os.path.join(env.APP_DIR, env.LOCAL_EMBEDDING_MODEL)
+        if not os.path.exists(local_model_path):
+            encoder = SentenceTransformer(model, device=env.LOCAL_EMBEDDING_DEVICE, trust_remote_code=True)
+            encoder.save(local_model_path)
+            return encoder
+        return SentenceTransformer(local_model_path, device=env.LOCAL_EMBEDDING_DEVICE, trust_remote_code=True)
 
     def recognize_audio_language(self, audio_path, duration):
         """
@@ -102,9 +113,13 @@ class AiService:
     def embedding_document_with_gemini(text: str):
         if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":
             raise AiApiKeyError()
-        genai.configure(api_key=env.GEMINI_API_KEY)
-        result = genai.embed_content(model=env.GEMINI_EMBEDDING_MODEL, content=text)
-        return result['embedding']
+        try:
+            genai.configure(api_key=env.GEMINI_API_KEY)
+            result = genai.embed_content(model=env.GEMINI_EMBEDDING_MODEL, content=text)
+            return result['embedding']
+        except Exception as e:
+            log.debug(f"\nError in embedding_document_with_gemini: \n{text}", exc_info=True)
+            raise e
 
     @staticmethod
     def embedding_document_with_openai(text: str):
@@ -113,6 +128,20 @@ class AiService:
         client = OpenAI(api_key=env.OPENAI_API_KEY)
         result = client.embeddings.create(model=env.OPENAI_EMBEDDING_MODEL, input=[text])
         return result.data[0].embedding
+
+    @staticmethod
+    def embedding_document_with_voyageai(text: str):
+        if env.VOYAGEAI_API_KEY is None or env.VOYAGEAI_API_KEY.strip() == "":
+            raise AiApiKeyError()
+        client = voyageai.Client(api_key=env.VOYAGEAI_API_KEY)
+        result = client.embed(texts=[text], model=env.VOYAGEAI_EMBEDDING_MODEL, input_type="document")
+        return result.embeddings[0]
+
+    @staticmethod
+    def embedding_document_with_local(text: str):
+        encoder = AiService.__get_local_embedding_model()
+        embeddings = encoder.encode([text])
+        return embeddings[0]
 
     @staticmethod
     def store_embeddings(table: str, ids: list[str], texts: list[str], embeddings: list[list[float]]):
