@@ -43,7 +43,7 @@ class AiService:
     def recognize_audio_language(self, audio_path, duration):
         """
         Recognize language from the audio path. 
-        - If audio length is less than 120 seconds, use whole audio to detecht
+        - If audio length is less than 120 seconds, use whole audio to detect.
         - Otherwise, random pick a set of split audios (at the end, middle, start) to detect language.
         Note: Current faster-whisper does not support any "fast way" detecting languages. Here is my work-around solution.
         
