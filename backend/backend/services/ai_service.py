@@ -10,6 +10,7 @@ from audio_extract import extract_audio
 from faster_whisper import WhisperModel
 from future.backports.datetime import timedelta
 from openai import OpenAI
+from sentence_transformers import SentenceTransformer
 
 from backend import env
 from backend.db.specs import chromadb_client
@@ -28,13 +29,13 @@ class AiService:
         return WhisperModel(env.LOCAL_WHISPER_MODEL, device=env.LOCAL_WHISPER_DEVICE, compute_type=compute_type)
 
     @staticmethod
-    def __get_local_embedding_model():
+    def __get_local_embedding_encoder():
         local_model_path = os.path.join(env.APP_DIR, env.LOCAL_EMBEDDING_MODEL)
         if not os.path.exists(local_model_path):
-            encoder = SentenceTransformer(model, device=env.LOCAL_EMBEDDING_DEVICE, trust_remote_code=True)
+            encoder = SentenceTransformer(model_name_or_path=env.LOCAL_EMBEDDING_MODEL, device=env.LOCAL_EMBEDDING_DEVICE, trust_remote_code=True)
             encoder.save(local_model_path)
             return encoder
-        return SentenceTransformer(local_model_path, device=env.LOCAL_EMBEDDING_DEVICE, trust_remote_code=True)
+        return SentenceTransformer(model_name_or_path=local_model_path, device=env.LOCAL_EMBEDDING_DEVICE, trust_remote_code=True)
 
     def recognize_audio_language(self, audio_path, duration):
         """
@@ -139,8 +140,8 @@ class AiService:
 
     @staticmethod
     def embedding_document_with_local(text: str):
-        encoder = AiService.__get_local_embedding_model()
-        embeddings = encoder.encode([text])
+        encoder = AiService.__get_local_embedding_encoder()
+        embeddings = encoder.encode([text], normalize_embeddings=True)
         return embeddings[0]
 
     @staticmethod
