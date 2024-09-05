@@ -205,21 +205,24 @@ class AiService:
 
     @staticmethod
     def chat_with_gemini(
-            prompt: str,
             model: str,
-            previous_chats: list[Chat],
+            prompt: str,
+            system_prompt: str = SYSTEM_PROMPT,
+            previous_chats: list[Chat] = None,
             max_tokens: int = 4096,
             temperature: float = 0.6,
             top_p: float = 0.6,
             top_k: int = 32
     ):
+        if previous_chats is None:
+            previous_chats = []
         if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":
             raise AiApiKeyError("Refine your Gemini API key in the .env file")
         chat_histories = AiService.__build_gemini_chat_history(previous_chats)
         genai.configure(api_key=env.GEMINI_API_KEY)
         agent = genai.GenerativeModel(
             model_name=model if model is not None or model else "gemini-1.5-flash",
-            system_instruction=SYSTEM_PROMPT,
+            system_instruction=system_prompt,
             generation_config=genai.GenerationConfig(
                 max_output_tokens=max_tokens,
                 temperature=temperature,
@@ -249,15 +252,18 @@ class AiService:
     def chat_with_openai(
             model: str,
             prompt: str,
-            previous_chats: list[Chat],
+            system_prompt: str = SYSTEM_PROMPT,
+            previous_chats: list[Chat] = None,
             max_tokens: int = 4096,
             temperature: float = 0.7,
             top_p: float = 0.8
     ):
+        if previous_chats is None:
+            previous_chats = []
         if env.OPENAI_API_KEY is None or env.OPENAI_API_KEY.strip() == "":
             raise AiApiKeyError("Refine your OpenAI API key in the .env file")
         client = OpenAI(api_key=env.OPENAI_API_KEY)
-        messages = AiService.__build_openai_chat_history(previous_chats)
+        messages = AiService.__build_openai_chat_history(system_prompt, previous_chats)
         messages.append({
             "role": "user",
             "content": prompt
@@ -272,12 +278,12 @@ class AiService:
         return completion.choices[0].message.content
 
     @staticmethod
-    def __build_openai_chat_history(chats: list[Chat]):
+    def __build_openai_chat_history(system_prompt: str, chats: list[Chat]):
         if chats is None or not chats:
             return []
         chat_histories = [{
             "role": "system",
-            "content": SYSTEM_PROMPT
+            "content": system_prompt
         }]
         for chat in chats:
             chat_histories.extend(
@@ -292,12 +298,15 @@ class AiService:
     def chat_with_claude(
             model: str,
             prompt: str,
-            previous_chats: list[Chat],
+            system_prompt: str = SYSTEM_PROMPT,
+            previous_chats: list[Chat] = None,
             max_tokens: int = 4096,
             temperature: float = 0.7,
             top_p: float = 0.7,
             top_k: int = 16
     ):
+        if previous_chats is None:
+            previous_chats = []
         if env.CLAUDE_API_KEY is None or env.CLAUDE_API_KEY.strip() == "":
             raise AiApiKeyError("Refine your Claude API key in the .env file")
         client = anthropic.Anthropic(api_key=env.CLAUDE_API_KEY)
@@ -307,14 +316,14 @@ class AiService:
         })
         response = client.messages.create(
             model=model if model is not None or model else "claude-3-haiku-20240307",
-            system=SYSTEM_PROMPT,
+            system=system_prompt,
             messages=messages,
             max_tokens=max_tokens,
             temperature=temperature,
             top_p=top_p,
             top_k=top_k
         )
-        return response.content
+        return response.content[0].text
 
     @staticmethod
     def __build_claude_chat_history(chats: list[Chat]):
@@ -328,14 +337,18 @@ class AiService:
                     {"role": "assistant", "content": chat.answer},
                 )
             )
+        return chat_histories
 
     @staticmethod
     def chat_with_ollama(
             model: str,
             prompt: str,
-            previous_chats: list[Chat],
+            system_prompt: str = SYSTEM_PROMPT,
+            previous_chats: list[Chat] = None,
             max_tokens: int = 2048,
             temperature: float = 0.7,
             top_p: float = 1.0
     ):
+        if previous_chats is None:
+            previous_chats = []
         raise NotImplementedError("OLLAMA is not implemented")

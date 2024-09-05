@@ -24,47 +24,22 @@ OUTPUT:
 No yapping!!!
 """
 
-RE_QUESTION_PROMPT = """GIVEN:
-----
-I have a youtube video, video in language {video_lang} and a question in {question_lang}
-
-Title: {title}
-Summary: 
-{summary}
-
-Base Question: "{question}"
-
-TASK:
-----
-- According the "Base Question", make a short, clear, concise, relevant question based on video
-- New question should follow chat history context.
-- If the question does not related to the video content, straightforwardly translate the question to {video_lang}
-
+REFINED_QUESTION_PROMPT = """TASK:
+- Translate a original input "{question}" to "{video_lang}"
 OUTPUT:
-----
-- Response in language: {video_lang}
 - Do not include any instructions, provide output directly.
 No yapping!!!
 """
 
-ASKING_PROMPT = """GIVEN: Youtube Video: {title}, i have a question and suggestion context.
-----
-QUESTION: "{question}"
-
-SUGGESTION CONTEXT:
+ASKING_PROMPT = """GIVEN:
+Youtube Video Information (from URL: {url})
+Title: "{title}"
+Context:
 {context}
-
+Original Question: "{question}"
+Refined question: "{refined_question}"
 TASK:
-----
-- According on the "SUGGESTION CONTEXT" and "QUESTION", give me a right answer, following chat history.
-- If the question beyond of "SUGGESTION CONTEXT":
-    + If you do not have information and ability to answer the question, say provide a creative answer alternative for "I do not know" ] . 
-    + If you have information and ability to answer the question, please provide the answer include a warning to me that your answer from your training knowledge, not from video.
-
-OUTPUT:
-----
-- Output response in language: {language} if "Question" does not specify any target language.
-- Format in Markdown if "Question" does not specify any formatting.
+- Answer my "Refined question".
+- If I do not mention target language in "Original Question", respond me in language {language}.
 - Do not include any instructions, provide output directly.
-No yapping!!!
 """

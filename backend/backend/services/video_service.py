@@ -2,14 +2,16 @@ import concurrent.futures
 from concurrent.futures.thread import ThreadPoolExecutor
 
 import iso639
-from langdetect import detect
+from lingua import LanguageDetectorBuilder
 
 from backend.db.models import Video, VideoChapter, Chat
 from backend.db.specs import sqlite_client
 from backend.error.base import LogicError
 from backend.error.video_error import VideoNotFoundError, VideoNotAnalyzedError
 from backend.services.ai_service import AiService
-from backend.utils.prompts import SUMMARY_PROMPT, RE_QUESTION_PROMPT, ASKING_PROMPT
+from backend.utils.prompts import SUMMARY_PROMPT, REFINED_QUESTION_PROMPT, SYSTEM_PROMPT, ASKING_PROMPT
+
+detector = LanguageDetectorBuilder.from_all_languages().build()
 
 
 class VideoService:
@@ -141,11 +143,12 @@ class VideoService:
             raise VideoNotFoundError("Video is not found")
         if not video.is_analyzed:
             raise VideoNotAnalyzedError("Video is not analyzed")
-        question_lang = detect(question)
+        question_lang = detector.detect_language_of(question)
+        question_lang_code = question_lang.iso_code_639_1.name.__str__().lower()
         if video.summary is None:
-            await VideoService.summary_video(vid, question_lang, provider, model)
+            await VideoService.summary_video(vid, question_lang_code, provider, model)
         chats: list[Chat] = list(Chat.select().where(Chat.video == video).limit(10))
-        refined_question = VideoService.__refine_question(model, provider, question, question_lang, video, chats)
+        refined_question = VideoService.__refine_question(model, provider, question, question_lang_code, video)
         _, embedding_question = VideoService.__get_query_embedding(video.embedding_provider, refined_question)
         amount, context = AiService.query_embeddings(
             table=f"video_chapter_{video.id}",
@@ -153,12 +156,19 @@ class VideoService:
             fetch_size=video.amount_chapters * 3
         )
         asking_prompt = ASKING_PROMPT.format(**{
+            "url": video.url,
             "title": video.title,
-            "question": refined_question,
             "context": context,
-            "language": iso639.Language.from_part1(question_lang).name
+            "question": question,
+            "refined_question": refined_question,
+            "language": question_lang.name.__str__()
         })
-        result = VideoService.__get_response_from_ai(prompt=asking_prompt, model=model, provider=provider, chats=chats)
+        result = VideoService.__get_response_from_ai(
+            prompt=asking_prompt,
+            model=model,
+            provider=provider,
+            chats=chats
+        )
         chat = Chat.create(
             video=video,
             question=question,
@@ -171,28 +181,33 @@ class VideoService:
         return result
 
     @staticmethod
-    def __refine_question(model: str, provider: str, question: str, question_lang: str, video: Video, chats: list[Chat]):
-        prompt = RE_QUESTION_PROMPT.format(**{
+    def __refine_question(model: str, provider: str, question: str, question_lang: str, video: Video):
+        if question_lang == video.language:
+            return question
+        prompt = REFINED_QUESTION_PROMPT.format(**{
             "video_lang": iso639.Language.from_part1(video.language).name,
-            "question_lang": iso639.Language.from_part1(question_lang).name,
-            "title": video.title,
-            "summary": video.summary,
             "question": question
         })
-        return VideoService.__get_response_from_ai(prompt=prompt, model=model, provider=provider, chats=chats)
+        return VideoService.__get_response_from_ai(prompt=prompt, model=model, provider=provider)
 
     @staticmethod
-    def __get_response_from_ai(prompt: str, model: str, provider: str, chats: list[Chat] = None):
+    def __get_response_from_ai(
+            prompt: str,
+            system_prompt: str = SYSTEM_PROMPT,
+            model: str = None,
+            provider: str = None,
+            chats: list[Chat] = None
+    ):
         if chats is None:
             chats = []
         if provider == "gemini":
-            return AiService.chat_with_gemini(prompt=prompt, model=model, previous_chats=chats)
+            return AiService.chat_with_gemini(prompt=prompt, system_prompt=system_prompt, model=model, previous_chats=chats)
         elif provider == "openai":
-            return AiService.chat_with_openai(prompt=prompt, model=model, previous_chats=chats)
+            return AiService.chat_with_openai(prompt=prompt, system_prompt=system_prompt, model=model, previous_chats=chats)
         elif provider == "claude":
-            return AiService.chat_with_claude(prompt=prompt, model=model, previous_chats=chats)
+            return AiService.chat_with_claude(prompt=prompt, system_prompt=system_prompt, model=model, previous_chats=chats)
         elif provider == "ollama":
-            raise AiService.chat_with_ollama(prompt=prompt, model=model, previous_chats=chats)
+            raise AiService.chat_with_ollama(prompt=prompt, system_prompt=system_prompt, model=model, previous_chats=chats)
         else:
             raise LogicError("Unknown provider")
 
