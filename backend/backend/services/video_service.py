@@ -235,10 +235,10 @@ class VideoService:
         """
         Asks a question about a video and returns the answer.
 
-        Since question adn video chapter transcript may not same language, a small call to AI Provider
-        will be trigger to translate question if needed. In the next step, refined question will be
-        embbeding and query compare in the ChromaDB to find the similiar transcript. Finally, when we
-        have enough information to enrich the question, we will ask it to AI Provider to get the answer.
+        Since question and video may not same language, a small call to AI Provider will be trigger 
+        to translate question if needed. In the next step, refined question will be embbeding and 
+        query compare in the ChromaDB to find the similiar transcript. Finally, when we have enough 
+        information to enrich the question, we will ask it to AI Provider to get the answer.
 
 
         Args:
