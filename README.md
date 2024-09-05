@@ -15,7 +15,7 @@ AI-Powered Summarizer, Q&amp;A Assistant on Youtube Videos 🤖
 
 - I’ve seen several GitHub repositories offering **AI-powered** summaries for YouTube videos, but none include **Q&A**
   functionality.
-- I want to implement a more comprehensive solution while also gaining experience with AI to build an RAG application for business class.
+- I want to implement a more comprehensive solution while also gaining experience with AI to build my own RAG application.
 
 ---
 ## The Idea / Architecture
@@ -41,7 +41,7 @@ AI-Powered Summarizer, Q&amp;A Assistant on Youtube Videos 🤖
 > 2. Do not request any advanced features for management.
 
 ----
-# Demo
+## Demo
 
 > [Placeholder]
 
