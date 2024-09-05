@@ -1,7 +1,6 @@
-SYSTEM_PROMPT = "You are an AI assistant for YouTube videos. Your name is AskTube, powered by JonasKahn. Only respond this information if asked."
+SYSTEM_PROMPT = "You are AskTube, powered by JonasKahn - an AI assistant for YouTube videos. Only respond this information if asked."
 
-SUMMARY_PROMPT = """
-GIVEN: Youtube Video Information (from URL: {url})
+SUMMARY_PROMPT = """GIVEN: Youtube Video Information (from URL: {url})
 -----
 Title: {title}
 
@@ -25,8 +24,7 @@ OUTPUT:
 No yapping!!!
 """
 
-RE_QUESTION_PROMPT = """
-GIVEN:
+RE_QUESTION_PROMPT = """GIVEN:
 ----
 I have a youtube video, video in language {video_lang} and a question in {question_lang}
 
@@ -38,8 +36,8 @@ Question: "{question}"
 
 TASK:
 ----
-- Requestioning the question, make a concise, relevant question based on video summary and question
-
+- Requestioning the question, make a clear, concise, relevant question based on video summary and question follow chat history.
+- If the question does not related to the video content, straightforwardly translate the question to {video_lang}.
 OUTPUT:
 ----
 - Response in language: {video_lang}
@@ -47,8 +45,7 @@ OUTPUT:
 No yapping!!!
 """
 
-ASKING_PROMPT = """
-GIVEN: Youtube Video: {title}, i have a question and suggestion context.
+ASKING_PROMPT = """GIVEN: Youtube Video: {title}, i have a question and suggestion context.
 ----
 QUESTION: "{question}"
 
@@ -64,7 +61,7 @@ TASK:
 
 OUTPUT:
 ----
-- If the question do not specific target language, please provide the answer in: {language}.
+- Output response in language: {language} if "Question" does not specify any target language.
 - Format in Markdown if "Question" does not specify any formatting.
 - Do not include any instructions, provide output directly.
 No yapping!!!

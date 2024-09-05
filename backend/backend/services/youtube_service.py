@@ -65,7 +65,7 @@ class YoutubeService:
             video_chapters.extend(
                 VideoChapter(
                     chapter_no=index + 1,
-                    title=f"Part {index + 1} : {chapter.title} ({timedelta(seconds=chapter.start_seconds)} - {timedelta(seconds=chapter.start_seconds + chapter.duration)})",
+                    title=f"Chapter {index + 1} : {chapter.title} ({timedelta(seconds=chapter.start_seconds)} - {timedelta(seconds=chapter.start_seconds + chapter.duration)})",
                     start_time=chapter.start_seconds,
                     start_label=chapter.start_label,
                     duration=chapter.duration,
@@ -85,7 +85,7 @@ class YoutubeService:
             video_chapters.append(
                 VideoChapter(
                     chapter_no=index + 1,
-                    title=f"Part {index} ({timedelta(seconds=current_start_seconds)} - {timedelta(seconds=next_start_seconds)})",
+                    title=f"Chapter {index + 1} ({timedelta(seconds=current_start_seconds)} - {timedelta(seconds=next_start_seconds)})",
                     start_time=current_start_seconds,
                     start_label=str(timedelta(seconds=current_start_seconds)),
                     duration=(next_start_seconds - current_start_seconds),

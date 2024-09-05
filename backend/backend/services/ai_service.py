@@ -4,6 +4,7 @@ import tempfile
 from collections import Counter
 from uuid import uuid4
 
+import anthropic
 import google.generativeai as genai
 import voyageai
 from audio_extract import extract_audio
@@ -13,6 +14,7 @@ from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 
 from backend import env
+from backend.db.models import Chat
 from backend.db.specs import chromadb_client
 from backend.error.ai_error import AiSegmentError, AiApiKeyError
 from backend.utils.logger import log
@@ -141,8 +143,8 @@ class AiService:
     @staticmethod
     def embedding_document_with_local(text: str):
         encoder = AiService.__get_local_embedding_encoder()
-        embeddings = encoder.encode([text], normalize_embeddings=True)
-        return embeddings[0]
+        embeddings = encoder.encode([text], normalize_embeddings=True, convert_to_numpy=True)
+        return embeddings.tolist()[0]
 
     @staticmethod
     def store_embeddings(table: str, ids: list[str], texts: list[str], embeddings: list[list[float]]):
@@ -150,7 +152,9 @@ class AiService:
         collection.add(ids=ids, embeddings=embeddings, documents=texts)
 
     @staticmethod
-    def query_embeddings(table: str, query: list[list[float]], fetch_size: int = 5, expect_size: int = 2, max_distance: float = 1.2):
+    def query_embeddings(table: str, query: list[list[float]], fetch_size: int = 5, thresholds: list[float] = None):
+        if thresholds is None:
+            thresholds = [0.3, 0.6, 0.9]
         collection = chromadb_client.get_or_create_collection(table)
         results = collection.query(query_embeddings=query, n_results=fetch_size, include=['documents', 'distances'])
 
@@ -160,9 +164,11 @@ class AiService:
         flat_documents = [doc for sublist in documents for doc in sublist]
 
         distance_doc_pairs = list(zip(flat_distances, flat_documents))
-        filtered_pairs = [pair for pair in distance_doc_pairs if pair[0] <= max_distance]
-        sorted_pairs = sorted(filtered_pairs, key=lambda pair: pair[0])
-        top_closest = sorted_pairs[:max(1, expect_size)]
+        top_closest = []
+        for threshold in thresholds:
+            filtered_pairs = [pair for pair in distance_doc_pairs if pair[0] <= threshold]
+            sorted_pairs = sorted(filtered_pairs, key=lambda pair: pair[0])
+            top_closest.extend(sorted_pairs[:max(1, fetch_size)])
 
         unique_documents = []
         seen_docs = set()
@@ -171,25 +177,13 @@ class AiService:
             if doc_id not in seen_docs:
                 unique_documents.append(doc)
                 seen_docs.add(doc_id)
-        return "\n".join(unique_documents)
+        return len(unique_documents), "\n".join(unique_documents)
 
     @staticmethod
-    def generate_text_with_openai(
-            model: str,
-            prompt: str,
-            max_tokens: int = 2048,
-            temperature: float = 0.7,
-            top_p: float = 1.0
-    ):
-        if env.OPENAI_API_KEY is None or env.OPENAI_API_KEY.strip() == "":
-            raise AiApiKeyError()
-        client = OpenAI(api_key=env.OPENAI_API_KEY)
-        return ""
-
-    @staticmethod
-    def generate_text_with_gemini(
+    def chat_with_gemini(
             prompt: str,
             model: str,
+            previous_chats: list[Chat],
             max_tokens: int = 4096,
             temperature: float = 0.6,
             top_p: float = 0.6,
@@ -197,10 +191,11 @@ class AiService:
     ):
         if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":
             raise AiApiKeyError()
+        chat_histories = AiService.__build_gemini_chat_history(previous_chats)
         genai.configure(api_key=env.GEMINI_API_KEY)
-        agent = genai.GenerativeModel(model_name=model if model is not None else "gemini-1.5-flash", system_instruction=SYSTEM_PROMPT)
-        response = agent.generate_content(
-            prompt,
+        agent = genai.GenerativeModel(
+            model_name=model if model is not None or model else "gemini-1.5-flash",
+            system_instruction=SYSTEM_PROMPT,
             generation_config=genai.GenerationConfig(
                 max_output_tokens=max_tokens,
                 temperature=temperature,
@@ -208,36 +203,115 @@ class AiService:
                 top_k=top_k
             )
         )
-        return response.text.replace("\n", " ").strip()
+        chat = agent.start_chat(history=chat_histories)
+        response = chat.send_message(prompt)
+        return response.text.removesuffix("\n").strip()
+
+    @staticmethod
+    def __build_gemini_chat_history(chats: list[Chat]):
+        if chats is None or not chats:
+            return []
+        chat_histories = []
+        for chat in chats:
+            chat_histories.extend(
+                (
+                    {"role": "user", "parts": chat.question},
+                    {"role": "model", "parts": chat.answer},
+                )
+            )
+        return chat_histories
 
     @staticmethod
     def chat_with_openai(
             model: str,
             prompt: str,
-            previous_chats: list,
-            max_tokens: int = 2048,
+            previous_chats: list[Chat],
+            max_tokens: int = 4096,
             temperature: float = 0.7,
-            top_p: float = 1.0
+            top_p: float = 0.8
     ):
         if env.OPENAI_API_KEY is None or env.OPENAI_API_KEY.strip() == "":
             raise AiApiKeyError()
         client = OpenAI(api_key=env.OPENAI_API_KEY)
-        return ""
+        messages = AiService.__build_openai_chat_history(previous_chats)
+        messages.append({
+            "role": "user",
+            "content": prompt
+        })
+        completion = client.chat.completions.create(
+            model=model if model is not None or model else "gpt-4o-mini",
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            top_p=top_p
+        )
+        return completion.choices[0].message.content
 
     @staticmethod
-    def chat_with_gemini(
-            prompt: str,
+    def __build_openai_chat_history(chats: list[Chat]):
+        if chats is None or not chats:
+            return []
+        chat_histories = [{
+            "role": "system",
+            "content": SYSTEM_PROMPT
+        }]
+        for chat in chats:
+            chat_histories.extend(
+                (
+                    {"role": "user", "content": chat.question},
+                    {"role": "assistant", "content": chat.answer},
+                )
+            )
+        return chat_histories
+
+    @staticmethod
+    def chat_with_claude(
             model: str,
-            previous_chats: list,
+            prompt: str,
+            previous_chats: list[Chat],
             max_tokens: int = 4096,
-            temperature: float = 0.6,
-            top_p: float = 0.6,
-            top_k: int = 32
+            temperature: float = 0.7,
+            top_p: float = 0.7,
+            top_k: int = 16
     ):
-        if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":
+        if env.CLAUDE_API_KEY is None or env.CLAUDE_API_KEY.strip() == "":
             raise AiApiKeyError()
-        genai.configure(api_key=env.GEMINI_API_KEY)
-        agent = genai.GenerativeModel(model_name=model if model is not None else "gemini-1.5-flash", system_instruction=SYSTEM_PROMPT)
-        chat = agent.start_chat(history=previous_chats)
-        response = chat.send_message(prompt)
-        return response.text
+        client = anthropic.Anthropic(api_key=env.CLAUDE_API_KEY)
+        messages = AiService.__build_claude_chat_history(chats=previous_chats)
+        messages.append({
+            "role": "user", "content": prompt
+        })
+        response = client.messages.create(
+            model=model if model is not None or model else "claude-3-haiku-20240307",
+            system=SYSTEM_PROMPT,
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k
+        )
+        return response.content
+
+    @staticmethod
+    def __build_claude_chat_history(chats: list[Chat]):
+        if chats is None or not chats:
+            return []
+        chat_histories = []
+        for chat in chats:
+            chat_histories.extend(
+                (
+                    {"role": "user", "content": chat.question},
+                    {"role": "assistant", "content": chat.answer},
+                )
+            )
+
+    @staticmethod
+    def chat_with_ollama(
+            model: str,
+            prompt: str,
+            previous_chats: list[Chat],
+            max_tokens: int = 2048,
+            temperature: float = 0.7,
+            top_p: float = 1.0
+    ):
+        raise NotImplementedError("OLLAMA is not implemented")

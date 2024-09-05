@@ -16,6 +16,7 @@ class Video(Model):
     transcript = TextField(null=False, default="")
     summary = TextField(null=False, default="")
     is_analyzed = BooleanField(default=False)
+    is_summary_analyzed = BooleanField(default=False)
     embedding_provider = CharField(null=True)
     language = CharField(null=True)
 
