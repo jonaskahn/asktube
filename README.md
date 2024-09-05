@@ -9,6 +9,7 @@ AI-Powered Summarizer, Q&amp;A Assistant on Youtube Videos 🤖
 - **Framework/Lib**: Sanic, Peewee, Pytubefix, Sentence Transformers, Sqlite, Chroma, VueJs
 - **Embedding Provider**: OpenAI, Gemini, VoyageAI, Local (Sentence Transformers)
 - **AI Provider**: OpenAI, Gemini, Claude, Local (Ollama)
+- **Speech To Text**: OpenAI Whisper (Local)
 
 ---
 ## 🤷🏽 Why does this project exist?
@@ -44,6 +45,10 @@ AI-Powered Summarizer, Q&amp;A Assistant on Youtube Videos 🤖
 ## 🏃🏽‍➡️ Demo
 
 > [Placeholder]
+
+---
+## 🗒️ Todo
+- [ ] Add support to calling OpenAI Whisper API
 
 ---
 ## ⁉️ FAQ?
