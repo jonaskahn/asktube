@@ -14,12 +14,12 @@ from future.backports.datetime import timedelta
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 
-from backend import env
-from backend.db.models import Chat
-from backend.db.specs import chromadb_client
-from backend.error.ai_error import AiSegmentError, AiApiKeyError
-from backend.utils.logger import log
-from backend.utils.prompts import SYSTEM_PROMPT
+from backend.assistants import env
+from backend.assistants.errors import AiError, LogicError
+from backend.assistants.logger import log
+from backend.assistants.prompts import SYSTEM_PROMPT
+from backend.database.models import Chat
+from backend.database.specs import chromadb_client
 
 
 class AiService:
@@ -47,14 +47,14 @@ class AiService:
         Returns:
             SentenceTransformer: An instance of the SentenceTransformer model with the specified device and model path.
         """
-        local_model_path: str = os.path.join(env.APP_DIR, env.LOCAL_EMBEDDING_MODEL)
+        local_model_path: str = str(os.path.join(env.APP_DIR, env.LOCAL_EMBEDDING_MODEL))
         if not os.path.exists(local_model_path):
             encoder = SentenceTransformer(model_name_or_path=env.LOCAL_EMBEDDING_MODEL, device=env.LOCAL_EMBEDDING_DEVICE, trust_remote_code=True)
             encoder.save(local_model_path)
             return encoder
         return SentenceTransformer(model_name_or_path=local_model_path, device=env.LOCAL_EMBEDDING_DEVICE, trust_remote_code=True)
 
-    def recognize_audio_language(self, audio_path, duration):
+    def recognize_audio_language(self, audio_path: str, duration: int):
         """
         Recognizes the language of an audio file.
 
@@ -88,7 +88,7 @@ class AiService:
                     os.remove(segment)
 
     @staticmethod
-    def __segment_audio(audio_path, duration):
+    def __segment_audio(audio_path: str, duration: int):
         """
         Segments an audio file into three random parts: start, middle, and end.
 
@@ -103,7 +103,7 @@ class AiService:
             AiSegmentError: If the duration of the audio file is less than 120 seconds.
         """
         if duration < 120:
-            raise AiSegmentError("Duration must be greater than 120 seconds")
+            raise AiError("duration must be greater than 120 seconds")
         start_segment_audio_path = os.path.join(tempfile.gettempdir(), f"{uuid4()}.mp3")
         extract_audio(
             input_path=audio_path,
@@ -134,7 +134,7 @@ class AiService:
 
         return start_segment_audio_path, middle_segment_audio_path, end_segment_audio_path
 
-    def speech_to_text(self, audio_path):
+    def speech_to_text(self, audio_path: str):
         """
         Transcribes an audio file into text.
 
@@ -156,7 +156,7 @@ class AiService:
         ]
 
     @staticmethod
-    def __chunk_text(text, max_tokens):
+    def __chunk_text(text: str, max_tokens: int):
         """
         Splits a given text into chunks of words, each chunk containing a maximum number of tokens.
 
@@ -174,14 +174,14 @@ class AiService:
         current_length = 0
 
         for word in words:
-            word_tokens = encoding.encode(word)
-            if current_length + len(word_tokens) > max_tokens:
+            word_token = encoding.encode(word)
+            if current_length + len(word_token) > max_tokens:
                 chunks.append(" ".join(current_chunk))
                 current_chunk = [word]
-                current_length = len(word_tokens)
+                current_length = len(word_token)
             else:
                 current_chunk.append(word)
-                current_length += len(word_tokens)
+                current_length += len(word_token)
 
         if current_chunk:
             chunks.append(" ".join(current_chunk))
@@ -189,7 +189,7 @@ class AiService:
         return chunks
 
     @staticmethod
-    def embedding_document_with_gemini(text: str, max_tokens=2000):
+    def embedding_document_with_gemini(text: str, max_tokens=2000) -> tuple[list[str], list[list[float]]]:
         """
         Embeds a document using the Gemini API.
 
@@ -204,17 +204,17 @@ class AiService:
             AiApiKeyError: If the Gemini API key is not set or is empty.
         """
         if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":
-            raise AiApiKeyError("Gemini API key is not set or is empty.")
+            raise AiError("gemini api key is not set or is empty.")
         try:
             texts = AiService.__chunk_text(text, max_tokens)
             genai.configure(api_key=env.GEMINI_API_KEY)
             return texts, [genai.embed_content(model=env.GEMINI_EMBEDDING_MODEL, content=text)['embedding'] for text in texts]
         except Exception as e:
-            log.debug(f"\nError in embedding_document_with_gemini: \n{text}", exc_info=True)
+            log.debug(f"\nerror in embedding_document_with_gemini: \n{text}", exc_info=True)
             raise e
 
     @staticmethod
-    def embedding_document_with_openai(text: str, max_tokens=8000):
+    def embedding_document_with_openai(text: str, max_tokens=8000) -> tuple[list[str], list[list[float]]]:
         """
         Embeds a document using the OpenAI API.
 
@@ -229,13 +229,13 @@ class AiService:
             AiApiKeyError: If the OpenAI API key is not set or is empty.
         """
         if env.OPENAI_API_KEY is None or env.OPENAI_API_KEY.strip() == "":
-            raise AiApiKeyError("OpenAI API key is not set or is empty.")
+            raise AiError("openai api key is not set or is empty.")
         texts = AiService.__chunk_text(text, max_tokens)
         client = OpenAI(api_key=env.OPENAI_API_KEY)
         return texts, [client.embeddings.create(model=env.OPENAI_EMBEDDING_MODEL, input=[text]).data[0].embedding for text in texts]
 
     @staticmethod
-    def embedding_document_with_voyageai(text: str, max_tokens=16000):
+    def embedding_document_with_voyageai(text: str, max_tokens=16000) -> tuple[list[str], list[list[float]]]:
         """
         Embeds a document using the VoyageAI API.
 
@@ -250,13 +250,13 @@ class AiService:
             AiApiKeyError: If the VoyageAI API key is not set or is empty.
         """
         if env.VOYAGEAI_API_KEY is None or env.VOYAGEAI_API_KEY.strip() == "":
-            raise AiApiKeyError("VoyageAI API key is not set or is empty.")
+            raise AiError("voyageai api key is not set or is empty.")
         texts = AiService.__chunk_text(text, max_tokens)
         client = voyageai.Client(api_key=env.VOYAGEAI_API_KEY)
         return texts, [client.embed(texts=[text], model=env.VOYAGEAI_EMBEDDING_MODEL, input_type="document").embeddings[0] for text in texts]
 
     @staticmethod
-    def embedding_document_with_local(text: str, max_tokens=500):
+    def embedding_document_with_local(text: str, max_tokens=500) -> tuple[list[str], list[list[float]]]:
         """
         Embeds a document using a local embedding model.
 
@@ -339,7 +339,7 @@ class AiService:
             max_tokens: int = 4096,
             temperature: float = 0.6,
             top_p: float = 0.6,
-            top_k: int = 32):
+            top_k: int = 32) -> str:
         """
         Initiates a conversation with the Gemini AI model.
 
@@ -359,7 +359,7 @@ class AiService:
         if previous_chats is None:
             previous_chats = []
         if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":
-            raise AiApiKeyError("Gemini API key is not set or is empty.")
+            raise AiError("gemini api key is not set or is empty.")
         chat_histories = AiService.__build_gemini_chat_history(previous_chats)
         genai.configure(api_key=env.GEMINI_API_KEY)
         agent = genai.GenerativeModel(
@@ -398,20 +398,26 @@ class AiService:
             previous_chats: list[Chat] = None,
             max_tokens: int = 4096,
             temperature: float = 0.7,
-            top_p: float = 0.8):
+            top_p: float = 0.8) -> str:
         """
-        Initiates a conversation with OpenAI's chat completion API.
+        Sends a prompt to OpenAI's chat completion API and returns the response.
 
         Args:
-            model (str): The model to use for the conversation.
-            prompt (str): The initial message to send to the model.
-            system_prompt (str, optional): The system prompt to use for the conversation. Defaults to SYSTEM_PROMPT.
-            previous_chats (list[Chat], optional): A list of previous chats to include in the conversation history
+            model (str): The model to use for the chat completion.
+            prompt (str): The prompt to send to the chat completion API.
+            system_prompt (str, optional): The system prompt to use for the chat. Defaults to SYSTEM_PROMPT.
+            previous_chats (list[Chat], optional): A list of previous chats to include in the chat history. Defaults to None.
+            max_tokens (int, optional): The maximum number of tokens to generate in the response. Defaults to 4096.
+            temperature (float, optional): The temperature to use for the response generation. Defaults to 0.7.
+            top_p (float, optional): The top_p value to use for the response generation. Defaults to 0.8.
+
+        Returns:
+            str: The response from the chat completion API.
         """
         if previous_chats is None:
             previous_chats = []
         if env.OPENAI_API_KEY is None or env.OPENAI_API_KEY.strip() == "":
-            raise AiApiKeyError("OpenAI API key is not set or is empty.")
+            raise AiError("openai api key is not set or is empty.")
         client = OpenAI(api_key=env.OPENAI_API_KEY)
         messages = AiService.__build_openai_chat_history(system_prompt, previous_chats)
         messages.append({
@@ -453,8 +459,7 @@ class AiService:
             max_tokens: int = 4096,
             temperature: float = 0.7,
             top_p: float = 0.7,
-            top_k: int = 16
-    ):
+            top_k: int = 16) -> str:
         """
         Initiates a conversation with Claude's API.
 
@@ -474,7 +479,7 @@ class AiService:
         if previous_chats is None:
             previous_chats = []
         if env.CLAUDE_API_KEY is None or env.CLAUDE_API_KEY.strip() == "":
-            raise AiApiKeyError("Claude API key is not set or is empty.")
+            raise AiError("claude api key is not set or is empty.")
         client = anthropic.Anthropic(api_key=env.CLAUDE_API_KEY)
         messages = AiService.__build_claude_chat_history(chats=previous_chats)
         messages.append({
@@ -513,8 +518,7 @@ class AiService:
             previous_chats: list[Chat] = None,
             max_tokens: int = 2048,
             temperature: float = 0.7,
-            top_p: float = 1.0
-    ):
+            top_p: float = 1.0) -> str:
         """
         Initiates a conversation with OLLAMA's chat completion API.
 
@@ -535,4 +539,4 @@ class AiService:
         """
         if previous_chats is None:
             previous_chats = []
-        raise NotImplementedError("OLLAMA is not implemented")
+        raise LogicError("OLLAMA is not implemented")

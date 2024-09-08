@@ -1,15 +1,16 @@
+import asyncio
 import concurrent.futures
 from concurrent.futures.thread import ThreadPoolExecutor
 
 import iso639
 from lingua import LanguageDetectorBuilder
 
-from backend.db.models import Video, VideoChapter, Chat
-from backend.db.specs import sqlite_client
-from backend.error.base import LogicError
-from backend.error.video_error import VideoNotFoundError, VideoNotAnalyzedError
+from backend.assistants.errors import VideoError, AiError
+from backend.assistants.logger import log
+from backend.assistants.prompts import SUMMARY_PROMPT, ASKING_PROMPT, REFINED_QUESTION_PROMPT
+from backend.database.models import Video, VideoChapter, Chat
+from backend.database.specs import sqlite_client
 from backend.services.ai_service import AiService
-from backend.utils.prompts import SUMMARY_PROMPT, SYSTEM_PROMPT, ASKING_PROMPT, REFINED_QUESTION_PROMPT
 
 detector = LanguageDetectorBuilder.from_all_languages().build()
 
@@ -53,18 +54,20 @@ class VideoService:
         Returns:
             Video: The analyzed video object.
         """
+        log.debug("start analysis video")
         video: Video = VideoService.find_video_by_id(vid)
         if video is None:
-            raise VideoNotFoundError("Video not found")
+            raise VideoError("video is not found")
         if video.is_analyzed:
             return video
-        await VideoService.__analysis_chapters(provider, video)
+        await VideoService.__analysis_chapters(video, provider)
         video.is_analyzed = True
         video.embedding_provider = provider
         video.save()
+        log.debug("finish analysis video")
 
     @staticmethod
-    async def __analysis_chapters(provider, video):
+    async def __analysis_chapters(video: Video, provider: str):
         """
         Analyzes video chapters using a specified provider.
 
@@ -75,39 +78,45 @@ class VideoService:
         Returns:
             None
         """
-        video_chapters = list(VideoChapter.select().where(VideoChapter.video == video))
+        video_chapters = VideoService.__get_video_chapters(video)
         with ThreadPoolExecutor(max_workers=len(video_chapters)) as executor:
             if provider == "gemini":
-                futures = [executor.submit(VideoService.__analysis_video_with_gemini, video.id, chapter) for chapter in video_chapters]
+                futures = [executor.submit(VideoService.__analysis_video_with_gemini, chapter) for chapter in video_chapters]
             elif provider == "openai":
-                futures = [executor.submit(VideoService.__analysis_video_with_openai, video.id, chapter) for chapter in video_chapters]
+                futures = [executor.submit(VideoService.__analysis_video_with_openai, chapter) for chapter in video_chapters]
             elif provider == "voyageai":
-                futures = [executor.submit(VideoService.__analysis_video_with_voyageai, video.id, chapter) for chapter in video_chapters]
+                futures = [executor.submit(VideoService.__analysis_video_with_voyageai, chapter) for chapter in video_chapters]
             elif provider == "local":
-                futures = [executor.submit(VideoService.__analysis_video_with_local, video.id, chapter) for chapter in video_chapters]
+                futures = [executor.submit(VideoService.__analysis_video_with_local, chapter) for chapter in video_chapters]
             else:
-                raise LogicError("Unknown provider")
+                raise AiError("unknown embedding provider")
             concurrent.futures.as_completed(futures)
             for future in concurrent.futures.as_completed(futures):
                 future.result()
 
     @staticmethod
-    def __analysis_video_with_gemini(vid: int, chapter: VideoChapter):
+    def __get_video_chapters(video: Video) -> list[VideoChapter]:
+        video_chapters = list(VideoChapter.select().where(VideoChapter.video == video))
+        for video_chapter in video_chapters:
+            video_chapter.vid = video.id
+        return video_chapters
+
+    @staticmethod
+    def __analysis_video_with_gemini(chapter: VideoChapter):
         """
         Analyzes a video chapter using the Gemini AI service.
 
         Args:
-            vid (int): The ID of the video.
             chapter (VideoChapter): The chapter of the video to be analyzed.
 
         Returns:
             None
         """
         texts, embeddings = AiService.embedding_document_with_gemini(chapter.transcript)
-        VideoService.__store_embedding_chunked_transcript(chapter, embeddings, texts, vid)
+        VideoService.__store_embedding_chunked_transcript(chapter, texts, embeddings)
 
     @staticmethod
-    def __store_embedding_chunked_transcript(chapter, embeddings, texts, vid):
+    def __store_embedding_chunked_transcript(chapter: VideoChapter, texts: list[str], embeddings: list[list[float]]):
         """
         Stores the embedding of a video chapter transcript in a chunked manner.
 
@@ -115,7 +124,6 @@ class VideoService:
             chapter: The video chapter object containing the transcript to be stored.
             embeddings: The embeddings of the transcript.
             texts: The text chunks of the transcript.
-            vid: The ID of the video.
 
         Returns:
             None
@@ -124,58 +132,55 @@ class VideoService:
         documents: list[str] = []
 
         if len(texts) == 1:
-            ids.append(f"{vid}_{chapter.id}")
+            ids.append(f"{chapter.vid}_{chapter.id}")
             documents.append(f"## {chapter.title}: \n---\n{texts[0]}")
         else:
             for index, text in enumerate(texts):
-                ids.append(f"{vid}_{chapter.id}_{index}")
+                ids.append(f"{chapter.vid}_{chapter.id}_{index}")
                 documents.append(f"## {chapter.title} - Part {index + 1}: \n---\n{text}")
-        AiService.store_embeddings(f"video_chapter_{vid}", ids, documents, embeddings)
+        AiService.store_embeddings(f"video_chapter_{chapter.vid}", ids, documents, embeddings)
 
     @staticmethod
-    def __analysis_video_with_openai(vid: int, chapter: VideoChapter):
+    def __analysis_video_with_openai(chapter: VideoChapter):
         """
         Analyzes a video chapter using the OpenAI service.
 
         Args:
-            vid (int): The ID of the video.
             chapter (VideoChapter): The chapter of the video to be analyzed.
 
         Returns:
             None
         """
         texts, embeddings = AiService.embedding_document_with_openai(chapter.transcript)
-        VideoService.__store_embedding_chunked_transcript(chapter, embeddings, texts, vid)
+        VideoService.__store_embedding_chunked_transcript(chapter, texts, embeddings)
 
     @staticmethod
-    def __analysis_video_with_voyageai(vid: int, chapter: VideoChapter):
+    def __analysis_video_with_voyageai(chapter: VideoChapter):
         """
         Analyzes a video chapter using the VoyageAI service.
 
         Args:
-            vid (int): The ID of the video.
             chapter (VideoChapter): The chapter of the video to be analyzed.
 
         Returns:
             None
         """
         texts, embeddings = AiService.embedding_document_with_voyageai(chapter.transcript)
-        VideoService.__store_embedding_chunked_transcript(chapter, embeddings, texts, vid)
+        VideoService.__store_embedding_chunked_transcript(chapter, texts, embeddings)
 
     @staticmethod
-    def __analysis_video_with_local(vid: int, chapter: VideoChapter):
+    def __analysis_video_with_local(chapter: VideoChapter):
         """
         Analyzes a video chapter using a local service.
 
         Args:
-            vid (int): The ID of the video.
             chapter (VideoChapter): The chapter of the video to be analyzed.
 
         Returns:
             None
         """
         texts, embeddings = AiService.embedding_document_with_local(chapter.transcript)
-        VideoService.__store_embedding_chunked_transcript(chapter, embeddings, texts, vid)
+        VideoService.__store_embedding_chunked_transcript(chapter, texts, embeddings)
 
     @staticmethod
     async def summary_video(vid: int, lang_code: str, provider: str, model: str = None):
@@ -201,31 +206,14 @@ class VideoService:
         """
         video: Video = VideoService.find_video_by_id(vid)
         if video is None:
-            raise VideoNotFoundError("Video is not found")
-        if not video.is_analyzed:
-            raise VideoNotAnalyzedError("Video is not analyzed")
-        user_summary = await VideoService.__summary_content(lang_code, model, provider, video)
-        await VideoService.__analysis_summary_video(model, provider, video)
-        video.summary = user_summary
-        video.is_summary_analyzed = True
-        video.save()
-        return user_summary
+            raise VideoError("video is not found")
+        video.summary = VideoService.__summary_content(lang_code, model, provider, video)
+        asyncio.create_task(VideoService.__analysis_summary_video(model, provider, video))
+        log.debug("finish summary video")
+        return video.summary
 
     @staticmethod
-    async def __analysis_summary_video(model, provider, video):
-        if video.is_summary_analyzed:
-            return
-        system_summary = await VideoService.__summary_content(video.language, model, provider, video)
-        texts, embeddings = VideoService.__get_query_embedding(video.embedding_provider, system_summary)
-        ids: list[str] = []
-        documents: list[str] = []
-        for index, text in enumerate(texts):
-            ids.append(f"{video.id}_0_{index}")
-            documents.append(f"## Summary - Part {index + 1}: \n---\n{text}")
-        AiService.store_embeddings(f"video_summary_{video.id}", ids, texts, embeddings)
-
-    @staticmethod
-    async def __summary_content(lang_code, model, provider, video):
+    def __summary_content(lang_code: str, model: str, provider: str, video: Video) -> str:
         language = iso639.Language.from_part1(lang_code).name
         prompt = SUMMARY_PROMPT.format(**{
             "url": video.url,
@@ -234,7 +222,37 @@ class VideoService:
             "transcript": video.transcript,
             "language": language,
         })
-        return VideoService.__get_response_from_ai(prompt=prompt, model=model, provider=provider)
+        return VideoService.__get_response_from_ai(model=model, prompt=prompt, provider=provider)
+
+    @staticmethod
+    async def __analysis_summary_video(model: str, provider: str, video: Video):
+        log.debug("start analysis summary video")
+        if video.is_summary_analyzed:
+            return
+        system_summary = VideoService.__summary_content(video.language, model, provider, video)
+        texts, embeddings = VideoService.__get_query_embedding(video.embedding_provider, system_summary)
+        ids: list[str] = []
+        documents: list[str] = []
+        for index, text in enumerate(texts):
+            ids.append(f"{video.id}_0_{index}")
+            documents.append(f"## Summary - Part {index + 1}: \n---\n{text}")
+        AiService.store_embeddings(f"video_summary_{video.id}", ids, texts, embeddings)
+        video.is_summary_analyzed = True
+        video.save()
+        log.debug("finish analysis summary video")
+
+    @staticmethod
+    def __get_query_embedding(provider: str, text: str) -> tuple[list[str], list[list[float]]]:
+        if provider == "gemini":
+            return AiService.embedding_document_with_gemini(text)
+        elif provider == "openai":
+            return AiService.embedding_document_with_openai(text)
+        elif provider == "voyageai":
+            return AiService.embedding_document_with_voyageai(text)
+        elif provider == "local":
+            return AiService.embedding_document_with_local(text)
+        else:
+            raise AiError("unknown embedding provider")
 
     @staticmethod
     async def ask(question: str, vid: int, provider: str, model: str = None):
@@ -262,13 +280,11 @@ class VideoService:
         """
         video: Video = VideoService.find_video_by_id(vid)
         if video is None:
-            raise VideoNotFoundError("Video is not found")
+            raise VideoError("video is not found")
         if not video.is_analyzed:
-            raise VideoNotAnalyzedError("Video is not analyzed")
+            raise VideoError("video has not analyzed yet")
         question_lang = detector.detect_language_of(question)
         question_lang_code = question_lang.iso_code_639_1.name.__str__().lower()
-        if video.summary is None:
-            await VideoService.summary_video(vid, question_lang_code, provider, model)
         chats: list[Chat] = list(Chat.select().where(Chat.video == video).limit(10))
         refined_question = VideoService.__refine_question(model, provider, question, question_lang_code, video)
         _, embedding_question = VideoService.__get_query_embedding(video.embedding_provider, refined_question)
@@ -286,8 +302,8 @@ class VideoService:
             "language": question_lang.name.__str__()
         })
         result = VideoService.__get_response_from_ai(
-            prompt=asking_prompt,
             model=model,
+            prompt=asking_prompt,
             provider=provider,
             chats=chats
         )
@@ -310,38 +326,24 @@ class VideoService:
             "video_lang": iso639.Language.from_part1(video.language).name,
             "question": question
         })
-        return VideoService.__get_response_from_ai(prompt=prompt, model=model, provider=provider)
+        return VideoService.__get_response_from_ai(model=model, prompt=prompt, provider=provider)
 
     @staticmethod
     def __get_response_from_ai(
+            model: str,
             prompt: str,
-            system_prompt: str = SYSTEM_PROMPT,
-            model: str = None,
-            provider: str = None,
+            provider: str,
             chats: list[Chat] = None
-    ):
+    ) -> str:
         if chats is None:
             chats = []
         if provider == "gemini":
-            return AiService.chat_with_gemini(prompt=prompt, system_prompt=system_prompt, model=model, previous_chats=chats)
+            return AiService.chat_with_gemini(model=model, prompt=prompt, previous_chats=chats)
         elif provider == "openai":
-            return AiService.chat_with_openai(prompt=prompt, system_prompt=system_prompt, model=model, previous_chats=chats)
+            return AiService.chat_with_openai(model=model, prompt=prompt, previous_chats=chats)
         elif provider == "claude":
-            return AiService.chat_with_claude(prompt=prompt, system_prompt=system_prompt, model=model, previous_chats=chats)
+            return AiService.chat_with_claude(model=model, prompt=prompt, previous_chats=chats)
         elif provider == "ollama":
-            raise AiService.chat_with_ollama(prompt=prompt, system_prompt=system_prompt, model=model, previous_chats=chats)
+            raise AiService.chat_with_ollama(model=model, prompt=prompt, previous_chats=chats)
         else:
-            raise LogicError("Unknown provider")
-
-    @staticmethod
-    def __get_query_embedding(provider: str, text: str):
-        if provider == "gemini":
-            return AiService.embedding_document_with_gemini(text)
-        elif provider == "openai":
-            return AiService.embedding_document_with_openai(text)
-        elif provider == "voyageai":
-            return AiService.embedding_document_with_voyageai(text)
-        elif provider == "local":
-            return AiService.embedding_document_with_local(text)
-        else:
-            raise LogicError("Unknown provider")
+            raise AiError("unknown AI provider")

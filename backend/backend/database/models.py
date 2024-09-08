@@ -1,6 +1,6 @@
 from peewee import Model, AutoField, CharField, TextField, IntegerField, BooleanField, ForeignKeyField
 
-from backend.db.specs import sqlite_client
+from backend.database.specs import sqlite_client
 
 
 class Video(Model):
@@ -37,6 +37,10 @@ class VideoChapter(Model):
     start_time = IntegerField(null=False, default=0)
     start_label = CharField(null=False, default="00:00:00")
     duration = IntegerField(null=False, default=0)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.vid = None
 
     def __repr__(self):
         return f"VideoChapter(title={self.title}, start_time={self.start_time}, start_label={self.start_label}, duration={self.duration})"
