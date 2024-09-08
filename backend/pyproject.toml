@@ -24,6 +24,8 @@ anthropic = "^0.34.2"
 sentence-transformers = "^3.0.1"
 tiktoken = "^0.7.0"
 lingua-language-detector = "^2.0.2"
+latest-user-agents = "^0.0.4"
+urllib3 = "^2.2.2"
 
 [build-system]
 requires = ["poetry-core"]

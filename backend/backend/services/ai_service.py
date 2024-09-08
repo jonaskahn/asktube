@@ -4,20 +4,22 @@ import tempfile
 from collections import Counter
 from uuid import uuid4
 
+import anthropic
 import google.generativeai as genai
 import tiktoken
 import voyageai
 from audio_extract import extract_audio
+from faster_whisper import WhisperModel
+from future.backports.datetime import timedelta
+from openai import OpenAI
+from sentence_transformers import SentenceTransformer
+
 from backend import env
 from backend.db.models import Chat
 from backend.db.specs import chromadb_client
 from backend.error.ai_error import AiSegmentError, AiApiKeyError
 from backend.utils.logger import log
 from backend.utils.prompts import SYSTEM_PROMPT
-from faster_whisper import WhisperModel
-from future.backports.datetime import timedelta
-from openai import OpenAI
-from sentence_transformers import SentenceTransformer
 
 
 class AiService:
@@ -107,12 +109,12 @@ class AiService:
             input_path=audio_path,
             output_path=start_segment_audio_path,
             start_time=f"{timedelta(seconds=0)}",
-            duration=env.AUDIO_CHUNK_SHORT_DURATION
+            duration=env.AUDIO_CHUNK_DETECT_DURATION
         )
 
         middle_start = random.randint(
-            duration // env.AUDIO_CHUNK_SHORT_DURATION,
-            duration // 3 - env.AUDIO_CHUNK_SHORT_DURATION
+            duration // env.AUDIO_CHUNK_DETECT_DURATION,
+            duration // 3 - env.AUDIO_CHUNK_DETECT_DURATION
         )
         middle_segment_audio_path = os.path.join(tempfile.gettempdir(), f"{uuid4()}.mp3")
 
@@ -120,14 +122,14 @@ class AiService:
             input_path=audio_path,
             output_path=middle_segment_audio_path,
             start_time=f"{timedelta(seconds=middle_start)}",
-            duration=env.AUDIO_CHUNK_SHORT_DURATION
+            duration=env.AUDIO_CHUNK_DETECT_DURATION
         )
 
         end_segment_audio_path = os.path.join(tempfile.gettempdir(), f"{uuid4()}.mp3")
         extract_audio(
             input_path=audio_path,
             output_path=end_segment_audio_path,
-            start_time=f"{timedelta(seconds=duration - env.AUDIO_CHUNK_SHORT_DURATION * 2)}"
+            start_time=f"{timedelta(seconds=duration - env.AUDIO_CHUNK_DETECT_DURATION * 2)}"
         )
 
         return start_segment_audio_path, middle_segment_audio_path, end_segment_audio_path
@@ -303,7 +305,7 @@ class AiService:
             tuple: A tuple containing the count of unique documents and a string of the unique documents joined by newline characters.
         """
         if thresholds is None:
-            thresholds = [0.3, 0.6]
+            thresholds = [env.QUERY_SIMILAR_THRESHOLD]
         collection = chromadb_client.get_or_create_collection(table)
         results = collection.query(query_embeddings=query, n_results=fetch_size, include=['documents', 'distances'])
 

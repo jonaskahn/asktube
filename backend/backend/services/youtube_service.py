@@ -3,13 +3,14 @@ from datetime import timedelta
 from pathlib import Path
 
 import pytubefix
+from pytubefix import YouTube, Caption
+from pytubefix.cli import on_progress
+
 from backend import env, constants
 from backend.db.models import VideoChapter, Video
 from backend.services.ai_service import AiService
 from backend.services.video_service import VideoService
 from backend.utils.logger import log
-from pytubefix import YouTube, Caption
-from pytubefix.cli import on_progress
 
 
 class YoutubeService:
@@ -125,7 +126,7 @@ class YoutubeService:
         return predict_parts
 
     def __get_potential_step(self):
-        default_chunk_step = env.AUDIO_CHUNK_DURATION
+        default_chunk_step = env.AUDIO_CHUNK_CHAPTER_DURATION
         if default_chunk_step is not None:
             return int(default_chunk_step)
         return min(self.__agent.length, 600)

@@ -2,13 +2,14 @@ import concurrent.futures
 from concurrent.futures.thread import ThreadPoolExecutor
 
 import iso639
+from lingua import LanguageDetectorBuilder
+
 from backend.db.models import Video, VideoChapter, Chat
 from backend.db.specs import sqlite_client
 from backend.error.base import LogicError
 from backend.error.video_error import VideoNotFoundError, VideoNotAnalyzedError
 from backend.services.ai_service import AiService
-from backend.utils.prompts import SUMMARY_PROMPT, SYSTEM_PROMPT, ASKING_PROMPT
-from lingua import LanguageDetectorBuilder
+from backend.utils.prompts import SUMMARY_PROMPT, SYSTEM_PROMPT, ASKING_PROMPT, REFINED_QUESTION_PROMPT
 
 detector = LanguageDetectorBuilder.from_all_languages().build()
 
@@ -274,7 +275,7 @@ class VideoService:
         asking_prompt = ASKING_PROMPT.format(**{
             "url": video.url,
             "title": video.title,
-            "context": context,
+            "context": context or "Not available",
             "question": question,
             "refined_question": refined_question,
             "language": question_lang.name.__str__()

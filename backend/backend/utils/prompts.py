@@ -31,15 +31,17 @@ OUTPUT:
 No yapping!!!
 """
 
-ASKING_PROMPT = """GIVEN:
-Youtube Video Information (from URL: {url})
-Title: "{title}"
-Context:
-{context}
-Original Question: "{question}"
-Refined question: "{refined_question}"
+ASKING_PROMPT = """# GIVEN:
+**Youtube Video:** (from URL: {url})
+**Title:** "{title}
+**Content:**
+    {context}
+    
+**Original Question**: "{question}"
+**Refined question**: "{refined_question}"
+
 TASK:
-- Answer my "Refined question" if "Context" has relevant information, otherwise say something like "I don't know" or "Only God know".
+- Answer my "Original question" (give attention for "Refined question" to more clearly), if "Content" has relevant information, otherwise say something like "I don't know" or "Only God know".
 - If I do not mention target language in "Original Question", respond me in language {language}.
 - Do not include any instructions, provide output directly.
 """
