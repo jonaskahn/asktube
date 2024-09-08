@@ -2,7 +2,7 @@ import logging
 
 from sanic.log import logger
 
-from backend.env import DEBUG_MODE
+from backend.assistants.env import DEBUG_MODE
 
 if DEBUG_MODE == "on":
     logging.getLogger('peewee').addHandler(logging.StreamHandler())

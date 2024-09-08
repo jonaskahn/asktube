@@ -6,11 +6,11 @@ import pytubefix
 from pytubefix import YouTube, Caption
 from pytubefix.cli import on_progress
 
-from backend import env, constants
-from backend.db.models import VideoChapter, Video
+from backend.assistants import env, constants
+from backend.assistants.logger import log
+from backend.database.models import VideoChapter, Video
 from backend.services.ai_service import AiService
 from backend.services.video_service import VideoService
-from backend.utils.logger import log
 
 
 class YoutubeService:
@@ -41,7 +41,7 @@ class YoutubeService:
             'captions': captions
         }
 
-    async def fetch_video_data(self):
+    async def fetch_video_data(self) -> Video:
         """
         Fetches and processes video data from a YouTube video.
 
@@ -71,7 +71,7 @@ class YoutubeService:
         )
         extracted_chapters = self.__extract_chapters()
         language, extracted_transcripts = self.__extract_transcript()
-        video_transcript, video_chapters = self.__paring_video_chapters(video, extracted_chapters, extracted_transcripts)
+        video_transcript, video_chapters = self.__pair_video_chapters_with_transcripts(video, extracted_chapters, extracted_transcripts)
         video.amount_chapters = len(video_chapters)
         video.transcript = video_transcript
         video.language = language
@@ -166,7 +166,7 @@ class YoutubeService:
         return result
 
     def __download_audio(self):
-        log.debug(f"Start to download audio {self.__agent.title}")
+        log.debug(f"start to download audio {self.__agent.title}")
 
         output_audio_dir = os.path.join(env.APP_DIR, f"{self.__agent.video_id}")
         Path(output_audio_dir).mkdir(parents=True, exist_ok=True)
@@ -174,7 +174,7 @@ class YoutubeService:
         ys = self.__agent.streams.get_audio_only()
         ys.download(mp3=True, output_path=output_audio_dir, filename=constants.YT_AUDIO_FILE_NAME, skip_existing=True)
         output_audio_file = os.path.join(output_audio_dir, constants.YT_AUDIO_ABS_FILE_NAME)
-        log.info(f"Finished download audio {self.__agent.title} to {output_audio_file}")
+        log.debug(f"finished download audio {self.__agent.title} to {output_audio_file}")
 
         language = self.__ai_service.recognize_audio_language(
             audio_path=os.path.join(output_audio_dir, constants.YT_AUDIO_ABS_FILE_NAME),
@@ -183,7 +183,7 @@ class YoutubeService:
         return language, output_audio_file
 
     @staticmethod
-    def __paring_video_chapters(video: Video, chapters: list[VideoChapter], transcripts: [{}]):
+    def __pair_video_chapters_with_transcripts(video: Video, chapters: list[VideoChapter], transcripts: [{}]):
         sorted_chapters = sorted(chapters, key=lambda chapter: chapter.chapter_no)
         result: list[VideoChapter] = []
         for sorted_chapter in sorted_chapters:
@@ -203,7 +203,7 @@ class YoutubeService:
                     continue
                 chapter_transcript += f"{transcript['text']}\n"
             if chapter_transcript != "":
-                log.debug(f"title: {sorted_chapter.title}\nno: {sorted_chapter.chapter_no}\ntranscript: {chapter_transcript}")
+                log.debug(f"title: {sorted_chapter.title}\ntranscript: {chapter_transcript}")
                 sorted_chapter.transcript = chapter_transcript
                 result.append(sorted_chapter)
         video_transcript = "\n".join([f"## {x.title}\n-----\n{x.transcript}" for x in result if x.transcript])

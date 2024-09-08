@@ -3,7 +3,7 @@ from pathlib import Path
 import chromadb
 from peewee import SqliteDatabase
 
-from backend import env, constants
+from backend.assistants import env, constants
 
 Path(env.APP_DIR).mkdir(parents=True, exist_ok=True)
 

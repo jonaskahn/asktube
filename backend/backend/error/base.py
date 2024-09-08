@@ -1,2 +1,0 @@
-class LogicError(Exception):
-    pass
