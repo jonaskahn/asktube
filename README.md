@@ -1,15 +1,27 @@
 # AskTube
+**AI-Powered Summarizer, QA Assistant on YouTube Videos 🤖.**
 
-AI-Powered Summarizer, QA Assistant on Youtube Videos 🤖
+*Run it entirely on your local machine with Ollama, or cloud-based models like Claude, OpenAI, Gemini, Mistral, and more.*
 
 ---
 ## 🔨 Technology
 
 - **Language**: Python, JS
-- **Framework/Lib**: Sanic, Peewee, Pytubefix, Sentence Transformers, Sqlite, Chroma, VueJs
-- **Embedding Provider**: OpenAI, Gemini, VoyageAI, Local (Sentence Transformers)
-- **AI Provider**: OpenAI, Gemini, Claude, Local (Ollama)
-- **Speech To Text**: OpenAI Whisper (Local)
+- **Framework/Lib**: Sanic, Peewee, Pytubefix, Sentence Transformers, Sqlite, Chroma, VueJs, etc.
+- **Embedding Provider**:
+  - [x] OpenAI
+  - [x] Gemini
+  - [x] VoyageAI
+  - [x] Local (Sentence Transformers)
+- **AI Provider**: 
+  - [x] OpenAI
+  - [x] Claude
+  - [x] Gemini
+  - [ ] Mistral
+  - [ ] Ollama   
+- **Speech To Text**:
+  - [x] OpenAI Whisper (Local)
+  - [ ] OpenAI Whisper (Cloud)
 
 ---
 ## 🤷🏽 Why does this project exist?
@@ -47,11 +59,7 @@ AI-Powered Summarizer, QA Assistant on Youtube Videos 🤖
 > [Placeholder]
 
 ---
-## 🗒️ Todo
-- [ ] Add support to calling OpenAI Whisper API
-
----
-## ⁉️ FAQ?
+## ⁉️ FAQ
 
 1. Does I need paid API to run?
   - No, you can fully run in your local machine if your pc have ability
