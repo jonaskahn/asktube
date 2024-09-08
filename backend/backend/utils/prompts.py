@@ -44,4 +44,5 @@ TASK:
 - Answer my "Original question" (give attention for "Refined question" to more clearly), if "Content" has relevant information, otherwise say something like "I don't know" or "Only God know".
 - If I do not mention target language in "Original Question", respond me in language {language}.
 - Do not include any instructions, provide output directly.
+No yapping!!!
 """

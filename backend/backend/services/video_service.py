@@ -205,19 +205,24 @@ class VideoService:
         if not video.is_analyzed:
             raise VideoNotAnalyzedError("Video is not analyzed")
         user_summary = await VideoService.__summary_content(lang_code, model, provider, video)
-        await VideoService.__analysis_summary_video(model, provider, vid, video)
+        await VideoService.__analysis_summary_video(model, provider, video)
         video.summary = user_summary
         video.is_summary_analyzed = True
         video.save()
         return user_summary
 
     @staticmethod
-    async def __analysis_summary_video(model, provider, vid, video):
+    async def __analysis_summary_video(model, provider, video):
         if video.is_summary_analyzed:
             return
         system_summary = await VideoService.__summary_content(video.language, model, provider, video)
         texts, embeddings = VideoService.__get_query_embedding(video.embedding_provider, system_summary)
-        AiService.store_embeddings(f"video_summary_{vid}", [str(0)], texts, embeddings)
+        ids: list[str] = []
+        documents: list[str] = []
+        for index, text in enumerate(texts):
+            ids.append(f"{video.id}_0_{index}")
+            documents.append(f"## Summary - Part {index + 1}: \n---\n{text}")
+        AiService.store_embeddings(f"video_summary_{video.id}", ids, texts, embeddings)
 
     @staticmethod
     async def __summary_content(lang_code, model, provider, video):
@@ -237,8 +242,8 @@ class VideoService:
         Asks a question about a video and returns the answer.
 
         Since question and video may not same language, a small call to AI Provider will be trigger 
-        to translate question if needed. In the next step, refined question will be embbeding and 
-        query compare in the ChromaDB to find the similiar transcript. Finally, when we have enough 
+        to translate question if needed. In the next step, refined question will be embedding and
+        query compare in the ChromaDB to find the similar transcript. Finally, when we have enough
         information to enrich the question, we will ask it to AI Provider to get the answer.
 
 
