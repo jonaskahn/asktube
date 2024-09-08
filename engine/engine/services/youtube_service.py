@@ -6,11 +6,11 @@ import pytubefix
 from pytubefix import YouTube, Caption
 from pytubefix.cli import on_progress
 
-from backend.assistants import env, constants
-from backend.assistants.logger import log
-from backend.database.models import VideoChapter, Video
-from backend.services.ai_service import AiService
-from backend.services.video_service import VideoService
+from engine.assistants import env, constants
+from engine.assistants.logger import log
+from engine.database.models import VideoChapter, Video
+from engine.services.ai_service import AiService
+from engine.services.video_service import VideoService
 
 
 class YoutubeService:

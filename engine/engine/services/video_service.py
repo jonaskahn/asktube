@@ -5,12 +5,12 @@ from concurrent.futures.thread import ThreadPoolExecutor
 import iso639
 from lingua import LanguageDetectorBuilder
 
-from backend.assistants.errors import VideoError, AiError
-from backend.assistants.logger import log
-from backend.assistants.prompts import SUMMARY_PROMPT, ASKING_PROMPT, REFINED_QUESTION_PROMPT
-from backend.database.models import Video, VideoChapter, Chat
-from backend.database.specs import sqlite_client
-from backend.services.ai_service import AiService
+from engine.assistants.errors import VideoError, AiError
+from engine.assistants.logger import log
+from engine.assistants.prompts import SUMMARY_PROMPT, ASKING_PROMPT, REFINED_QUESTION_PROMPT
+from engine.database.models import Video, VideoChapter, Chat
+from engine.database.specs import sqlite_client
+from engine.services.ai_service import AiService
 
 detector = LanguageDetectorBuilder.from_all_languages().build()
 

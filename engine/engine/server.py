@@ -5,12 +5,12 @@ from playhouse.shortcuts import model_to_dict
 from sanic import Sanic, Request
 from sanic import json, text
 
-from backend.assistants.errors import LogicError
-from backend.assistants.logger import log
-from backend.database.models import Video, VideoChapter, Chat
-from backend.database.specs import sqlite_client
-from backend.services.video_service import VideoService
-from backend.services.youtube_service import YoutubeService
+from engine.assistants.errors import LogicError
+from engine.assistants.logger import log
+from engine.database.models import Video, VideoChapter, Chat
+from engine.database.specs import sqlite_client
+from engine.services.video_service import VideoService
+from engine.services.youtube_service import YoutubeService
 
 app = Sanic("AskTube", dumps=dumps)
 app.config.KEEP_ALIVE = False
@@ -20,7 +20,7 @@ app.config.RESPONSE_TIMEOUT = 120
 
 @app.listener('before_server_start')
 async def connect_db(app, loop):
-    log.debug("Open DB Connection")
+    log.debug("open sqlite Connection")
     sqlite_client.connect()
     sqlite_client.create_tables([Video, VideoChapter, Chat])
 
@@ -28,7 +28,7 @@ async def connect_db(app, loop):
 @app.listener('after_server_stop')
 async def close_db(app, loop):
     if not sqlite_client.is_closed():
-        log.debug("Closing DB")
+        log.debug("close sqlite")
         sqlite_client.close()
 
 

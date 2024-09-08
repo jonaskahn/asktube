@@ -14,12 +14,12 @@ from future.backports.datetime import timedelta
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 
-from backend.assistants import env
-from backend.assistants.errors import AiError, LogicError
-from backend.assistants.logger import log
-from backend.assistants.prompts import SYSTEM_PROMPT
-from backend.database.models import Chat
-from backend.database.specs import chromadb_client
+from engine.assistants import env
+from engine.assistants.errors import AiError, LogicError
+from engine.assistants.logger import log
+from engine.assistants.prompts import SYSTEM_PROMPT
+from engine.database.models import Chat
+from engine.database.specs import chromadb_client
 
 
 class AiService:

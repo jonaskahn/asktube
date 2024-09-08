@@ -1,6 +1,6 @@
 from peewee import Model, AutoField, CharField, TextField, IntegerField, BooleanField, ForeignKeyField
 
-from backend.database.specs import sqlite_client
+from engine.database.specs import sqlite_client
 
 
 class Video(Model):
