@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DEBUG_MODE = os.getenv("ASKTUBE_DEBUG_MODE", "on")
-APP_DIR = os.getenv("ASKTUBE_APP_DIR", os.path.join(tempfile.gettempdir(), "asktube"))
+APP_DIR = os.path.abspath(os.getenv("ASKTUBE_APP_DIR", os.path.join(tempfile.gettempdir(), "asktube")))
 LANGUAGE_PREFER_USAGE: str = os.getenv("ASKTUBE_LANGUAGE_PREFER_USAGE", "en")
 AUDIO_CHUNK_DETECT_DURATION: int = int(os.getenv("ASKTUBE_AUDIO_CHUNK_DETECT_DURATION", 30))
 AUDIO_CHUNK_CHAPTER_DURATION: int = int(os.getenv("ASKTUBE_AUDIO_CHUNK_CHAPTER_DURATION", 600))
