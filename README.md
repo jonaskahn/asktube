@@ -1,6 +1,6 @@
 # AskTube
 
-AI-Powered Summarizer, Q&amp;A Assistant on Youtube Videos 🤖
+AI-Powered Summarizer, QA Assistant on Youtube Videos 🤖
 
 ---
 ## 🔨 Technology
@@ -21,7 +21,7 @@ AI-Powered Summarizer, Q&amp;A Assistant on Youtube Videos 🤖
 ---
 ## 💡 The Idea / Architecture
 
-> The real implmentation might differ with this art.
+> The real implementation might differ from this art due to its complexity.
 
 ### 1️⃣ Extract data from given URL
 
