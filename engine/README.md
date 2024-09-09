@@ -41,7 +41,7 @@ poetry run python engine/server.py
 
 ## Prefer ENV for running LOCAL
 
-> If your pc has gpu, use "Recommendation" settings
+> If your pc has Nvidia GPU, use "Recommendation" settings.
 
 | Name                           | Value                         | Recommendation                 | Note |
 |--------------------------------|-------------------------------|--------------------------------|------|
@@ -55,7 +55,18 @@ poetry run python engine/server.py
 ### Notes
 
 - If you still want to use free services with better result, please use:
-  - **VoyageAI**  for embedding - Free to use 50M tokens without limitation.
-  - **Gemini 1.5 Flash** for QA - Free with rate limit.
+    - **VoyageAI**  for embedding - Free to use 50M tokens without limitation.
+    - **Gemini 1.5 Flash** for QA - Free with rate limit.
 
-# FAQ
+## Prefer ENV for Free (With Limitation)
+
+> If your pc has nvidia GPU, use "Recommendation" settings.
+
+| Name                             | Value                          | Recommendation                 | Note |
+|----------------------------------|--------------------------------|--------------------------------|------|
+| ASKTUBE_LOCAL_WHISPER_MODEL      | base                           | large-v3                       | -    |
+| ASKTUBE_LOCAL_WHISPER_DEVICE     | cpu                            | gpu                            | -    |
+| ASKTUBE_VOYAGEAI_API_KEY         | [enter-your-voyageai-api-key ] | [enter-your-voyageai-api-key ] | -    |
+| ASKTUBE_VOYAGEAI_EMBEDDING_MODEL | voyage-large-2                 | voyage-large-2                 | -    |
+| ASKTUBE_GEMINI_API_KEY           | [enter-your-gemini-api-key]    | [enter-your-gemini-api-key]    | -    |
+

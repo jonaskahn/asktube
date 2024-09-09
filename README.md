@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/logo.png" alt="Sublime's custom image"/>
+  <img src="docs/logo.png" alt="AskTube's Logo"/>
 </p>
 <p align="center">
-  <strong>AI-Powered Summarizer, QA Assistant on YouTube Videos 🤖</strong>
+  <strong>AskTube - An AI-Powered Summarizer, QA Assistant on YouTube Videos 🤖</strong>
 </p>
 
 ---
@@ -73,12 +73,13 @@
 
 ---
 
-## ⁉️ FAQ
-
-- **Does I need paid API to run?**
-  - No, you can fully run in your local machine if your pc have ability
-  - You can still using free API to run with some limitations.
-
 ## ✍🏿 For development
 
 - [Backend](./engine/README.md)
+
+---
+## ⁉️ FAQ and Troubleshooting
+
+- **Do I need paid API to run?**
+  - No, you can fully run in your local machine if your pc have ability
+  - You can still use free API to run with some limitations.
