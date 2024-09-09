@@ -2,7 +2,7 @@
   <img src="docs/logo.png" alt="AskTube's Logo"/>
 </p>
 <p align="center">
-  <strong>AskTube - An AI-Powered Summarizer, QA Assistant on YouTube Videos 🤖</strong>
+  <strong>AskTube - An AI-powered YouTube video summarizer and QA assistant powered by Retrieval Augmented Generation (RAG) 🤖</strong>
 </p>
 
 ---
