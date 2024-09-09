@@ -12,12 +12,13 @@ from audio_extract import extract_audio
 from faster_whisper import WhisperModel
 from future.backports.datetime import timedelta
 from mistralai import Mistral
+from ollama import Client
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 
 from engine.assistants import env
 from engine.assistants.env import MISTRAL_API_KEY
-from engine.assistants.errors import AiError, LogicError
+from engine.assistants.errors import AiError
 from engine.assistants.logger import log
 from engine.assistants.prompts import SYSTEM_PROMPT
 from engine.database.models import Chat
@@ -588,9 +589,9 @@ class AiService:
             prompt: str,
             system_prompt: str = SYSTEM_PROMPT,
             previous_chats: list[Chat] = None,
-            max_tokens: int = 2048,
             temperature: float = 0.7,
-            top_p: float = 1.0) -> str:
+            top_p: float = 1.0,
+            top_k: int = 16) -> str:
         """
         Initiates a conversation with OLLAMA's chat completion API.
 
@@ -599,19 +600,31 @@ class AiService:
             prompt (str): The initial message to send to the model.
             system_prompt (str, optional): The system prompt to use for the conversation. Defaults to SYSTEM_PROMPT.
             previous_chats (list[Chat], optional): A list of previous chats to include in the conversation history. Defaults to None.
-            max_tokens (int, optional): The maximum number of tokens to generate in the response. Defaults to 2048.
             temperature (float, optional): The temperature to use for the response generation. Defaults to 0.7.
             top_p (float, optional): The top p value to use for the response generation. Defaults to 1.0.
+            top_k (int, optional): The top k value to use for the response generation. Defaults to 16.
 
         Returns:
-            None
-
-        Raises:
-            NotImplementedError: OLLAMA is not implemented.
+            str: The response from the OLLAMA chat completion API.
         """
+
         if previous_chats is None:
             previous_chats = []
-        raise LogicError("OLLAMA is not implemented")
+        client = Client(host=env.LOCAL_OLLAMA_HOST)
+        messages = AiService.__build_ollama_chat_history(system_prompt=system_prompt, chats=previous_chats)
+        messages.append({
+            "role": "user", "content": prompt
+        })
+        response = client.chat(model=env.LOCAL_OLLAMA_MODEL, messages=messages, options={
+            "temperature": temperature,
+            "top_p": top_p,
+            "top_k": top_k
+        })
+        return response['message']['content']
+
+    @staticmethod
+    def __build_ollama_chat_history(system_prompt: str, chats: list[Chat]):
+        return AiService.__build_openai_chat_history(system_prompt=system_prompt, chats=chats)
 
     @staticmethod
     def delete_collection(table: str):

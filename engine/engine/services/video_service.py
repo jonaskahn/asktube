@@ -381,7 +381,7 @@ class VideoService:
         elif provider == "mistral":
             return AiService.chat_with_mistral(model=model, prompt=prompt, previous_chats=chats)
         elif provider == "ollama":
-            raise AiService.chat_with_ollama(model=model, prompt=prompt, previous_chats=chats)
+            return AiService.chat_with_ollama(model=model, prompt=prompt, previous_chats=chats)
         else:
             raise AiError("unknown AI provider")
 
