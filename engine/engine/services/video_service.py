@@ -348,7 +348,8 @@ class VideoService:
             refined_question=refined_question,
             answer=result,
             context=context,
-            prompt=asking_prompt
+            prompt=asking_prompt,
+            provider=provider
         )
         chat.save()
         return result

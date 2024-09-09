@@ -57,6 +57,7 @@ class Chat(Model):
     answer = TextField(null=False)
     context = TextField(null=False, default=""),
     prompt = TextField(null=False, default="")
+    provider = TextField(null=False)
 
     class Meta:
         database = sqlite_client
