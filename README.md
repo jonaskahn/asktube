@@ -18,8 +18,8 @@
   - [x] OpenAI
   - [x] Claude
   - [x] Gemini
-  - [ ] Mistral
-  - [ ] Ollama   
+  - [x] Mistral
+  - [x] Ollama   
 - **Speech To Text**:
   - [x] OpenAI Whisper (Local)
   - [ ] OpenAI Whisper (Cloud)
