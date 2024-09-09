@@ -534,6 +534,55 @@ class AiService:
         return chat_histories
 
     @staticmethod
+    def chat_with_mistral(
+            model: str,
+            prompt: str,
+            system_prompt: str = SYSTEM_PROMPT,
+            previous_chats: list[Chat] = None,
+            max_tokens: int = 2048,
+            temperature: float = 0.7,
+            top_p: float = 1.0) -> str:
+        """
+        Initiates a conversation with Mistral's chat completion API.
+
+        Args:
+            model (str): The model to use for the conversation.
+            prompt (str): The initial message to send to the model.
+            system_prompt (str, optional): The system prompt to use for the conversation. Defaults to SYSTEM_PROMPT.
+            previous_chats (list[Chat], optional): A list of previous chats to include in the conversation history. Defaults to None.
+            max_tokens (int, optional): The maximum number of tokens to generate in the response. Defaults to 2048.
+            temperature (float, optional): The temperature to use for the response generation. Defaults to 0.7.
+            top_p (float, optional): The top p value to use for the response generation. Defaults to 1.0.
+
+        Returns:
+            None
+
+        Raises:
+            AiError: If the Mistral API key is not set or is empty.
+        """
+        if previous_chats is None:
+            previous_chats = []
+        if env.MISTRAL_API_KEY is None or env.MISTRAL_API_KEY.strip() == "":
+            raise AiError("mistral api key is not set or is empty.")
+        client = Mistral(api_key=env.MISTRAL_API_KEY)
+        messages = AiService.__build_mistral_chat_history(system_prompt=system_prompt, chats=previous_chats)
+        messages.append({
+            "role": "user", "content": prompt
+        })
+        response = client.chat.complete(
+            model=model if model is not None or model else "mistral-large-latest",
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            top_p=top_p
+        )
+        return response.choices[0].message.content
+
+    @staticmethod
+    def __build_mistral_chat_history(system_prompt: str, chats: list[Chat]):
+        return AiService.__build_openai_chat_history(system_prompt=system_prompt, chats=chats)
+
+    @staticmethod
     def chat_with_ollama(
             model: str,
             prompt: str,

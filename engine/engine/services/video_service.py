@@ -85,7 +85,7 @@ class VideoService:
     @staticmethod
     async def __analysis_chapters(video: Video, provider: str):
         """
-        Analyzes video chapters using a specified provider.
+        Analyzes video chapters using a specified provider.sqlite_master
 
         Args:
             provider (str): The provider for the analysis.
@@ -282,6 +282,8 @@ class VideoService:
             return AiService.embedding_document_with_openai(text)
         elif provider == "voyageai":
             return AiService.embedding_document_with_voyageai(text)
+        elif provider == "mistral":
+            return AiService.embedding_document_with_mistral(text)
         elif provider == "local":
             return AiService.embedding_document_with_local(text)
         else:
@@ -376,6 +378,8 @@ class VideoService:
             return AiService.chat_with_openai(model=model, prompt=prompt, previous_chats=chats)
         elif provider == "claude":
             return AiService.chat_with_claude(model=model, prompt=prompt, previous_chats=chats)
+        elif provider == "mistral":
+            return AiService.chat_with_mistral(model=model, prompt=prompt, previous_chats=chats)
         elif provider == "ollama":
             raise AiService.chat_with_ollama(model=model, prompt=prompt, previous_chats=chats)
         else:
