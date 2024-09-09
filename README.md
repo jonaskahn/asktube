@@ -13,13 +13,13 @@
   - [x] Gemini
   - [x] VoyageAI
   - [x] Mistral
-  - [x] Local (Sentence Transformers)
+  - [x] Sentence Transformers (Local)
 - **AI Provider**: 
   - [x] OpenAI
   - [x] Claude
   - [x] Gemini
   - [x] Mistral
-  - [x] Ollama   
+  - [x] Ollama (Local)
 - **Speech To Text**:
   - [x] OpenAI Whisper (Local)
   - [ ] OpenAI Whisper (Cloud)
