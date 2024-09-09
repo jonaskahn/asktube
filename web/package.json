@@ -1,17 +1,19 @@
 {
-  "name": "asktube-weba",
-  "description": "WebUI interface to interact with backend API",
+  "name": "web",
+  "description": "WebUI for AskTube",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
-    "preview": "nuxt preview",
+    "preview": "nuxt generate && nuxt preview",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "nuxt": "^3.13.0",
-    "vue": "latest"
+    "@nuxtjs/tailwindcss": "^6.12.1",
+    "nuxt": "^3.13.1",
+    "vue": "^3.5.3",
+    "daisyui": "^4.12.10"
   }
 }
