@@ -31,7 +31,7 @@ poetry run python engine/server.py
 | ASKTUBE_GEMINI_EMBEDDING_MODEL       | models/text-embedding-004     | Prefer GEMINI model for embedding texts                                    |
 | ASKTUBE_OPENAI_EMBEDDING_MODEL       | text-embedding-ada-002        | Prefer OpenAI model for embedding texts                                    |
 | ASKTUBE_VOYAGEAI_EMBEDDING_MODEL     | voyage-large-2                | Prefer VoyageAI model for embedding texts                                  |
-| MISTRAL_EMBEDDING_MODEL              | mistral-embed                 | Prefer MistralAI model for embedding texts                                 |
+| ASKTUBE_MISTRAL_EMBEDDING_MODEL      | mistral-embed                 | Prefer MistralAI model for embedding texts                                 |
 | ASKTUBE_LOCAL_EMBEDDING_MODEL        | intfloat/multilingual-e5-base | Prefer Local model for embedding texts                                     |
 | ASKTUBE_LOCAL_EMBEDDING_DEVICE       | cpu                           | Provider device to embedding texts in local (*cpu, gpu*)                   |
 | ASKTUBE_LOCAL_WHISPER_MODEL          | base                          | Provider model to speech to text in local                                  |

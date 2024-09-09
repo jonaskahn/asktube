@@ -76,6 +76,6 @@ _Run it entirely on your local machine with Ollama, or cloud-based models like C
 
 2. [Placeholder]
 
-## For development
+## ✍🏿 For development
 
 - [Backend](./engine/README.md)
