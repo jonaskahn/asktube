@@ -69,12 +69,9 @@ _Run it entirely on your local machine with Ollama, or cloud-based models like C
 
 ## ⁉️ FAQ
 
-1. Does I need paid API to run?
-
-- No, you can fully run in your local machine if your pc have ability
-- You can still using free API to run with some limitations.
-
-2. [Placeholder]
+- **Does I need paid API to run?**
+  - No, you can fully run in your local machine if your pc have ability
+  - You can still using free API to run with some limitations.
 
 ## ✍🏿 For development
 
