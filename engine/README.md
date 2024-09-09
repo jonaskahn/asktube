@@ -54,6 +54,8 @@ poetry run python engine/server.py
 
 ### Notes
 
-- If you still want you free services with better result, please use VoyageAI for embedding. They are allow to use 50M token without limitation.
+- If you still want to use free services with better result, please use:
+  - **VoyageAI**  for embedding - Free to use 50M tokens without limitation.
+  - **Gemini 1.5 Flash** for QA - Free with rate limit.
 
 # FAQ
