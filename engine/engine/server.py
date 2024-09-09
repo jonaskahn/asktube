@@ -89,6 +89,16 @@ async def process_youtube_video(request: Request):
     })
 
 
+@app.post("/api/youtube/analysis")
+async def analysis_youtube_video(request: Request):
+    video_id = request.json['video_id']
+    provider = request.json['provider']
+    asyncio.create_task(VideoService.analysis_video(video_id, provider))
+    return json({
+        "message": "Analyze video in processing.",
+    })
+
+
 @app.post("/api/video/chat")
 async def chat(request: Request):
     vid = request.json['video_id']
@@ -112,6 +122,14 @@ async def summary(request: Request):
     return json({
         "message": "Successfully summary video",
         "payload": data
+    })
+
+
+@app.delete("/api/video/<video_id>")
+async def delete_video(request: Request, video_id: int):
+    VideoService.delete(video_id)
+    return json({
+        "message": f"Successfully delete video {video_id}"
     })
 
 

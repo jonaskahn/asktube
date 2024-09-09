@@ -5,6 +5,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 import iso639
 from lingua import LanguageDetectorBuilder
 
+from engine.assistants import constants
 from engine.assistants.errors import VideoError, AiError
 from engine.assistants.logger import log
 from engine.assistants.prompts import SUMMARY_PROMPT, ASKING_PROMPT, REFINED_QUESTION_PROMPT
@@ -58,13 +59,28 @@ class VideoService:
         video: Video = VideoService.find_video_by_id(vid)
         if video is None:
             raise VideoError("video is not found")
-        if video.is_analyzed:
+        if video.analysis_state in [constants.ANALYSIS_STAGE_COMPLETED, constants.ANALYSIS_STAGE_PROCESSING]:
             return video
+        VideoService.__update_processing_stats(video, is_analysis_content=True, is_analysis_summary=False)
         await VideoService.__analysis_chapters(video, provider)
-        video.is_analyzed = True
+        video.analysis_state = constants.ANALYSIS_STAGE_COMPLETED
         video.embedding_provider = provider
         video.save()
         log.debug("finish analysis video")
+
+    @staticmethod
+    def __update_processing_stats(video: Video, is_analysis_content: bool = True, is_analysis_summary: bool = True):
+        with sqlite_client.atomic() as transaction:
+            try:
+                if is_analysis_content:
+                    video.analysis_state = constants.ANALYSIS_STAGE_PROCESSING
+                if is_analysis_summary:
+                    video.analysis_summary_state = constants.ANALYSIS_STAGE_PROCESSING
+                video.save()
+                transaction.commit()
+            except Exception as e:
+                transaction.rollback()
+                raise e
 
     @staticmethod
     async def __analysis_chapters(video: Video, provider: str):
@@ -138,7 +154,7 @@ class VideoService:
             for index, text in enumerate(texts):
                 ids.append(f"{chapter.vid}_{chapter.id}_{index}")
                 documents.append(f"## {chapter.title} - Part {index + 1}: \n---\n{text}")
-        AiService.store_embeddings(f"video_chapter_{chapter.vid}", ids, documents, embeddings)
+        AiService.store_embeddings(f"video_{chapter.vid}", ids, documents, embeddings)
 
     @staticmethod
     def __analysis_video_with_openai(chapter: VideoChapter):
@@ -227,8 +243,9 @@ class VideoService:
     @staticmethod
     async def __analysis_summary_video(model: str, provider: str, video: Video):
         log.debug("start analysis summary video")
-        if video.is_summary_analyzed:
+        if video.analysis_summary_state in [constants.ANALYSIS_STAGE_COMPLETED, constants.ANALYSIS_STAGE_PROCESSING]:
             return
+        VideoService.__update_processing_stats(video, is_analysis_content=False, is_analysis_summary=True)
         system_summary = VideoService.__summary_content(video.language, model, provider, video)
         texts, embeddings = VideoService.__get_query_embedding(video.embedding_provider, system_summary)
         ids: list[str] = []
@@ -237,7 +254,7 @@ class VideoService:
             ids.append(f"{video.id}_0_{index}")
             documents.append(f"## Summary - Part {index + 1}: \n---\n{text}")
         AiService.store_embeddings(f"video_summary_{video.id}", ids, texts, embeddings)
-        video.is_summary_analyzed = True
+        video.analysis_summary_state = constants.ANALYSIS_STAGE_COMPLETED
         video.save()
         log.debug("finish analysis summary video")
 
@@ -281,7 +298,7 @@ class VideoService:
         video: Video = VideoService.find_video_by_id(vid)
         if video is None:
             raise VideoError("video is not found")
-        if not video.is_analyzed:
+        if not video.analysis_state:
             raise VideoError("video has not analyzed yet")
         question_lang = detector.detect_language_of(question)
         question_lang_code = question_lang.iso_code_639_1.name.__str__().lower()
@@ -289,7 +306,7 @@ class VideoService:
         refined_question = VideoService.__refine_question(model, provider, question, question_lang_code, video)
         _, embedding_question = VideoService.__get_query_embedding(video.embedding_provider, refined_question)
         amount, context = AiService.query_embeddings(
-            table=f"video_chapter_{video.id}",
+            table=f"video_{video.id}",
             query=embedding_question,
             fetch_size=video.amount_chapters * 3
         )
@@ -347,3 +364,19 @@ class VideoService:
             raise AiService.chat_with_ollama(model=model, prompt=prompt, previous_chats=chats)
         else:
             raise AiError("unknown AI provider")
+
+    @staticmethod
+    def delete(video_id: int):
+
+        with sqlite_client.atomic() as transaction:
+            try:
+                video = VideoService.find_video_by_id(video_id)
+                chapters = list(VideoChapter.select().where(VideoChapter.video == video))
+                video.delete_instance()
+                for chapter in chapters:
+                    chapter.delete_instance()
+                AiService.delete_collection(f"video_{video_id}")
+                transaction.commit()
+            except Exception as e:
+                transaction.rollback()
+                raise e

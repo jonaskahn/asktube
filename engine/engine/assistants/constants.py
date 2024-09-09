@@ -11,3 +11,7 @@ VT_VIDEO_TABLE_TEMPLATE: str = "video_chapters_{id}_{lang}"
 
 SQL_DATABASE = os.path.join(APP_DIR, "asktube.sqlite3")
 VECTOR_DATABASE = os.path.join(APP_DIR, "vector")
+
+ANALYSIS_STAGE_INITIAL = 0
+ANALYSIS_STAGE_COMPLETED = 1
+ANALYSIS_STAGE_PROCESSING = 2

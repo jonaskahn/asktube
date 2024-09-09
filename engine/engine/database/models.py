@@ -1,4 +1,4 @@
-from peewee import Model, AutoField, CharField, TextField, IntegerField, BooleanField, ForeignKeyField
+from peewee import Model, AutoField, CharField, TextField, IntegerField, ForeignKeyField
 
 from engine.database.specs import sqlite_client
 
@@ -15,8 +15,8 @@ class Video(Model):
     amount_chapters = IntegerField(null=False)
     transcript = TextField(null=False, default="")
     summary = TextField(null=False, default="")
-    is_analyzed = BooleanField(default=False)
-    is_summary_analyzed = BooleanField(default=False)
+    analysis_state = IntegerField(default=False, index=True)
+    analysis_summary_state = IntegerField(default=False, index=True)
     embedding_provider = CharField(null=True)
     language = CharField(null=True)
 

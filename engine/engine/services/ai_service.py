@@ -540,3 +540,7 @@ class AiService:
         if previous_chats is None:
             previous_chats = []
         raise LogicError("OLLAMA is not implemented")
+
+    @staticmethod
+    def delete_collection(table: str):
+        chromadb_client.delete_collection(table)
