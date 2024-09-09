@@ -1,4 +1,6 @@
-# AskTube
+<p align="center">
+  <img src="docs/logo.png" alt="Sublime's custom image"/>
+</p>
 
 **AI-Powered Summarizer, QA Assistant on YouTube Videos 🤖.**
 
