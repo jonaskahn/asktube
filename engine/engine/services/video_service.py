@@ -102,6 +102,8 @@ class VideoService:
                 futures = [executor.submit(VideoService.__analysis_video_with_openai, chapter) for chapter in video_chapters]
             elif provider == "voyageai":
                 futures = [executor.submit(VideoService.__analysis_video_with_voyageai, chapter) for chapter in video_chapters]
+            elif provider == "mistral":
+                futures = [executor.submit(VideoService.__analysis_video_with_mistral, chapter) for chapter in video_chapters]
             elif provider == "local":
                 futures = [executor.submit(VideoService.__analysis_video_with_local, chapter) for chapter in video_chapters]
             else:
@@ -182,6 +184,20 @@ class VideoService:
             None
         """
         texts, embeddings = AiService.embedding_document_with_voyageai(chapter.transcript)
+        VideoService.__store_embedding_chunked_transcript(chapter, texts, embeddings)
+
+    @staticmethod
+    def __analysis_video_with_mistral(chapter: VideoChapter):
+        """
+        Analyzes a video chapter using the Mistral service.
+
+        Args:
+            chapter (VideoChapter): The chapter of the video to be analyzed.
+
+        Returns:
+            None
+        """
+        texts, embeddings = AiService.embedding_document_with_mistral(chapter.transcript)
         VideoService.__store_embedding_chunked_transcript(chapter, texts, embeddings)
 
     @staticmethod

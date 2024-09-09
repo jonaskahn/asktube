@@ -11,10 +11,12 @@ import voyageai
 from audio_extract import extract_audio
 from faster_whisper import WhisperModel
 from future.backports.datetime import timedelta
+from mistralai import Mistral
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 
 from engine.assistants import env
+from engine.assistants.env import MISTRAL_API_KEY
 from engine.assistants.errors import AiError, LogicError
 from engine.assistants.logger import log
 from engine.assistants.prompts import SYSTEM_PROMPT
@@ -201,14 +203,14 @@ class AiService:
             tuple: A tuple containing the chunked text and the embeddings.
 
         Raises:
-            AiApiKeyError: If the Gemini API key is not set or is empty.
+            AiError: If the Gemini API key is not set or is empty.
         """
         if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":
             raise AiError("gemini api key is not set or is empty.")
         try:
             texts = AiService.__chunk_text(text, max_tokens)
             genai.configure(api_key=env.GEMINI_API_KEY)
-            return texts, [genai.embed_content(model=env.GEMINI_EMBEDDING_MODEL, content=text)['embedding'] for text in texts]
+            return texts, [genai.embed_content(content=text, model=env.GEMINI_EMBEDDING_MODEL)['embedding'] for text in texts]
         except Exception as e:
             log.debug(f"\nerror in embedding_document_with_gemini: \n{text}", exc_info=True)
             raise e
@@ -226,13 +228,13 @@ class AiService:
             tuple: A tuple containing the chunked text and the embeddings.
 
         Raises:
-            AiApiKeyError: If the OpenAI API key is not set or is empty.
+            AiError: If the OpenAI API key is not set or is empty.
         """
         if env.OPENAI_API_KEY is None or env.OPENAI_API_KEY.strip() == "":
             raise AiError("openai api key is not set or is empty.")
         texts = AiService.__chunk_text(text, max_tokens)
         client = OpenAI(api_key=env.OPENAI_API_KEY)
-        return texts, [client.embeddings.create(model=env.OPENAI_EMBEDDING_MODEL, input=[text]).data[0].embedding for text in texts]
+        return texts, [client.embeddings.create(input=[text], model=env.OPENAI_EMBEDDING_MODEL).data[0].embedding for text in texts]
 
     @staticmethod
     def embedding_document_with_voyageai(text: str, max_tokens=16000) -> tuple[list[str], list[list[float]]]:
@@ -247,13 +249,34 @@ class AiService:
             tuple: A tuple containing the chunked text and the embeddings.
 
         Raises:
-            AiApiKeyError: If the VoyageAI API key is not set or is empty.
+            AiError: If the VoyageAI API key is not set or is empty.
         """
         if env.VOYAGEAI_API_KEY is None or env.VOYAGEAI_API_KEY.strip() == "":
             raise AiError("voyageai api key is not set or is empty.")
         texts = AiService.__chunk_text(text, max_tokens)
         client = voyageai.Client(api_key=env.VOYAGEAI_API_KEY)
         return texts, [client.embed(texts=[text], model=env.VOYAGEAI_EMBEDDING_MODEL, input_type="document").embeddings[0] for text in texts]
+
+    @staticmethod
+    def embedding_document_with_mistral(text: str, max_tokens=8000) -> tuple[list[str], list[list[float]]]:
+        """
+        Embeds a document using the Mistral API.
+
+        Args:
+            text (str): The text to be embedded.
+            max_tokens (int, optional): The maximum number of tokens in each chunk. Defaults to 8000.
+
+        Returns:
+            tuple: A tuple containing the chunked text and the embeddings.
+
+        Raises:
+            AiError: If the Mistral API key is not set or is empty.
+        """
+        if env.MISTRAL_API_KEY is None or env.MISTRAL_API_KEY.strip() == "":
+            raise AiError("mistral api key is not set or is empty.")
+        texts = AiService.__chunk_text(text, max_tokens)
+        client = Mistral(api_key=MISTRAL_API_KEY)
+        return texts, [client.embeddings.create(inputs=[text], model=env.MISTRAL_EMBEDDING_MODEL).data[0].embedding for text in texts]
 
     @staticmethod
     def embedding_document_with_local(text: str, max_tokens=500) -> tuple[list[str], list[list[float]]]:
