@@ -12,6 +12,7 @@
   - [x] OpenAI
   - [x] Gemini
   - [x] VoyageAI
+  - [x] Mistral
   - [x] Local (Sentence Transformers)
 - **AI Provider**: 
   - [x] OpenAI
