@@ -27,6 +27,11 @@ lingua-language-detector = "^2.0.2"
 latest-user-agents = "^0.0.4"
 urllib3 = "^2.2.2"
 
+[tool.poetry.group.dev.dependencies]
+pyinstaller = "^6.10.0"
+pytest = "^8.3.2"
+pytest-mock = "^3.14.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
