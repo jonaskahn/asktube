@@ -1,11 +1,15 @@
 <p align="center">
   <img src="docs/logo.png" alt="Sublime's custom image"/>
 </p>
+<p align="center">
+  <strong>AI-Powered Summarizer, QA Assistant on YouTube Videos 🤖</strong>
+</p>
 
-**AI-Powered Summarizer, QA Assistant on YouTube Videos 🤖.**
-
-_Run it entirely on your local machine with Ollama, or cloud-based models like Claude, OpenAI, Gemini, Mistral, and more._
-
+---
+<p align="center">
+  <i>Run it entirely on your local machine with Ollama, or cloud-based models like Claude, OpenAI, Gemini, Mistral, and more</strong>
+</p>
+    
 ---
 
 ## 🔨 Technology
