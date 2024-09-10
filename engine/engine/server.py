@@ -12,10 +12,13 @@ from engine.database.specs import sqlite_client
 from engine.services.video_service import VideoService
 from engine.services.youtube_service import YoutubeService
 
+Sanic.START_METHOD_SET = True
+Sanic.start_method = "fork"
 app = Sanic("AskTube", dumps=dumps)
+
 app.config.KEEP_ALIVE = False
 app.config.REQUEST_TIMEOUT = 90
-app.config.RESPONSE_TIMEOUT = 120
+app.config.RESPONSE_TIMEOUT = 300
 
 
 @app.listener('before_server_start')

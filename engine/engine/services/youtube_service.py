@@ -1,14 +1,15 @@
 import os.path
+import uuid
 from datetime import timedelta
-from pathlib import Path
 
 import pytubefix
 from pytubefix import YouTube, Caption
 from pytubefix.cli import on_progress
 
-from engine.assistants import env, constants
+from engine.assistants import env
 from engine.assistants.logger import log
 from engine.database.models import VideoChapter, Video
+from engine.filters.audio_filter import filter_audio, temp_audio_dir
 from engine.services.ai_service import AiService
 from engine.services.video_service import VideoService
 
@@ -140,7 +141,7 @@ class YoutubeService:
                     return transcript.code.replace("a.", ""), self.__combine_youtube_caption_data(transcript)
             transcript = transcripts[0]
             return transcript.code.replace("a.", ""), self.__combine_youtube_caption_data(transcript)
-        language, audio_file = self.__download_audio()
+        language, audio_file = self.__extract_audio()
         return language, self.__ai_service.speech_to_text(audio_file)
 
     @staticmethod
@@ -165,22 +166,21 @@ class YoutubeService:
                 })
         return result
 
-    def __download_audio(self):
+    def __extract_audio(self):
         log.debug(f"start to download audio {self.__agent.title}")
-
-        output_audio_dir = os.path.join(env.APP_DIR, f"{self.__agent.video_id}")
-        Path(output_audio_dir).mkdir(parents=True, exist_ok=True)
-
-        ys = self.__agent.streams.get_audio_only()
-        ys.download(mp3=True, output_path=output_audio_dir, filename=constants.YT_AUDIO_FILE_NAME, skip_existing=True)
-        output_audio_file = os.path.join(output_audio_dir, constants.YT_AUDIO_ABS_FILE_NAME)
-        log.debug(f"finished download audio {self.__agent.title} to {output_audio_file}")
+        output_audio_file = self.__download_audio()
 
         language = self.__ai_service.recognize_audio_language(
-            audio_path=os.path.join(output_audio_dir, constants.YT_AUDIO_ABS_FILE_NAME),
+            audio_path=output_audio_file,
             duration=self.__agent.length
         )
         return language, output_audio_file
+
+    def __download_audio(self):
+        ys = self.__agent.streams.get_audio_only()
+        tmp_audio_file_name = f"{uuid.uuid4()}"
+        ys.download(mp3=True, output_path=temp_audio_dir, filename=tmp_audio_file_name, skip_existing=True)
+        return filter_audio(os.path.join(temp_audio_dir, f"{tmp_audio_file_name}.mp3"))
 
     @staticmethod
     def __pair_video_chapters_with_transcripts(video: Video, chapters: list[VideoChapter], transcripts: [{}]):
