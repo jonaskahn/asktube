@@ -14,6 +14,7 @@ class Video(Model):
     duration = IntegerField(null=False)
     amount_chapters = IntegerField(null=False)
     transcript = TextField(null=False, default="")
+    transcript_tokens = IntegerField(null=False, default=0)
     summary = TextField(null=False, default="")
     analysis_state = IntegerField(default=False, index=True)
     analysis_summary_state = IntegerField(default=False, index=True)

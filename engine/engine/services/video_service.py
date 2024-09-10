@@ -5,7 +5,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 import iso639
 from lingua import LanguageDetectorBuilder
 
-from engine.assistants import constants
+from engine.assistants import constants, env
 from engine.assistants.errors import VideoError, AiError
 from engine.assistants.logger import log
 from engine.assistants.prompts import SUMMARY_PROMPT, ASKING_PROMPT, REFINED_QUESTION_PROMPT
@@ -323,15 +323,20 @@ class VideoService:
         chats: list[Chat] = list(Chat.select().where(Chat.video == video).limit(10))
         refined_question = VideoService.__refine_question(model, provider, question, question_lang_code, video)
         _, embedding_question = VideoService.__get_query_embedding(video.embedding_provider, refined_question)
+
         amount, context = AiService.query_embeddings(
             table=f"video_{video.id}",
             query=embedding_question,
             fetch_size=video.amount_chapters * 3
         )
+        aware_context = context
+        if not context:
+            aware_context = "No information" if env.TOKEN_CONTEXT_THRESHOLD > video.transcript_tokens else video.transcript
+
         asking_prompt = ASKING_PROMPT.format(**{
             "url": video.url,
             "title": video.title,
-            "context": context or "Not available",
+            "context": aware_context,
             "question": question,
             "refined_question": refined_question,
             "language": question_lang.name.__str__()

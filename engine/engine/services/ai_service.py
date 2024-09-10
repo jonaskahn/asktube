@@ -38,13 +38,7 @@ class AiService:
             WhisperModel: An instance of the Whisper model with the specified device and compute type.
         """
         compute_type = 'int8' if env.LOCAL_WHISPER_DEVICE == 'cpu' else 'fp16'
-        return WhisperModel(
-            model_size_or_path=env.LOCAL_WHISPER_MODEL,
-            device=env.LOCAL_WHISPER_DEVICE,
-            compute_type=compute_type,
-            download_root=env.APP_DIR,
-            local_files_only=True
-        )
+        return WhisperModel(env.LOCAL_WHISPER_MODEL, device=env.LOCAL_WHISPER_DEVICE, compute_type=compute_type)
 
     @staticmethod
     def __get_local_embedding_encoder():
@@ -78,6 +72,7 @@ class AiService:
         Returns:
             str: The language of the audio file, or None if it cannot be determined.
         """
+        log.debug("start to recognize audio language")
         model = self.__get_whisper_model()
         if duration <= 120:
             _, info = model.transcribe(audio_path)
@@ -92,6 +87,7 @@ class AiService:
             most_common_lang, count = Counter(languages).most_common(1)[0]
             return most_common_lang if count >= 2 else None
         finally:
+            log.debug("finish to recognize audio language")
             for segment in [start_segment, middle_segment, end_segment]:
                 if segment is not None and os.path.exists(segment):
                     os.remove(segment)

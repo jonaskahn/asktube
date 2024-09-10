@@ -15,3 +15,6 @@ VECTOR_DATABASE = os.path.join(APP_DIR, "vector")
 ANALYSIS_STAGE_INITIAL = 0
 ANALYSIS_STAGE_COMPLETED = 1
 ANALYSIS_STAGE_PROCESSING = 2
+
+TEMP_AUDIO_DIR = os.path.join(APP_DIR, "temp")
+os.makedirs(TEMP_AUDIO_DIR, exist_ok=True)

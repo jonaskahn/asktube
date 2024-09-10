@@ -3,13 +3,15 @@ import uuid
 from datetime import timedelta
 
 import pytubefix
+import tiktoken
 from pytubefix import YouTube, Caption
 from pytubefix.cli import on_progress
 
 from engine.assistants import env
+from engine.assistants.constants import TEMP_AUDIO_DIR
 from engine.assistants.logger import log
 from engine.database.models import VideoChapter, Video
-from engine.filters.audio_filter import filter_audio, temp_audio_dir
+from engine.filters.audio_filter import filter_audio
 from engine.services.ai_service import AiService
 from engine.services.video_service import VideoService
 
@@ -75,6 +77,7 @@ class YoutubeService:
         video_transcript, video_chapters = self.__pair_video_chapters_with_transcripts(video, extracted_chapters, extracted_transcripts)
         video.amount_chapters = len(video_chapters)
         video.transcript = video_transcript
+        video.transcript_tokens = len(tiktoken.get_encoding("cl100k_base").encode(video.transcript))
         video.language = language
         VideoService.save(video, video_chapters)
         return video
@@ -179,8 +182,8 @@ class YoutubeService:
     def __download_audio(self):
         ys = self.__agent.streams.get_audio_only()
         tmp_audio_file_name = f"{uuid.uuid4()}"
-        ys.download(mp3=True, output_path=temp_audio_dir, filename=tmp_audio_file_name, skip_existing=True)
-        return filter_audio(os.path.join(temp_audio_dir, f"{tmp_audio_file_name}.mp3"))
+        ys.download(mp3=True, output_path=TEMP_AUDIO_DIR, filename=tmp_audio_file_name, skip_existing=True)
+        return filter_audio(os.path.join(TEMP_AUDIO_DIR, f"{tmp_audio_file_name}.mp3"))
 
     @staticmethod
     def __pair_video_chapters_with_transcripts(video: Video, chapters: list[VideoChapter], transcripts: [{}]):

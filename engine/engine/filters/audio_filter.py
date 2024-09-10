@@ -2,16 +2,16 @@ import os
 from typing import Callable, List
 from uuid import uuid4
 
+import librosa
 import noisereduce as nr
 import numpy as np
+import soundfile as sf
 from pydub import AudioSegment
 from scipy.io import wavfile
 
-from engine.assistants.env import APP_DIR
+from engine.assistants import env
+from engine.assistants.constants import TEMP_AUDIO_DIR
 from engine.assistants.logger import log
-
-temp_audio_dir = os.path.join(APP_DIR, "temp")
-os.makedirs(temp_audio_dir, exist_ok=True)
 
 
 class __AudioChainFilter:
@@ -37,9 +37,19 @@ class __AudioChainFilter:
 
 
 def mp4_to_wav(audio_input_path: str) -> str:
-    audio_output_file = os.path.join(temp_audio_dir, f"{uuid4()}.wav")
+    audio_output_file = os.path.join(TEMP_AUDIO_DIR, f"{uuid4()}.wav")
     sound = AudioSegment.from_file(audio_input_path, format="mp4")
     sound.export(audio_output_file, format="wav")
+    return audio_output_file
+
+
+def remove_music(audio_input_path: str) -> str:
+    audio_output_file = os.path.join(TEMP_AUDIO_DIR, f"{uuid4()}.wav")
+    y, sr = librosa.load(audio_input_path, sr=None, mono=False)
+    if len(y.shape) > 1:
+        y = librosa.to_mono(y.T)
+    y_harmonic, y_percussive = librosa.effects.hpss(y)
+    sf.write(audio_output_file, y_harmonic, sr)
     return audio_output_file
 
 
@@ -54,10 +64,12 @@ def denoise(audio_path: str) -> str:
             reduced_noise_channel = nr.reduce_noise(y=raw_data, sr=rate)
             channels.append(reduced_noise_channel)
         reduced_noise = np.stack(channels, axis=1)
-    audio_output_file = os.path.join(temp_audio_dir, f"{uuid4()}.wav")
+    audio_output_file = os.path.join(TEMP_AUDIO_DIR, f"{uuid4()}.wav")
     wavfile.write(audio_output_file, rate, reduced_noise.astype(np.int16))
     return audio_output_file
 
 
 def filter_audio(audio_path: str) -> str:
-    return __AudioChainFilter().add_filter(mp4_to_wav).add_filter(denoise).filter(audio_path)
+    if env.AUDIO_ENHANCE_ENABLED in ["yes", "on", "enabled"]:
+        return __AudioChainFilter().add_filter(mp4_to_wav).add_filter(denoise).add_filter(remove_music).filter(audio_path)
+    return audio_path
