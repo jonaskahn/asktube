@@ -38,7 +38,7 @@ class AiService:
             WhisperModel: An instance of the Whisper model with the specified device and compute type.
         """
         compute_type = 'int8' if env.LOCAL_WHISPER_DEVICE == 'cpu' else 'fp16'
-        return WhisperModel(env.LOCAL_WHISPER_MODEL, device=env.LOCAL_WHISPER_DEVICE, compute_type=compute_type)
+        return WhisperModel(env.LOCAL_WHISPER_MODEL, device=env.LOCAL_WHISPER_DEVICE, compute_type=compute_type, download_root=env.APP_DIR)
 
     @staticmethod
     def __get_local_embedding_encoder():

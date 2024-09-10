@@ -4,6 +4,7 @@ from json import dumps
 from playhouse.shortcuts import model_to_dict
 from sanic import Sanic, Request
 from sanic import json, text
+from sanic.worker.manager import WorkerManager
 
 from engine.assistants.errors import LogicError
 from engine.assistants.logger import log
@@ -14,11 +15,13 @@ from engine.services.youtube_service import YoutubeService
 
 Sanic.START_METHOD_SET = True
 Sanic.start_method = "fork"
-app = Sanic("AskTube", dumps=dumps)
+WorkerManager.THRESHOLD = 100
 
+app = Sanic("AskTube", dumps=dumps)
 app.config.KEEP_ALIVE = False
 app.config.REQUEST_TIMEOUT = 90
 app.config.RESPONSE_TIMEOUT = 300
+
 
 
 @app.listener('before_server_start')
