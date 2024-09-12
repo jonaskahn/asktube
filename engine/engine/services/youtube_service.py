@@ -29,11 +29,15 @@ class YoutubeService:
 
     def fetch_basic_info(self):
         """
-        Fetches the basic information of a YouTube video.
+        Fetches and returns the basic information of a YouTube video.
+
+        Args:
+            None
 
         Returns:
             dict: A dictionary containing the title, description, duration, author, thumbnail, and captions of the video.
         """
+
         captions = list(map(lambda c: {'name': c.name, 'value': c.code}, self.__agent.captions))
         return {
             'title': self.__agent.title,
@@ -46,19 +50,15 @@ class YoutubeService:
 
     async def fetch_video_data(self) -> Video:
         """
-        Fetches and processes video data from a YouTube video.
-
-        This function checks if the video data is already available in the database.
-        If it is, the function returns the existing video data.
-        Otherwise, it creates a new video object, extracts chapters and transcripts,
-        and saves the video data to the database.
+        Fetches video data from YouTube and saves it to the database.
 
         Args:
-            self: The YoutubeService instance.
+            None
 
         Returns:
-            Video: The video data object.
+            Video: The fetched video object.
         """
+
         video = VideoService.find_video_by_youtube_id(self.__agent.video_id)
         if video is not None:
             return video

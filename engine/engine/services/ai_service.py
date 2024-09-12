@@ -34,13 +34,17 @@ class AiService:
         pass
 
     @staticmethod
-    def __get_whisper_model():
+    def __get_local_whisper_model():
         """
-        Retrieves a Whisper model instance based on the environment settings.
+        Retrieves a WhisperModel instance based on the environment settings.
+
+        The model's compute type is determined by the availability of CUDA,
+        defaulting to 'fp16' if CUDA is available and 'int8' if CPU.
 
         Returns:
-            WhisperModel: An instance of the Whisper model with the specified device and compute type.
+            WhisperModel: An instance of the WhisperModel with the specified device and model path.
         """
+
         compute_type = 'fp16' if has_cuda else 'int8'
         return WhisperModel(
             env.LOCAL_WHISPER_MODEL,
@@ -52,12 +56,13 @@ class AiService:
     @staticmethod
     def __get_local_embedding_encoder():
         """
-        Retrieves a local SentenceTransformer model instance based on the environment settings.
+        Retrieves a SentenceTransformer instance based on the environment settings.
 
-        If the model is not found locally, it is downloaded and saved to the specified path.
+        The device type is determined by the availability of MPS or CUDA, defaulting to 'cpu' if neither is available.
+        If the local model path does not exist, it downloads the model and saves it to the local path.
 
         Returns:
-            SentenceTransformer: An instance of the SentenceTransformer model with the specified device and model path.
+            SentenceTransformer: An instance of the SentenceTransformer with the specified device and model path.
         """
 
         if has_mps:
@@ -83,25 +88,22 @@ class AiService:
         """
         Recognizes the language of an audio file.
 
-        Note:
-            - If audio length is less than 120 seconds, use whole audio to detect. Otherwise, random pick a set of split audios (at the end, middle, start) to detect language.
-            - Current faster-whisper does not support any "fast way" detecting languages. Here is my work-around solution.
-
         Args:
             audio_path (str): The path to the audio file.
             duration (int): The duration of the audio file in seconds.
 
         Returns:
-            str: The language of the audio file, or None if it cannot be determined.
+            str: The recognized language of the audio file, or None if the language could not be determined.
         """
+
         log.debug("start to recognize audio language")
-        model = AiService.__get_whisper_model()
+        model = AiService.__get_local_whisper_model()
         if duration <= 120:
             _, info = model.transcribe(audio_path)
             return info.language
         start_segment, middle_segment, end_segment = None, None, None
         try:
-            start_segment, middle_segment, end_segment = AiService.__segment_audio(audio_path, duration)
+            start_segment, middle_segment, end_segment = AiService.__split_segment_audio(audio_path, duration)
             _, start_info = model.transcribe(start_segment)
             _, middle_info = model.transcribe(middle_segment)
             _, end_info = model.transcribe(end_segment)
@@ -115,9 +117,9 @@ class AiService:
                     os.remove(segment)
 
     @staticmethod
-    def __segment_audio(audio_path: str, duration: int):
+    def __split_segment_audio(audio_path: str, duration: int):
         """
-        Segments an audio file into three random parts: start, middle, and end.
+        Segments an audio file into three parts: start, middle, and end.
 
         Args:
             audio_path (str): The path to the audio file.
@@ -125,10 +127,8 @@ class AiService:
 
         Returns:
             tuple: A tuple containing the paths to the start, middle, and end segments of the audio file.
-
-        Raises:
-            AiSegmentError: If the duration of the audio file is less than 120 seconds.
         """
+
         if duration < 120:
             raise AiError("duration must be greater than 120 seconds")
         start_segment_audio_path = os.path.join(tempfile.gettempdir(), f"{uuid4()}.mp3")
@@ -164,19 +164,21 @@ class AiService:
     @staticmethod
     def speech_to_text(audio_path: str, delta: int):
         """
-        Transcribes an audio file into text.
+        Transcribes the given audio file to text using the specified speech-to-text provider.
 
         Args:
             audio_path (str): The path to the audio file.
-            delta (int): The delta (compensation time) in milliseconds to add to the start time of each segment.
+            delta (int): The delta value to adjust the start time of each segment.
 
         Returns:
-            list: A list of dictionaries containing the start time (milliseconds), duration (milliseconds), and text of each segment in the audio file.
+            tuple: A tuple containing the language of the transcription and a list of segments.
+                   Each segment is a dictionary with 'start_time', 'duration', and 'text' keys.
         """
+
         if audio_path is None:
             raise AiError("audio path is not found")
         if env.SPEECH_TO_TEXT_PROVIDER == "local":
-            model = AiService.__get_whisper_model()
+            model = AiService.__get_local_whisper_model()
             segments, info = model.transcribe(audio=audio_path, beam_size=8, vad_filter=True)
             result = []
             for segment in segments:
@@ -197,15 +199,16 @@ class AiService:
     @staticmethod
     def __chunk_text(text: str, max_tokens: int) -> list[str]:
         """
-        Splits a given text into chunks of words, each chunk containing a maximum number of tokens.
+        Chunks the given text into a list of substrings, each containing a maximum number of tokens.
 
         Args:
             text (str): The text to be chunked.
-            max_tokens (int): The maximum number of tokens in each chunk.
+            max_tokens (int): The maximum number of tokens allowed in each chunk.
 
         Returns:
-            List[str]: A list of chunks, where each chunk is a string of words.
+            list[str]: A list of chunked substrings.
         """
+
         encoding = tiktoken.get_encoding("cl100k_base")
         words = text.split()
         chunks = []
@@ -234,7 +237,7 @@ class AiService:
 
         Args:
             text (str): The text to be embedded.
-            max_tokens (int, optional): The maximum number of tokens in the embedded text. Defaults to 2000.
+            max_tokens (int, optional): The maximum number of tokens in each chunk. Defaults to 2000.
 
         Returns:
             tuple: A tuple containing the chunked text and the embeddings.
@@ -242,6 +245,7 @@ class AiService:
         Raises:
             AiError: If the Gemini API key is not set or is empty.
         """
+
         if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":
             raise AiError("gemini api key is not set or is empty.")
         try:
@@ -253,7 +257,7 @@ class AiService:
             raise e
 
     @staticmethod
-    def embedding_document_with_openai(text: str, max_tokens=8000) -> tuple[list[str], list[list[float]]]:
+    def embed_document_with_openai(text: str, max_tokens=8000) -> tuple[list[str], list[list[float]]]:
         """
         Embeds a document using the OpenAI API.
 
@@ -267,6 +271,7 @@ class AiService:
         Raises:
             AiError: If the OpenAI API key is not set or is empty.
         """
+
         if env.OPENAI_API_KEY is None or env.OPENAI_API_KEY.strip() == "":
             raise AiError("openai api key is not set or is empty.")
         texts = AiService.__chunk_text(text, max_tokens)
@@ -274,20 +279,8 @@ class AiService:
         return texts, [client.embeddings.create(input=[text], model=env.OPENAI_EMBEDDING_MODEL).data[0].embedding for text in texts]
 
     @staticmethod
-    def embedding_document_with_voyageai(text: str, max_tokens=16000) -> tuple[list[str], list[list[float]]]:
-        """
-        Embeds a document using the VoyageAI API.
+    def embed_document_with_voyageai(text: str, max_tokens=16000) -> tuple[list[str], list[list[float]]]:
 
-        Args:
-            text (str): The text to be embedded.
-            max_tokens (int, optional): The maximum number of tokens in each chunk. Defaults to 16000.
-
-        Returns:
-            tuple: A tuple containing the chunked text and the embeddings.
-
-        Raises:
-            AiError: If the VoyageAI API key is not set or is empty.
-        """
         if env.VOYAGEAI_API_KEY is None or env.VOYAGEAI_API_KEY.strip() == "":
             raise AiError("voyageai api key is not set or is empty.")
         texts = AiService.__chunk_text(text, max_tokens)
@@ -295,7 +288,7 @@ class AiService:
         return texts, [client.embed(texts=[text], model=env.VOYAGEAI_EMBEDDING_MODEL, input_type="document").embeddings[0] for text in texts]
 
     @staticmethod
-    def embedding_document_with_mistral(text: str, max_tokens=8000) -> tuple[list[str], list[list[float]]]:
+    def embed_document_with_mistral(text: str, max_tokens=8000) -> tuple[list[str], list[list[float]]]:
         """
         Embeds a document using the Mistral API.
 
@@ -309,6 +302,7 @@ class AiService:
         Raises:
             AiError: If the Mistral API key is not set or is empty.
         """
+
         if env.MISTRAL_API_KEY is None or env.MISTRAL_API_KEY.strip() == "":
             raise AiError("mistral api key is not set or is empty.")
         texts = AiService.__chunk_text(text, max_tokens)
@@ -316,17 +310,18 @@ class AiService:
         return texts, [client.embeddings.create(inputs=[text], model=env.MISTRAL_EMBEDDING_MODEL).data[0].embedding for text in texts]
 
     @staticmethod
-    def embedding_document_with_local(text: str, max_tokens=16000) -> tuple[list[str], list[list[float]]]:
+    def embed_document_with_local(text: str, max_tokens=16000) -> tuple[list[str], list[list[float]]]:
         """
-        Embeds a document using a local embedding model.
+        Embeds a document using a local embedding encoder.
 
         Args:
             text (str): The text to be embedded.
-            max_tokens (int, optional): The maximum number of tokens in each chunk. Defaults to 500, depends on local model that used.
+            max_tokens (int, optional): The maximum number of tokens in each chunk. Defaults to 16000.
 
         Returns:
             tuple: A tuple containing the chunked text and the embeddings.
         """
+
         texts = AiService.__chunk_text(text, max_tokens)
         encoder = AiService.__get_local_embedding_encoder()
         return texts, [encoder.encode([text], normalize_embeddings=True, convert_to_numpy=True).tolist()[0] for text in texts]
@@ -345,25 +340,25 @@ class AiService:
         Returns:
             None
         """
+
         collection = chromadb_client.get_or_create_collection(table)
         collection.add(ids=ids, embeddings=embeddings, documents=texts)
 
     @staticmethod
     def query_embeddings(table: str, query: list[list[float]], fetch_size: int = 10, thresholds: list[float] = None):
         """
-        Query the embeddings in a ChromaDB collection based on the given query embeddings.
-
-        Try to add all valid documents that has distance less than threshold, then remove duplication doucment.
+        Queries embeddings in a ChromaDB collection.
 
         Args:
             table (str): The name of the collection to query the embeddings from.
             query (list[list[float]]): The list of query embeddings.
             fetch_size (int, optional): The number of results to fetch. Defaults to 10.
-            thresholds (list[float], optional): The list of thresholds to filter the results. Defaults to [0.3, 0.6].
+            thresholds (list[float], optional): The list of thresholds to filter the results by. Defaults to [env.QUERY_SIMILAR_THRESHOLD].
 
         Returns:
-            tuple: A tuple containing the count of unique documents and a string of the unique documents joined by newline characters.
+            tuple: A tuple containing the number of unique documents and the unique documents themselves, joined by newline characters.
         """
+
         if thresholds is None:
             thresholds = [env.QUERY_SIMILAR_THRESHOLD]
         collection = chromadb_client.get_or_create_collection(table)
@@ -406,7 +401,7 @@ class AiService:
         Args:
             model (str): The name of the Gemini model to use.
             prompt (str): The initial message to send to the model.
-            system_prompt (str, optional): The system prompt to provide to the model. Defaults to SYSTEM_PROMPT.
+            system_prompt (str, optional): The system prompt to use. Defaults to SYSTEM_PROMPT.
             previous_chats (list[Chat], optional): A list of previous chat messages. Defaults to None.
             max_tokens (int, optional): The maximum number of tokens to generate. Defaults to 4096.
             temperature (float, optional): The temperature to use for generation. Defaults to 0.6.
@@ -414,8 +409,9 @@ class AiService:
             top_k (int, optional): The top k value to use for generation. Defaults to 32.
 
         Returns:
-            str: The response
+            str: The response from the Gemini model.
         """
+
         if previous_chats is None:
             previous_chats = []
         if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":
@@ -463,17 +459,18 @@ class AiService:
         Sends a prompt to OpenAI's chat completion API and returns the response.
 
         Args:
-            model (str): The model to use for the chat completion.
+            model (str): The model to use for the chat completion. Defaults to "gpt-4o-mini" if not provided.
             prompt (str): The prompt to send to the chat completion API.
-            system_prompt (str, optional): The system prompt to use for the chat. Defaults to SYSTEM_PROMPT.
+            system_prompt (str, optional): The system prompt to use for the chat completion. Defaults to SYSTEM_PROMPT.
             previous_chats (list[Chat], optional): A list of previous chats to include in the chat history. Defaults to None.
             max_tokens (int, optional): The maximum number of tokens to generate in the response. Defaults to 4096.
-            temperature (float, optional): The temperature to use for the response generation. Defaults to 0.7.
-            top_p (float, optional): The top_p value to use for the response generation. Defaults to 0.8.
+            temperature (float, optional): The temperature to use for the chat completion. Defaults to 0.7.
+            top_p (float, optional): The top_p value to use for the chat completion. Defaults to 0.8.
 
         Returns:
             str: The response from the chat completion API.
         """
+
         if previous_chats is None:
             previous_chats = []
         if env.OPENAI_API_KEY is None or env.OPENAI_API_KEY.strip() == "":
@@ -521,21 +518,22 @@ class AiService:
             top_p: float = 0.7,
             top_k: int = 16) -> str:
         """
-        Initiates a conversation with Claude's API.
+        Initiates a conversation with Claude AI model.
 
         Args:
-            model (str): The model to use for the conversation.
-            prompt (str): The initial message to send to the model.
-            system_prompt (str, optional): The system prompt to use for the conversation. Defaults to SYSTEM_PROMPT.
+            model (str): The Claude model to use for the conversation.
+            prompt (str): The user's prompt for the conversation.
+            system_prompt (str, optional): The system prompt for the conversation. Defaults to SYSTEM_PROMPT.
             previous_chats (list[Chat], optional): A list of previous chats to include in the conversation history. Defaults to None.
-            max_tokens (int, optional): The maximum number of tokens to generate. Defaults to 4096.
-            temperature (float, optional): The temperature to use for the conversation. Defaults to 0.7.
-            top_p (float, optional): The top p value to use for the conversation. Defaults to 0.7.
-            top_k (int, optional): The top k value to use for the conversation. Defaults to 16.
+            max_tokens (int, optional): The maximum number of tokens to generate in the response. Defaults to 4096.
+            temperature (float, optional): The temperature to use for the response generation. Defaults to 0.7.
+            top_p (float, optional): The top p value to use for the response generation. Defaults to 0.7.
+            top_k (int, optional): The top k value to use for the response generation. Defaults to 16.
 
         Returns:
-            str: The response from Claude's API.
+            str: The response from Claude AI model.
         """
+
         if previous_chats is None:
             previous_chats = []
         if env.CLAUDE_API_KEY is None or env.CLAUDE_API_KEY.strip() == "":
@@ -580,23 +578,21 @@ class AiService:
             temperature: float = 0.7,
             top_p: float = 1.0) -> str:
         """
-        Initiates a conversation with Mistral's chat completion API.
+        Sends a chat request to Mistral AI model and returns the response.
 
         Args:
-            model (str): The model to use for the conversation.
-            prompt (str): The initial message to send to the model.
-            system_prompt (str, optional): The system prompt to use for the conversation. Defaults to SYSTEM_PROMPT.
-            previous_chats (list[Chat], optional): A list of previous chats to include in the conversation history. Defaults to None.
-            max_tokens (int, optional): The maximum number of tokens to generate in the response. Defaults to 2048.
-            temperature (float, optional): The temperature to use for the response generation. Defaults to 0.7.
-            top_p (float, optional): The top p value to use for the response generation. Defaults to 1.0.
+            model (str): The Mistral AI model to use for the chat.
+            prompt (str): The user's prompt for the chat.
+            system_prompt (str): The system's prompt for the chat. Defaults to SYSTEM_PROMPT.
+            previous_chats (list[Chat]): A list of previous chats to include in the conversation. Defaults to None.
+            max_tokens (int): The maximum number of tokens to generate in the response. Defaults to 2048.
+            temperature (float): The temperature to use for the response generation. Defaults to 0.7.
+            top_p (float): The top-p value to use for the response generation. Defaults to 1.0.
 
         Returns:
-            None
-
-        Raises:
-            AiError: If the Mistral API key is not set or is empty.
+            str: The response from the Mistral AI model.
         """
+
         if previous_chats is None:
             previous_chats = []
         if env.MISTRAL_API_KEY is None or env.MISTRAL_API_KEY.strip() == "":
@@ -629,19 +625,19 @@ class AiService:
             top_p: float = 1.0,
             top_k: int = 16) -> str:
         """
-        Initiates a conversation with OLLAMA's chat completion API.
+        Initiates a conversation with the Ollama AI model.
 
         Args:
             model (str): The model to use for the conversation.
-            prompt (str): The initial message to send to the model.
+            prompt (str): The initial prompt to send to the model.
             system_prompt (str, optional): The system prompt to use for the conversation. Defaults to SYSTEM_PROMPT.
-            previous_chats (list[Chat], optional): A list of previous chats to include in the conversation history. Defaults to None.
+            previous_chats (list[Chat], optional): A list of previous chats to include in the conversation. Defaults to None.
             temperature (float, optional): The temperature to use for the response generation. Defaults to 0.7.
-            top_p (float, optional): The top p value to use for the response generation. Defaults to 1.0.
-            top_k (int, optional): The top k value to use for the response generation. Defaults to 16.
+            top_p (float, optional): The top-p value to use for the response generation. Defaults to 1.0.
+            top_k (int, optional): The top-k value to use for the response generation. Defaults to 16.
 
         Returns:
-            str: The response from the OLLAMA chat completion API.
+            str: The response from the Ollama AI model.
         """
 
         if previous_chats is None:

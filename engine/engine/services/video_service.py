@@ -51,8 +51,8 @@ class VideoService:
         """
         Analyzes a video by its ID and updates its analysis status.
 
-        Fetch all chapter transcripts of video then embedding them with the specified provider.
-        After that, all embeddings will be stored in the database.
+        Fetches all chapter transcripts of the video and embeds them using the specified provider.
+        After that, all embeddings are stored in the database.
 
         Args:
             vid (int): The ID of the video to be analyzed.
@@ -60,7 +60,12 @@ class VideoService:
 
         Returns:
             Video: The analyzed video object.
+
+        Raises:
+            VideoError: If the video is not found.
+            Exception: If an error occurs during the analysis process.
         """
+
         log.debug("start analysis video")
         video: Video = VideoService.find_video_by_id(vid)
         try:
@@ -85,6 +90,27 @@ class VideoService:
 
     @staticmethod
     def __prepare_video_transcript(video: Video, video_chapters: list[VideoChapter]):
+        """
+        Prepares the transcript for a given video.
+
+        Args:
+            video (Video): The video object.
+            video_chapters (list[VideoChapter]): The list of video chapters.
+
+        Returns:
+            None
+
+        Raises:
+            None
+
+        This function checks if the video does not have a raw transcript. If it doesn't, it starts the process of recognizing the transcript. It uses a ThreadPoolExecutor with a maximum of 4 workers to submit speech-to-text tasks for each chapter in the video. The results of these tasks are stored in transcripts and predict_langs. Once all the tasks are completed, the transcripts are sorted based on the start_time and stored in sorted_transcripts. The function then sets the raw_transcript of the video to the sorted_transcripts in JSON format. It also determines the most common language and sets the language of the video accordingly. Finally, the function pairs the video chapters with the transcripts, calculates the number of transcript tokens, and sets the transcript_tokens attribute of the video.
+
+        Note:
+        - This function assumes that the AiService.speech_to_text function is defined and returns a tuple of the predicted language and the transcript.
+        - The tiktoken.get_encoding function is assumed to be defined and returns an encoding object.
+        - The constants.ANALYSIS_STAGE_INITIAL, constants.ANALYSIS_STAGE_PROCESSING, and constants.ANALYSIS_STAGE_COMPLETED are assumed to be defined.
+        """
+
         if not video.raw_transcript:
             log.debug("start to recognize video transcript")
             with ThreadPoolExecutor(max_workers=4) as executor:
@@ -106,6 +132,21 @@ class VideoService:
 
     @staticmethod
     def __pair_video_chapters_with_transcripts(video: Video, video_chapters: list[VideoChapter], transcripts: [{}]):
+        """
+        Pairs video chapters with their corresponding transcripts.
+
+        Args:
+            video (Video): The video object containing the chapters.
+            video_chapters (list[VideoChapter]): A list of video chapters.
+            transcripts ([{}]): A list of transcript dictionaries.
+
+        Raises:
+            VideoError: If the transcripts list is empty.
+
+        Returns:
+            None
+        """
+
         if len(transcripts) == 0:
             raise VideoError("transcript should never be empty")
         for chapter in video_chapters:
@@ -158,15 +199,19 @@ class VideoService:
     @staticmethod
     async def __analysis_chapters(video_chapters: list[VideoChapter], provider: str) -> int:
         """
-        Analyzes video chapters using a specified provider.sqlite_master
+        Analyzes video chapters using a specified provider.
 
         Args:
-            provider (str): The provider for the analysis.chapter.save()
-            video (Video): The video object containing the chapters to be analyzed.
+            video_chapters (list[VideoChapter]): A list of video chapters to be analyzed.
+            provider (str): The provider to use for analysis. Can be one of "gemini", "openai", "voyageai", "mistral", or "local".
 
         Returns:
-            None
+            int: The total number of parts analyzed.
+
+        Raises:
+            AiError: If the provider is unknown.
         """
+
         with ThreadPoolExecutor(max_workers=len(video_chapters)) as executor:
             if provider == "gemini":
                 futures = [executor.submit(VideoService.__analysis_video_with_gemini, chapter) for chapter in video_chapters]
@@ -194,32 +239,12 @@ class VideoService:
 
     @staticmethod
     def __analysis_video_with_gemini(chapter: VideoChapter) -> int:
-        """
-        Analyzes a video chapter using the Gemini AI service.
-
-        Args:
-            chapter (VideoChapter): The chapter of the video to be analyzed.
-
-        Returns:
-            None
-        """
         texts, embeddings = AiService.embedding_document_with_gemini(chapter.transcript)
         VideoService.__store_embedding_chunked_transcript(chapter, texts, embeddings)
         return len(texts)
 
     @staticmethod
     def __store_embedding_chunked_transcript(chapter: VideoChapter, texts: list[str], embeddings: list[list[float]]):
-        """
-        Stores the embedding of a video chapter transcript in a chunked manner.
-
-        Args:
-            chapter: The video chapter object containing the transcript to be stored.
-            embeddings: The embeddings of the transcript.
-            texts: The text chunks of the transcript.
-
-        Returns:
-            None
-        """
         ids: list[str] = []
         documents: list[str] = []
 
@@ -234,86 +259,46 @@ class VideoService:
 
     @staticmethod
     def __analysis_video_with_openai(chapter: VideoChapter) -> int:
-        """
-        Analyzes a video chapter using the OpenAI service.
-
-        Args:
-            chapter (VideoChapter): The chapter of the video to be analyzed.
-
-        Returns:
-            None
-        """
-        texts, embeddings = AiService.embedding_document_with_openai(chapter.transcript)
+        texts, embeddings = AiService.embed_document_with_openai(chapter.transcript)
         VideoService.__store_embedding_chunked_transcript(chapter, texts, embeddings)
         return len(texts)
 
     @staticmethod
     def __analysis_video_with_voyageai(chapter: VideoChapter):
-        """
-        Analyzes a video chapter using the VoyageAI service.
-
-        Args:
-            chapter (VideoChapter): The chapter of the video to be analyzed.
-
-        Returns:
-            None
-        """
-        texts, embeddings = AiService.embedding_document_with_voyageai(chapter.transcript)
+        texts, embeddings = AiService.embed_document_with_voyageai(chapter.transcript)
         VideoService.__store_embedding_chunked_transcript(chapter, texts, embeddings)
         return len(texts)
 
     @staticmethod
     def __analysis_video_with_mistral(chapter: VideoChapter):
-        """
-        Analyzes a video chapter using the Mistral service.
-
-        Args:
-            chapter (VideoChapter): The chapter of the video to be analyzed.
-
-        Returns:
-            None
-        """
-        texts, embeddings = AiService.embedding_document_with_mistral(chapter.transcript)
+        texts, embeddings = AiService.embed_document_with_mistral(chapter.transcript)
         VideoService.__store_embedding_chunked_transcript(chapter, texts, embeddings)
         return len(texts)
 
     @staticmethod
     def __analysis_video_with_local(chapter: VideoChapter):
-        """
-        Analyzes a video chapter using a local service.
-
-        Args:
-            chapter (VideoChapter): The chapter of the video to be analyzed.
-
-        Returns:
-            None
-        """
-        texts, embeddings = AiService.embedding_document_with_local(chapter.transcript)
+        texts, embeddings = AiService.embed_document_with_local(chapter.transcript)
         VideoService.__store_embedding_chunked_transcript(chapter, texts, embeddings)
         return len(texts)
 
     @staticmethod
     async def summary_video(vid: int, lang_code: str, provider: str, model: str = None):
         """
-        Retrieves the summary of a video using transcript.
-
-        After generate requested summary, a "system summary" will be generated,
-        then embedded using Provider same as video chapters and store to ChromaDB.
+        Generates a summary of a video.
 
         Args:
             vid (int): The ID of the video.
-            lang_code (str): The language code of the video.
+            lang_code (str): The language code of the summary.
             provider (str): The provider of the video.
-            model (str, optional): The model to use for summarization. Defaults to None.
+            model (str, optional): The model to use for generating the summary. Defaults to None.
 
         Returns:
             str: The summary of the video.
 
         Raises:
-            VideoNotFoundError: If the video is not found.
-            VideoNotAnalyzedError: If the video is not analyzed.
-
+            VideoError: If the video is not found.
         """
+
         video: Video = VideoService.find_video_by_id(vid)
         if video is None:
             raise VideoError("video is not found")
@@ -357,13 +342,13 @@ class VideoService:
         if provider == "gemini":
             return AiService.embedding_document_with_gemini(text)
         elif provider == "openai":
-            return AiService.embedding_document_with_openai(text)
+            return AiService.embed_document_with_openai(text)
         elif provider == "voyageai":
-            return AiService.embedding_document_with_voyageai(text)
+            return AiService.embed_document_with_voyageai(text)
         elif provider == "mistral":
-            return AiService.embedding_document_with_mistral(text)
+            return AiService.embed_document_with_mistral(text)
         elif provider == "local":
-            return AiService.embedding_document_with_local(text)
+            return AiService.embed_document_with_local(text)
         else:
             raise AiError("unknown embedding provider")
 
@@ -372,25 +357,22 @@ class VideoService:
         """
         Asks a question about a video and returns the answer.
 
-        Since question and video may not same language, a small call to AI Provider will be trigger 
-        to translate question if needed. In the next step, refined question will be embedding and
-        query compare in the ChromaDB to find the similar transcript. Finally, when we have enough
-        information to enrich the question, we will ask it to AI Provider to get the answer.
+        The function takes a question, video id, provider, and optional model as input.
+        It first checks if the video exists and has been analyzed. Then, it detects the language of the question,
+        refines the question if necessary, and gets the query embedding. It queries the embeddings in the ChromaDB
+        to find similar transcripts and uses the context to ask the AI provider.
+        The function returns the answer from the AI provider and saves the chat history.
 
-
-        Args:
+        Parameters:
             question (str): The question to ask about the video.
-            vid (int): The ID of the video.
-            provider (str): The provider of the video.
-            model (str, optional): The model to use for answering the question. Defaults to None.
+            vid (int): The id of the video.
+            provider (str): The provider to use for asking the question.
+            model (str): The optional model to use for asking the question.
 
         Returns:
-            str: The answer to the question.
-
-        Raises:
-            VideoNotFoundError: If the video is not found.
-            VideoNotAnalyzedError: If the video is not analyzed.
+            str: The answer from the AI provider.
         """
+
         video: Video = VideoService.find_video_by_id(vid)
         if video is None:
             raise VideoError("video is not found")
@@ -471,6 +453,22 @@ class VideoService:
 
     @staticmethod
     def delete(video_id: int):
+        """
+        Deletes a video by its ID.
+
+        This function deletes a video from the database and also removes its associated chapters.
+        It uses a transaction to ensure that either all changes are committed or none are,
+        in case of an exception.
+
+        Parameters:
+            video_id (int): The ID of the video to be deleted.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: If any error occurs during the deletion process.
+        """
 
         with sqlite_client.atomic() as transaction:
             try:
