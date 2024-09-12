@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/logo.png" alt="AskTube's Logo"/>
+  <img src="docs/images/logo.png" alt="AskTube's Logo"/>
 </p>
 <p align="center">
   <strong>AskTube - An AI-powered YouTube video summarizer and QA assistant powered by Retrieval Augmented Generation (RAG) 🤖</strong>
@@ -50,15 +50,15 @@
 
 ### 1️⃣ Extract data from given URL
 
-![P1.png](images/P1.png)
+![P1.png](docs/images/P1.png)
 
 ### 2️⃣ Storing embedding chapter subtitles
 
-![P2.png](images/P2.png)
+![P2.png](docs/images/P2.png)
 
 ### 3️⃣ Asking (included enrich question)
 
-![P3.png](images/P3.png)
+![P3.png](docs/images/P3.png)
 
 ---
 
