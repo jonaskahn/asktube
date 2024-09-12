@@ -1,0 +1,48 @@
+.navbar-bottom {
+    border-bottom: 1px dashed var(--fallback-pc, oklch(var(--pc) / var(--tw-text-opacity)));
+    box-shadow: 0 4px 4px var(--fallback-s, oklch(var(--s) / var(--tw-bg-opacity)));
+    margin-bottom: 16px;
+}
+
+/* fade */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s;
+}
+
+.fade-enter,
+.fade-leave-active {
+    opacity: 0;
+}
+
+/* fade-transform */
+.fade-transform-leave-active,
+.fade-transform-enter-active {
+    transition: all 0.3s;
+}
+
+.fade-transform-enter {
+    opacity: 0;
+    transform: translateX(-40px);
+}
+
+.fade-transform-leave-to {
+    opacity: 0;
+    transform: translateX(40px);
+}
+
+/* slide-fade */
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+    transition: all 0.2s cubic-bezier(1, 0.5, 0.8, 1);
+}
+
+.slide-fade-leave-to {
+    opacity: 0;
+    transform: translateX(-20px);
+}
+
+.slide-fade-enter {
+    opacity: 0;
+    transform: translateX(20px);
+}
