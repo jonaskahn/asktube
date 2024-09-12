@@ -17,6 +17,7 @@ class Video(Model):
     transcript = TextField(null=True)
     transcript_tokens = IntegerField(null=True)
     summary = TextField(null=False, default="")
+    total_parts = IntegerField(null=True)
     analysis_state = IntegerField(default=False, index=True)
     analysis_summary_state = IntegerField(default=False, index=True)
     embedding_provider = CharField(null=True)

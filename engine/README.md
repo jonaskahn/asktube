@@ -20,9 +20,8 @@ poetry run python engine/server.py
 | AT_APP_DIR                      | tmp                           | Store database, vector, models                                                               |
 | AT_AUDIO_CHUNK_DETECT_DURATION  | 30 ( seconds)                 | Time to chunk audio segments, use to detect language                                         |
 | AT_AUDIO_CHUNK_CHAPTER_DURATION | 600 ( seconds)                | Time to chunk audio segments, use to automatically split a long audio file                   |
-| AT_AUDIO_CHUNK_CHAPTER_DURATION | 600 ( seconds)                | Time to chunk audio segments, use to automatically split a long audio file                   |
 | AT_LANGUAGE_PREFER_USAGE        | en                            | Default subtitle language that will be chosen                                                |
-| AT_QUERY_SIMILAR_THRESHOLD      | 0.5                           | Default threshold to query similar documents for each question                               |
+| AT_QUERY_SIMILAR_THRESHOLD      | 0.4                           | Default threshold to query similar documents for each question                               |
 | AT_TOKEN_CONTEXT_THRESHOLD      | 2048                          | Default threshold to use whole transcript if context is not found                            |
 | AT_AUDIO_ENHANCE_ENABLED        | no                            | Using enhance audio process (experiment)                                                     |
 | AT_GEMINI_API_KEY               | None                          | If you prefer using embedding and QA with Google                                             |

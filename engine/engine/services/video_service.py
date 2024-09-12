@@ -74,8 +74,7 @@ class VideoService:
             VideoService.__update_analysis_content_state(video, constants.ANALYSIS_STAGE_PROCESSING)
             VideoService.__prepare_video_transcript(video, video_chapters)
 
-            await VideoService.__analysis_chapters(video_chapters, provider)
-
+            video.total_parts = await VideoService.__analysis_chapters(video_chapters, provider)
             video.analysis_state = constants.ANALYSIS_STAGE_COMPLETED
             video.embedding_provider = provider
             VideoService.save(video, video_chapters)
@@ -157,7 +156,7 @@ class VideoService:
                 raise e
 
     @staticmethod
-    async def __analysis_chapters(video_chapters: list[VideoChapter], provider: str):
+    async def __analysis_chapters(video_chapters: list[VideoChapter], provider: str) -> int:
         """
         Analyzes video chapters using a specified provider.sqlite_master
 
@@ -181,9 +180,10 @@ class VideoService:
                 futures = [executor.submit(VideoService.__analysis_video_with_local, chapter) for chapter in video_chapters]
             else:
                 raise AiError("unknown embedding provider")
-            concurrent.futures.as_completed(futures)
-            for future in concurrent.futures.as_completed(futures):
-                future.result()
+        total_parts = 0
+        for future in concurrent.futures.as_completed(futures):
+            total_parts += future.result()
+        return total_parts
 
     @staticmethod
     def __get_video_chapters(video: Video) -> list[VideoChapter]:
@@ -193,7 +193,7 @@ class VideoService:
         return video_chapters
 
     @staticmethod
-    def __analysis_video_with_gemini(chapter: VideoChapter):
+    def __analysis_video_with_gemini(chapter: VideoChapter) -> int:
         """
         Analyzes a video chapter using the Gemini AI service.
 
@@ -205,6 +205,7 @@ class VideoService:
         """
         texts, embeddings = AiService.embedding_document_with_gemini(chapter.transcript)
         VideoService.__store_embedding_chunked_transcript(chapter, texts, embeddings)
+        return len(texts)
 
     @staticmethod
     def __store_embedding_chunked_transcript(chapter: VideoChapter, texts: list[str], embeddings: list[list[float]]):
@@ -232,7 +233,7 @@ class VideoService:
         AiService.store_embeddings(f"video_{chapter.vid}", ids, documents, embeddings)
 
     @staticmethod
-    def __analysis_video_with_openai(chapter: VideoChapter):
+    def __analysis_video_with_openai(chapter: VideoChapter) -> int:
         """
         Analyzes a video chapter using the OpenAI service.
 
@@ -244,6 +245,7 @@ class VideoService:
         """
         texts, embeddings = AiService.embedding_document_with_openai(chapter.transcript)
         VideoService.__store_embedding_chunked_transcript(chapter, texts, embeddings)
+        return len(texts)
 
     @staticmethod
     def __analysis_video_with_voyageai(chapter: VideoChapter):
@@ -258,6 +260,7 @@ class VideoService:
         """
         texts, embeddings = AiService.embedding_document_with_voyageai(chapter.transcript)
         VideoService.__store_embedding_chunked_transcript(chapter, texts, embeddings)
+        return len(texts)
 
     @staticmethod
     def __analysis_video_with_mistral(chapter: VideoChapter):
@@ -272,6 +275,7 @@ class VideoService:
         """
         texts, embeddings = AiService.embedding_document_with_mistral(chapter.transcript)
         VideoService.__store_embedding_chunked_transcript(chapter, texts, embeddings)
+        return len(texts)
 
     @staticmethod
     def __analysis_video_with_local(chapter: VideoChapter):
@@ -286,6 +290,7 @@ class VideoService:
         """
         texts, embeddings = AiService.embedding_document_with_local(chapter.transcript)
         VideoService.__store_embedding_chunked_transcript(chapter, texts, embeddings)
+        return len(texts)
 
     @staticmethod
     async def summary_video(vid: int, lang_code: str, provider: str, model: str = None):
@@ -400,7 +405,7 @@ class VideoService:
         amount, context = AiService.query_embeddings(
             table=f"video_{video.id}",
             query=embedding_question,
-            fetch_size=video.amount_chapters * 3
+            fetch_size=video.total_parts
         )
         aware_context = context
         if not context:
