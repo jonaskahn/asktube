@@ -30,7 +30,7 @@
   - [x] Mistral
   - [x] Ollama (Local)
 - **Speech To Text**:
-  - [x] Local (Whisper)
+  - [x] Faster-Whisper (Local)
   - [ ] OpenAI
   - [ ] Gemini
 
