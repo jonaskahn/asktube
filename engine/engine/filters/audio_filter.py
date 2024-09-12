@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Callable, List
 from uuid import uuid4
 
@@ -28,11 +29,12 @@ class __AudioChainFilter:
             try:
                 log.debug(f"audio input: {audio_input_path}")
                 audio_input_path = fnc(audio_input_path)
+                if Path(original_audio_file_path).exists():
+                    os.remove(original_audio_file_path)
                 log.debug(f"audio output: {audio_input_path}")
             except Exception as e:
                 raise e
-            finally:
-                os.remove(original_audio_file_path)
+
         return audio_input_path
 
 
@@ -67,6 +69,10 @@ def denoise(audio_path: str) -> str:
     audio_output_file = os.path.join(TEMP_AUDIO_DIR, f"{uuid4()}.wav")
     wavfile.write(audio_output_file, rate, reduced_noise.astype(np.int16))
     return audio_output_file
+
+
+def compose_audio(audio_paths: str) -> str:
+    pass
 
 
 def filter_audio(audio_path: str) -> str:

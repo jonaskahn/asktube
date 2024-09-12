@@ -16,5 +16,5 @@ ANALYSIS_STAGE_INITIAL = 0
 ANALYSIS_STAGE_COMPLETED = 1
 ANALYSIS_STAGE_PROCESSING = 2
 
-TEMP_AUDIO_DIR = os.path.join(APP_DIR, "temp")
+TEMP_AUDIO_DIR = os.path.join(APP_DIR, "temp-audio")
 os.makedirs(TEMP_AUDIO_DIR, exist_ok=True)

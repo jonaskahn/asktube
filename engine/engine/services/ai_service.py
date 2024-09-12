@@ -38,7 +38,12 @@ class AiService:
             WhisperModel: An instance of the Whisper model with the specified device and compute type.
         """
         compute_type = 'int8' if env.LOCAL_WHISPER_DEVICE == 'cpu' else 'fp16'
-        return WhisperModel(env.LOCAL_WHISPER_MODEL, device=env.LOCAL_WHISPER_DEVICE, compute_type=compute_type, download_root=env.APP_DIR)
+        return WhisperModel(
+            env.LOCAL_WHISPER_MODEL,
+            device=env.LOCAL_WHISPER_DEVICE,
+            compute_type=compute_type,
+            download_root=env.APP_DIR
+        )
 
     @staticmethod
     def __get_local_embedding_encoder():
@@ -156,18 +161,18 @@ class AiService:
             raise AiError("audio path is not found")
         if env.SPEECH_TO_TEXT_PROVIDER == "local":
             model = AiService.__get_whisper_model()
-            segments, _ = model.transcribe(audio=audio_path, beam_size=5)
+            segments, info = model.transcribe(audio=audio_path, beam_size=8, vad_filter=True)
             result = []
             for segment in segments:
                 start = (segment.start + delta) * 1000.0
                 duration = (segment.end - segment.start) * 1000.0
-                log.debug(f"segment: start: {int(start / 1000.0)}s, duration: {int(duration / 1000.0)}s, text: {segment.text}")
+                log.debug(f"segment: start: {timedelta(seconds=int(start / 1000.0))}, duration: {int(duration)}ms, text: {segment.text}")
                 result.append({
                     'start_time': int(start),
                     'duration': int(duration),
                     'text': segment.text
                 })
-            return result
+            return info.language, result
         elif env.SPEECH_TO_TEXT_PROVIDER == "openai":
             raise AiError("Not yet implemented")
         elif env.SPEECH_TO_TEXT_PROVIDER == "gemini":

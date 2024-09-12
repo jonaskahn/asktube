@@ -1,6 +1,4 @@
 from peewee import Model, AutoField, CharField, TextField, IntegerField, ForeignKeyField
-from playhouse.postgres_ext import JSONField
-from sqlalchemy.dialects.postgresql import JSONB
 
 from engine.database.specs import sqlite_client
 

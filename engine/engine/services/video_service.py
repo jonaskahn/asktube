@@ -1,7 +1,10 @@
 import asyncio
 import concurrent.futures
 import json
+import os
+from collections import Counter
 from concurrent.futures.thread import ThreadPoolExecutor
+from pathlib import Path
 
 import iso639
 import tiktoken
@@ -84,14 +87,20 @@ class VideoService:
     @staticmethod
     def __prepare_video_transcript(video: Video, video_chapters: list[VideoChapter]):
         if not video.raw_transcript:
-            with ThreadPoolExecutor(max_workers=len(video_chapters)) as executor:
+            log.debug("start to recognize video transcript")
+            with ThreadPoolExecutor(max_workers=4) as executor:
                 futures = [executor.submit(AiService.speech_to_text, chapter.audio_path, chapter.start_time) for chapter in video_chapters]
-            concurrent.futures.as_completed(futures)
             transcripts = []
+            predict_langs = []
             for future in concurrent.futures.as_completed(futures):
-                transcripts.append(future.result())
+                lang, transcript = future.result()
+                transcripts.append(transcript)
+                predict_langs.append(lang)
             sorted_transcripts = sorted([item for sublist in transcripts for item in sublist], key=lambda x: x['start_time'])
+            log.debug("finish to recognize video transcript")
             video.raw_transcript = json.dumps(sorted_transcripts, ensure_ascii=False)
+            predict_lang, count = Counter(predict_langs).most_common(1)[0]
+            video.language = predict_lang if count >= 2 else None
         raw_transcripts = json.loads(video.raw_transcript) if video.raw_transcript else None
         VideoService.__pair_video_chapters_with_transcripts(video, video_chapters, raw_transcripts)
         video.transcript_tokens = len(tiktoken.get_encoding("cl100k_base").encode(video.transcript))
@@ -118,6 +127,10 @@ class VideoService:
             if chapter_transcript != "":
                 log.debug(f"title: {chapter.title}\ntranscript: {chapter_transcript}")
                 chapter.transcript = chapter_transcript
+
+            if Path(chapter.audio_path).exists():
+                os.remove(chapter.audio_path)
+
         video_transcript = "\n".join([f"## {ct.title}\n-----\n{ct.transcript}" for ct in video_chapters if ct.transcript])
         video.transcript = video_transcript
 
@@ -137,20 +150,6 @@ class VideoService:
         with sqlite_client.atomic() as transaction:
             try:
                 video.analysis_summary_state = state
-                video.save()
-                transaction.commit()
-            except Exception as e:
-                transaction.rollback()
-                raise e
-
-    @staticmethod
-    def __update_processing_stats(video: Video, is_analysis_content: bool = True, is_analysis_summary: bool = True):
-        with sqlite_client.atomic() as transaction:
-            try:
-                if is_analysis_content:
-                    video.analysis_state = constants.ANALYSIS_STAGE_PROCESSING
-                if is_analysis_summary:
-                    video.analysis_summary_state = constants.ANALYSIS_STAGE_PROCESSING
                 video.save()
                 transaction.commit()
             except Exception as e:
@@ -335,7 +334,7 @@ class VideoService:
         log.debug("start analysis summary video")
         if video.analysis_summary_state in [constants.ANALYSIS_STAGE_COMPLETED, constants.ANALYSIS_STAGE_PROCESSING]:
             return
-        VideoService.__update_processing_stats(video, is_analysis_content=False, is_analysis_summary=True)
+        VideoService.__update_analysis_summary_state(video, constants.ANALYSIS_STAGE_PROCESSING)
         system_summary = VideoService.__summary_content(video.language, model, provider, video)
         texts, embeddings = VideoService.__get_query_embedding(video.embedding_provider, system_summary)
         ids: list[str] = []

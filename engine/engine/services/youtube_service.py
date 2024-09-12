@@ -2,6 +2,7 @@ import json
 import os.path
 import uuid
 from datetime import timedelta
+from pathlib import Path
 
 import pytubefix
 from audio_extract import extract_audio
@@ -120,18 +121,21 @@ class YoutubeService:
                     )
                 )
             )
+        if Path(audio_path_file).exists():
+            os.remove(audio_path_file)
         return video_chapters
 
     @staticmethod
     def __chunk_audio_task(has_captions: bool, audio_path_file: str, start_time: str, duration: int) -> str | None:
         if has_captions:
             return None
-        output_path = os.path.join(TEMP_AUDIO_DIR, f"{uuid.uuid4()}.mp3")
+        output_path = os.path.join(TEMP_AUDIO_DIR, f"{uuid.uuid4()}.wav")
         extract_audio(
             input_path=audio_path_file,
             output_path=output_path,
             start_time=start_time,
             duration=duration,
+            output_format="wav",
             overwrite=True
         )
         return output_path
@@ -186,19 +190,6 @@ class YoutubeService:
                     'text': text.replace("\n", " ")
                 })
         return result
-
-    def __language_detect(self, chapters: list[VideoChapter]) -> str:
-        langs = []
-        for chapter in chapters:
-            langs.append(
-                AiService.recognize_audio_language(
-                    audio_path=chapter.audio_path,
-                    duration=self.__agent.length
-                )
-            )
-        predict_lang, count = Counter(languages).most_common(1)[0]
-        return predict_lang if count >= 2 else None
-        pass
 
     def __extract_audio(self):
         log.debug(f"start to download audio {self.__agent.title}")
