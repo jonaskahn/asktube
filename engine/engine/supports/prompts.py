@@ -34,16 +34,17 @@ No yapping!!!
 
 ASKING_PROMPT = """# GIVEN:
 ---
-**Youtube Video:** (from URL: {url})
+**Youtube:** (from URL: {url})
 **Title:** "{title}
 **Content:**
 {context}
-    
-**Question**: "{question}"
 
 # TASK:
 ---
-- Answer my "Question", if "Content" has relevant information, otherwise say something like "I don't know" or "Only God know".
+- Answer me this question "{question}":
+    - if "Content" has relevant information, using "Context" as an additional information and follow chat histories to naturally respond.
+    - if you can answer this question base on your knowledge, answer but remind if not come from video context.
+    - otherwise say something like "I don't know" or "Only God know", etc.
 - If I do not mention target language in "Original Question", respond me in language {language}.
 - Do not include any instructions, provide output directly.
 No yapping!!!

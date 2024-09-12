@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# C filters
+# C processors
 *.so
 
 # Distribution / packaging

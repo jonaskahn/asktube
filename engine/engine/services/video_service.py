@@ -10,13 +10,13 @@ import iso639
 import tiktoken
 from lingua import LanguageDetectorBuilder
 
-from engine.assistants import constants, env
-from engine.assistants.errors import VideoError, AiError
-from engine.assistants.logger import log
-from engine.assistants.prompts import SUMMARY_PROMPT, ASKING_PROMPT, REFINED_QUESTION_PROMPT
 from engine.database.models import Video, VideoChapter, Chat
 from engine.database.specs import sqlite_client
 from engine.services.ai_service import AiService
+from engine.supports import constants, env
+from engine.supports.errors import VideoError, AiError
+from engine.supports.logger import log
+from engine.supports.prompts import SUMMARY_PROMPT, ASKING_PROMPT, REFINED_QUESTION_PROMPT
 
 detector = LanguageDetectorBuilder.from_all_languages().build()
 
@@ -116,7 +116,7 @@ class VideoService:
             for transcript in transcripts:
                 start_transcript_ms = transcript['start_time']
                 duration_transcript_ms = transcript['duration']
-                if start_transcript_ms is None or start_transcript_ms <= 0 or duration_transcript_ms is None:
+                if start_transcript_ms is None or start_transcript_ms < 0 or duration_transcript_ms is None or duration_transcript_ms < 0:
                     log.warn("skip this invalid transcript part")
                     continue
 
@@ -125,11 +125,11 @@ class VideoService:
                     continue
                 chapter_transcript += f"{transcript['text']}\n"
             if chapter_transcript != "":
-                log.debug(f"title: {chapter.title}\ntranscript: {chapter_transcript}")
                 chapter.transcript = chapter_transcript
 
             if Path(chapter.audio_path).exists():
                 os.remove(chapter.audio_path)
+                chapter.audio_path = None
 
         video_transcript = "\n".join([f"## {ct.title}\n-----\n{ct.transcript}" for ct in video_chapters if ct.transcript])
         video.transcript = video_transcript

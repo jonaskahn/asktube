@@ -10,16 +10,16 @@ import soundfile as sf
 from pydub import AudioSegment
 from scipy.io import wavfile
 
-from engine.assistants import env
-from engine.assistants.constants import TEMP_AUDIO_DIR
-from engine.assistants.logger import log
+from engine.supports import env
+from engine.supports.constants import TEMP_AUDIO_DIR
+from engine.supports.logger import log
 
 
-class __AudioChainFilter:
+class __AudioChainProcessor:
     def __init__(self):
         self.filters: List[Callable[[str], str]] = []
 
-    def add_filter(self, func: Callable[[str], str]) -> '__AudioChainFilter':
+    def add_filter(self, func: Callable[[str], str]) -> '__AudioChainProcessor':
         self.filters.append(func)
         return self
 
@@ -39,10 +39,22 @@ class __AudioChainFilter:
 
 
 def mp4_to_wav(audio_input_path: str) -> str:
-    audio_output_file = os.path.join(TEMP_AUDIO_DIR, f"{uuid4()}.wav")
-    sound = AudioSegment.from_file(audio_input_path, format="mp4")
-    sound.export(audio_output_file, format="wav")
+    return __sound_converter(audio_input_path, "mp4", "wav")
+
+
+def __sound_converter(
+        audio_input_path: str,
+        input_format: str,
+        output_format: str,
+        codec: str = None) -> str:
+    audio_output_file = os.path.join(TEMP_AUDIO_DIR, f"{uuid4()}.{output_format}")
+    sound = AudioSegment.from_file(audio_input_path, format=input_format)
+    sound.export(audio_output_file, format=output_format, codec=codec)
     return audio_output_file
+
+
+def wav_to_webm(audio_input_path: str) -> str:
+    return __sound_converter(audio_input_path, "wav", "webm", "libopus")
 
 
 def remove_music(audio_input_path: str) -> str:
@@ -71,12 +83,8 @@ def denoise(audio_path: str) -> str:
     return audio_output_file
 
 
-def compose_audio(audio_paths: str) -> str:
-    pass
-
-
-def filter_audio(audio_path: str) -> str:
+def process_audio(audio_path: str) -> str:
     if env.AUDIO_ENHANCE_ENABLED in ["yes", "on", "enabled"]:
-        return __AudioChainFilter().add_filter(mp4_to_wav).add_filter(denoise).add_filter(remove_music).filter(audio_path)
+        return __AudioChainProcessor().add_filter(mp4_to_wav).add_filter(denoise).add_filter(remove_music).filter(audio_path)
     else:
-        return __AudioChainFilter().add_filter(mp4_to_wav).filter(audio_path)
+        return __AudioChainProcessor().add_filter(mp4_to_wav).filter(audio_path)

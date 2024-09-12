@@ -17,13 +17,13 @@ from ollama import Client
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 
-from engine.assistants import env
-from engine.assistants.env import MISTRAL_API_KEY
-from engine.assistants.errors import AiError
-from engine.assistants.logger import log
-from engine.assistants.prompts import SYSTEM_PROMPT
 from engine.database.models import Chat
 from engine.database.specs import chromadb_client
+from engine.supports import env
+from engine.supports.env import MISTRAL_API_KEY
+from engine.supports.errors import AiError
+from engine.supports.logger import log
+from engine.supports.prompts import SYSTEM_PROMPT
 
 has_cuda = torch.cuda.is_available()
 has_mps = torch.backends.mps.is_available()
@@ -316,7 +316,7 @@ class AiService:
         return texts, [client.embeddings.create(inputs=[text], model=env.MISTRAL_EMBEDDING_MODEL).data[0].embedding for text in texts]
 
     @staticmethod
-    def embedding_document_with_local(text: str, max_tokens=500) -> tuple[list[str], list[list[float]]]:
+    def embedding_document_with_local(text: str, max_tokens=16000) -> tuple[list[str], list[list[float]]]:
         """
         Embeds a document using a local embedding model.
 

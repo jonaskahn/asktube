@@ -1,6 +1,6 @@
 import os
 
-from engine.assistants.env import APP_DIR
+from engine.supports.env import APP_DIR
 
 YT_SUB_FILE_NAME: str = "subtitles.srt"
 YT_AUDIO_FILE_NAME: str = "audio"

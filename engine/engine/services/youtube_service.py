@@ -9,13 +9,13 @@ from audio_extract import extract_audio
 from pytubefix import YouTube, Caption
 from pytubefix.cli import on_progress
 
-from engine.assistants import env
-from engine.assistants.constants import TEMP_AUDIO_DIR
-from engine.assistants.logger import log
 from engine.database.models import VideoChapter, Video
-from engine.filters.audio_filter import filter_audio
+from engine.processors.audio_processor import process_audio
 from engine.services.ai_service import AiService
 from engine.services.video_service import VideoService
+from engine.supports import env
+from engine.supports.constants import TEMP_AUDIO_DIR
+from engine.supports.logger import log
 
 
 class YoutubeService:
@@ -204,4 +204,4 @@ class YoutubeService:
         ys = self.__agent.streams.get_audio_only()
         tmp_audio_file_name = f"{uuid.uuid4()}"
         ys.download(mp3=True, output_path=TEMP_AUDIO_DIR, filename=tmp_audio_file_name, skip_existing=True)
-        return filter_audio(os.path.join(TEMP_AUDIO_DIR, f"{tmp_audio_file_name}.mp3"))
+        return process_audio(os.path.join(TEMP_AUDIO_DIR, f"{tmp_audio_file_name}.mp3"))
