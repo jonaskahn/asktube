@@ -6,6 +6,7 @@
 </p>
 
 ---
+
 <p align="center">
   <i>Run it entirely on your local machine with Ollama, or cloud-based models like Claude, OpenAI, Gemini, Mistral, and more</i>
 </p>
@@ -29,8 +30,9 @@
   - [x] Mistral
   - [x] Ollama (Local)
 - **Speech To Text**:
-  - [x] OpenAI Whisper (Local)
-  - [ ] OpenAI Whisper (Cloud)
+  - [x] Local (Whisper)
+  - [ ] OpenAI
+  - [ ] Gemini
 
 ---
 
@@ -78,6 +80,7 @@
 - [Backend](./engine/README.md)
 
 ---
+
 ## ⁉️ FAQ and Troubleshooting
 
 - **Do I need paid API to run?**
