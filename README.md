@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.png" alt="AskTube's Logo"/>
+  <img src="images/logo.png" alt="AskTube's Logo"/>
 </p>
 <p align="center">
   <strong>AskTube - An AI-powered YouTube video summarizer and QA assistant powered by Retrieval Augmented Generation (RAG) 🤖</strong>
@@ -44,21 +44,21 @@
 
 ---
 
-## 💡 The Idea / Architecture
+## 💡 Architecture
 
 > The real implementation might differ from this art due to its complexity.
 
 ### 1️⃣ Extract data from given URL
 
-![P1.png](docs/P1.png)
+![P1.png](images/P1.png)
 
 ### 2️⃣ Storing embedding chapter subtitles
 
-![P2.png](docs/P2.png)
+![P2.png](images/P2.png)
 
 ### 3️⃣ Asking (included enrich question)
 
-![P3.png](docs/P3.png)
+![P3.png](images/P3.png)
 
 ---
 
