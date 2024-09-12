@@ -1,4 +1,6 @@
 from peewee import Model, AutoField, CharField, TextField, IntegerField, ForeignKeyField
+from playhouse.postgres_ext import JSONField
+from sqlalchemy.dialects.postgresql import JSONB
 
 from engine.database.specs import sqlite_client
 
@@ -13,8 +15,9 @@ class Video(Model):
     thumbnail = TextField(null=True)
     duration = IntegerField(null=False)
     amount_chapters = IntegerField(null=False)
-    transcript = TextField(null=False, default="")
-    transcript_tokens = IntegerField(null=False, default=0)
+    raw_transcript = TextField(null=True)
+    transcript = TextField(null=True)
+    transcript_tokens = IntegerField(null=True)
     summary = TextField(null=False, default="")
     analysis_state = IntegerField(default=False, index=True)
     analysis_summary_state = IntegerField(default=False, index=True)

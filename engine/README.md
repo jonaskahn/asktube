@@ -36,7 +36,7 @@ poetry run python engine/server.py
 | AT_MISTRAL_EMBEDDING_MODEL      | mistral-embed                 | Prefer MistralAI model for embedding texts                                 |
 | AT_LOCAL_EMBEDDING_MODEL        | intfloat/multilingual-e5-base | Prefer Local model for embedding texts                                     |
 | AT_LOCAL_EMBEDDING_DEVICE       | cpu                           | Provider device to embedding texts in local (*cpu, gpu*)                   |
-| AT_LOCAL_WHISPER_ENABLED        | on                            | If you prefer to use Local Whisper Model                                   |
+| AT_SPEECH_TO_TEXT_PROVIDER      | local                         | Speech to text provider (local, openai, gemini)                            |
 | AT_LOCAL_WHISPER_MODEL          | base                          | Provider model to speech to text in local                                  |
 | AT_LOCAL_WHISPER_DEVICE         | cpu                           | Provider device to speech to text in local (*cpu,gpu*)                     |
 | AT_LOCAL_OLLAMA_HOST            | http://localhost:11434        | Ollama host to connect                                                     |

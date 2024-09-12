@@ -72,4 +72,5 @@ def denoise(audio_path: str) -> str:
 def filter_audio(audio_path: str) -> str:
     if env.AUDIO_ENHANCE_ENABLED in ["yes", "on", "enabled"]:
         return __AudioChainFilter().add_filter(mp4_to_wav).add_filter(denoise).add_filter(remove_music).filter(audio_path)
-    return audio_path
+    else:
+        return __AudioChainFilter().add_filter(mp4_to_wav).filter(audio_path)

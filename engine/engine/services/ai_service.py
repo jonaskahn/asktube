@@ -57,7 +57,8 @@ class AiService:
             return encoder
         return SentenceTransformer(model_name_or_path=local_model_path, device=env.LOCAL_EMBEDDING_DEVICE, trust_remote_code=True)
 
-    def recognize_audio_language(self, audio_path: str, duration: int):
+    @staticmethod
+    def recognize_audio_language(audio_path: str, duration: int):
         """
         Recognizes the language of an audio file.
 
@@ -73,13 +74,13 @@ class AiService:
             str: The language of the audio file, or None if it cannot be determined.
         """
         log.debug("start to recognize audio language")
-        model = self.__get_whisper_model()
+        model = AiService.__get_whisper_model()
         if duration <= 120:
             _, info = model.transcribe(audio_path)
             return info.language
         start_segment, middle_segment, end_segment = None, None, None
         try:
-            start_segment, middle_segment, end_segment = self.__segment_audio(audio_path, duration)
+            start_segment, middle_segment, end_segment = AiService.__segment_audio(audio_path, duration)
             _, start_info = model.transcribe(start_segment)
             _, middle_info = model.transcribe(middle_segment)
             _, end_info = model.transcribe(end_segment)
@@ -139,29 +140,41 @@ class AiService:
 
         return start_segment_audio_path, middle_segment_audio_path, end_segment_audio_path
 
-    def speech_to_text(self, audio_path: str):
+    @staticmethod
+    def speech_to_text(audio_path: str, delta: int):
         """
         Transcribes an audio file into text.
 
         Args:
             audio_path (str): The path to the audio file.
+            delta (int): The delta (compensation time) in milliseconds to add to the start time of each segment.
 
         Returns:
             list: A list of dictionaries containing the start time (milliseconds), duration (milliseconds), and text of each segment in the audio file.
         """
-        model = self.__get_whisper_model()
-        segments, _ = model.transcribe(audio=audio_path, beam_size=5)
-        return [
-            {
-                'start_time': int(segment.start * 1000.0),
-                'duration': int((segment.end - segment.start) * 1000.0),
-                'text': segment.text,
-            }
-            for segment in segments
-        ]
+        if audio_path is None:
+            raise AiError("audio path is not found")
+        if env.SPEECH_TO_TEXT_PROVIDER == "local":
+            model = AiService.__get_whisper_model()
+            segments, _ = model.transcribe(audio=audio_path, beam_size=5)
+            result = []
+            for segment in segments:
+                start = (segment.start + delta) * 1000.0
+                duration = (segment.end - segment.start) * 1000.0
+                log.debug(f"segment: start: {int(start / 1000.0)}s, duration: {int(duration / 1000.0)}s, text: {segment.text}")
+                result.append({
+                    'start_time': int(start),
+                    'duration': int(duration),
+                    'text': segment.text
+                })
+            return result
+        elif env.SPEECH_TO_TEXT_PROVIDER == "openai":
+            raise AiError("Not yet implemented")
+        elif env.SPEECH_TO_TEXT_PROVIDER == "gemini":
+            raise AiError("Not yet implemented")
 
     @staticmethod
-    def __chunk_text(text: str, max_tokens: int):
+    def __chunk_text(text: str, max_tokens: int) -> list[str]:
         """
         Splits a given text into chunks of words, each chunk containing a maximum number of tokens.
 

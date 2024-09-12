@@ -1,8 +1,10 @@
 import asyncio
 import concurrent.futures
+import json
 from concurrent.futures.thread import ThreadPoolExecutor
 
 import iso639
+import tiktoken
 from lingua import LanguageDetectorBuilder
 
 from engine.assistants import constants, env
@@ -26,6 +28,7 @@ class VideoService:
             try:
                 video.save()
                 for chapter in chapters:
+                    chapter.video = video
                     chapter.save()
                 transaction.commit()
             except Exception as e:
@@ -57,16 +60,88 @@ class VideoService:
         """
         log.debug("start analysis video")
         video: Video = VideoService.find_video_by_id(vid)
-        if video is None:
-            raise VideoError("video is not found")
-        if video.analysis_state in [constants.ANALYSIS_STAGE_COMPLETED, constants.ANALYSIS_STAGE_PROCESSING]:
-            return video
-        VideoService.__update_processing_stats(video, is_analysis_content=True, is_analysis_summary=False)
-        await VideoService.__analysis_chapters(video, provider)
-        video.analysis_state = constants.ANALYSIS_STAGE_COMPLETED
-        video.embedding_provider = provider
-        video.save()
+        try:
+            if video is None:
+                raise VideoError("video is not found")
+            if video.analysis_state in [constants.ANALYSIS_STAGE_COMPLETED, constants.ANALYSIS_STAGE_PROCESSING]:
+                return video
+
+            video_chapters = VideoService.__get_video_chapters(video)
+
+            VideoService.__update_analysis_content_state(video, constants.ANALYSIS_STAGE_PROCESSING)
+            VideoService.__prepare_video_transcript(video, video_chapters)
+
+            await VideoService.__analysis_chapters(video_chapters, provider)
+
+            video.analysis_state = constants.ANALYSIS_STAGE_COMPLETED
+            video.embedding_provider = provider
+            VideoService.save(video, video_chapters)
+        except Exception as e:
+            VideoService.__update_analysis_content_state(video, constants.ANALYSIS_STAGE_INITIAL)
+            raise e
         log.debug("finish analysis video")
+
+    @staticmethod
+    def __prepare_video_transcript(video: Video, video_chapters: list[VideoChapter]):
+        if not video.raw_transcript:
+            with ThreadPoolExecutor(max_workers=len(video_chapters)) as executor:
+                futures = [executor.submit(AiService.speech_to_text, chapter.audio_path, chapter.start_time) for chapter in video_chapters]
+            concurrent.futures.as_completed(futures)
+            transcripts = []
+            for future in concurrent.futures.as_completed(futures):
+                transcripts.append(future.result())
+            sorted_transcripts = sorted([item for sublist in transcripts for item in sublist], key=lambda x: x['start_time'])
+            video.raw_transcript = json.dumps(sorted_transcripts, ensure_ascii=False)
+        raw_transcripts = json.loads(video.raw_transcript) if video.raw_transcript else None
+        VideoService.__pair_video_chapters_with_transcripts(video, video_chapters, raw_transcripts)
+        video.transcript_tokens = len(tiktoken.get_encoding("cl100k_base").encode(video.transcript))
+
+    @staticmethod
+    def __pair_video_chapters_with_transcripts(video: Video, video_chapters: list[VideoChapter], transcripts: [{}]):
+        if len(transcripts) == 0:
+            raise VideoError("transcript should never be empty")
+        for chapter in video_chapters:
+            start_ms = chapter.start_time * 1000
+            end_ms = (chapter.start_time + chapter.duration) * 1000
+            chapter_transcript: str = ""
+            for transcript in transcripts:
+                start_transcript_ms = transcript['start_time']
+                duration_transcript_ms = transcript['duration']
+                if start_transcript_ms is None or start_transcript_ms <= 0 or duration_transcript_ms is None:
+                    log.warn("skip this invalid transcript part")
+                    continue
+
+                end_transcript_ms = start_transcript_ms + duration_transcript_ms
+                if start_transcript_ms < start_ms or end_transcript_ms > end_ms:
+                    continue
+                chapter_transcript += f"{transcript['text']}\n"
+            if chapter_transcript != "":
+                log.debug(f"title: {chapter.title}\ntranscript: {chapter_transcript}")
+                chapter.transcript = chapter_transcript
+        video_transcript = "\n".join([f"## {ct.title}\n-----\n{ct.transcript}" for ct in video_chapters if ct.transcript])
+        video.transcript = video_transcript
+
+    @staticmethod
+    def __update_analysis_content_state(video: Video, state: int):
+        with sqlite_client.atomic() as transaction:
+            try:
+                video.analysis_state = state
+                video.save()
+                transaction.commit()
+            except Exception as e:
+                transaction.rollback()
+                raise e
+
+    @staticmethod
+    def __update_analysis_summary_state(video: Video, state: int):
+        with sqlite_client.atomic() as transaction:
+            try:
+                video.analysis_summary_state = state
+                video.save()
+                transaction.commit()
+            except Exception as e:
+                transaction.rollback()
+                raise e
 
     @staticmethod
     def __update_processing_stats(video: Video, is_analysis_content: bool = True, is_analysis_summary: bool = True):
@@ -83,18 +158,17 @@ class VideoService:
                 raise e
 
     @staticmethod
-    async def __analysis_chapters(video: Video, provider: str):
+    async def __analysis_chapters(video_chapters: list[VideoChapter], provider: str):
         """
         Analyzes video chapters using a specified provider.sqlite_master
 
         Args:
-            provider (str): The provider for the analysis.
+            provider (str): The provider for the analysis.chapter.save()
             video (Video): The video object containing the chapters to be analyzed.
 
         Returns:
             None
         """
-        video_chapters = VideoService.__get_video_chapters(video)
         with ThreadPoolExecutor(max_workers=len(video_chapters)) as executor:
             if provider == "gemini":
                 futures = [executor.submit(VideoService.__analysis_video_with_gemini, chapter) for chapter in video_chapters]
@@ -114,7 +188,7 @@ class VideoService:
 
     @staticmethod
     def __get_video_chapters(video: Video) -> list[VideoChapter]:
-        video_chapters = list(VideoChapter.select().where(VideoChapter.video == video))
+        video_chapters = list(VideoChapter.select().where(VideoChapter.video == video).order_by(VideoChapter.chapter_no))
         for video_chapter in video_chapters:
             video_chapter.vid = video.id
         return video_chapters
