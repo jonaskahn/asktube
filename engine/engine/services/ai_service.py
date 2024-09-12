@@ -7,6 +7,7 @@ from uuid import uuid4
 import anthropic
 import google.generativeai as genai
 import tiktoken
+import torch
 import voyageai
 from audio_extract import extract_audio
 from faster_whisper import WhisperModel
@@ -24,6 +25,9 @@ from engine.assistants.prompts import SYSTEM_PROMPT
 from engine.database.models import Chat
 from engine.database.specs import chromadb_client
 
+has_cuda = torch.cuda.is_available()
+has_mps = torch.backends.mps.is_available()
+
 
 class AiService:
     def __init__(self):
@@ -37,7 +41,7 @@ class AiService:
         Returns:
             WhisperModel: An instance of the Whisper model with the specified device and compute type.
         """
-        compute_type = 'int8' if env.LOCAL_WHISPER_DEVICE == 'cpu' else 'fp16'
+        compute_type = 'fp16' if has_cuda else 'int8'
         return WhisperModel(
             env.LOCAL_WHISPER_MODEL,
             device=env.LOCAL_WHISPER_DEVICE,
@@ -55,9 +59,21 @@ class AiService:
         Returns:
             SentenceTransformer: An instance of the SentenceTransformer model with the specified device and model path.
         """
+
+        if has_mps:
+            device = "mps"
+        elif has_cuda:
+            device = "cuda"
+        else:
+            device = "cpu"
+
         local_model_path: str = str(os.path.join(env.APP_DIR, env.LOCAL_EMBEDDING_MODEL))
         if not os.path.exists(local_model_path):
-            encoder = SentenceTransformer(model_name_or_path=env.LOCAL_EMBEDDING_MODEL, device=env.LOCAL_EMBEDDING_DEVICE, trust_remote_code=True)
+            encoder = SentenceTransformer(
+                model_name_or_path=env.LOCAL_EMBEDDING_MODEL,
+                device=device if env.LOCAL_EMBEDDING_DEVICE == "auto" else env.LOCAL_EMBEDDING_DEVICE,
+                trust_remote_code=True
+            )
             encoder.save(local_model_path)
             return encoder
         return SentenceTransformer(model_name_or_path=local_model_path, device=env.LOCAL_EMBEDDING_DEVICE, trust_remote_code=True)
