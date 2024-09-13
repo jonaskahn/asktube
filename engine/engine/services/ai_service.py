@@ -81,7 +81,7 @@ class AiService:
             )
             encoder.save(local_model_path)
             return encoder
-        return SentenceTransformer(model_name_or_path=local_model_path, device=env.LOCAL_EMBEDDING_DEVICE, trust_remote_code=True)
+        return SentenceTransformer(model_name_or_path=local_model_path, device=device, trust_remote_code=True)
 
     @staticmethod
     def recognize_audio_language(audio_path: str, duration: int):

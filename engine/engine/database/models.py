@@ -7,6 +7,7 @@ class Video(Model):
     id = AutoField(primary_key=True, index=True)
     youtube_id = CharField(index=True, unique=True)
     url = TextField(null=False)
+    play_url = TextField(null=False)
     author = CharField(null=True)
     title = CharField(null=True)
     description = TextField(null=True)
@@ -18,8 +19,8 @@ class Video(Model):
     transcript_tokens = IntegerField(null=True)
     summary = TextField(null=False, default="")
     total_parts = IntegerField(null=True)
-    analysis_state = IntegerField(default=False, index=True)
-    analysis_summary_state = IntegerField(default=False, index=True)
+    analysis_state = IntegerField(default=0, index=True)
+    analysis_summary_state = IntegerField(default=0, index=True)
     embedding_provider = CharField(null=True)
     language = CharField(null=True)
 

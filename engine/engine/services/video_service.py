@@ -9,6 +9,7 @@ from pathlib import Path
 import iso639
 import tiktoken
 from lingua import LanguageDetectorBuilder
+from playhouse.shortcuts import model_to_dict
 
 from engine.database.models import Video, VideoChapter, Chat
 from engine.database.specs import sqlite_client
@@ -47,7 +48,7 @@ class VideoService:
         return Video.get_or_none(Video.id == vid)
 
     @staticmethod
-    async def analysis_video(vid: int, provider: str = "gemini"):
+    def analysis_video(vid: int):
         """
         Analyzes a video by its ID and updates its analysis status.
 
@@ -56,7 +57,6 @@ class VideoService:
 
         Args:
             vid (int): The ID of the video to be analyzed.
-            provider (str, optional): The provider for the analysis. Defaults to "gemini".
 
         Returns:
             Video: The analyzed video object.
@@ -65,27 +65,27 @@ class VideoService:
             VideoError: If the video is not found.
             Exception: If an error occurs during the analysis process.
         """
-
-        log.debug("start analysis video")
         video: Video = VideoService.find_video_by_id(vid)
         try:
             if video is None:
                 raise VideoError("video is not found")
             if video.analysis_state in [constants.ANALYSIS_STAGE_COMPLETED, constants.ANALYSIS_STAGE_PROCESSING]:
                 return video
-
-            video_chapters = VideoService.__get_video_chapters(video)
-
-            VideoService.__update_analysis_content_state(video, constants.ANALYSIS_STAGE_PROCESSING)
-            VideoService.__prepare_video_transcript(video, video_chapters)
-
-            video.total_parts = await VideoService.__analysis_chapters(video_chapters, provider)
-            video.analysis_state = constants.ANALYSIS_STAGE_COMPLETED
-            video.embedding_provider = provider
-            VideoService.save(video, video_chapters)
+            asyncio.create_task(VideoService.__internal_analysis(video))
+            return video
         except Exception as e:
             VideoService.__update_analysis_content_state(video, constants.ANALYSIS_STAGE_INITIAL)
             raise e
+
+    @staticmethod
+    async def __internal_analysis(video):
+        log.debug("start analysis video")
+        video_chapters = VideoService.__get_video_chapters(video)
+        VideoService.__update_analysis_content_state(video, constants.ANALYSIS_STAGE_PROCESSING)
+        VideoService.__prepare_video_transcript(video, video_chapters)
+        video.total_parts = await VideoService.__analysis_chapters(video_chapters, video.embedding_provider)
+        video.analysis_state = constants.ANALYSIS_STAGE_COMPLETED
+        VideoService.save(video, video_chapters)
         log.debug("finish analysis video")
 
     @staticmethod
@@ -167,7 +167,7 @@ class VideoService:
             if chapter_transcript != "":
                 chapter.transcript = chapter_transcript
 
-            if Path(chapter.audio_path).exists():
+            if chapter.audio_path and Path(chapter.audio_path).exists():
                 os.remove(chapter.audio_path)
                 chapter.audio_path = None
 
@@ -215,20 +215,20 @@ class VideoService:
         with ThreadPoolExecutor(max_workers=len(video_chapters)) as executor:
             if provider == "gemini":
                 futures = [executor.submit(VideoService.__analysis_video_with_gemini, chapter) for chapter in video_chapters]
+            elif provider == "local":
+                futures = [executor.submit(VideoService.__analysis_video_with_local, chapter) for chapter in video_chapters]
+            elif provider == "mistral":
+                futures = [executor.submit(VideoService.__analysis_video_with_mistral, chapter) for chapter in video_chapters]
             elif provider == "openai":
                 futures = [executor.submit(VideoService.__analysis_video_with_openai, chapter) for chapter in video_chapters]
             elif provider == "voyageai":
                 futures = [executor.submit(VideoService.__analysis_video_with_voyageai, chapter) for chapter in video_chapters]
-            elif provider == "mistral":
-                futures = [executor.submit(VideoService.__analysis_video_with_mistral, chapter) for chapter in video_chapters]
-            elif provider == "local":
-                futures = [executor.submit(VideoService.__analysis_video_with_local, chapter) for chapter in video_chapters]
             else:
+                log.debug(f"selected provider: {provider}")
                 raise AiError("unknown embedding provider")
-        total_parts = 0
-        for future in concurrent.futures.as_completed(futures):
-            total_parts += future.result()
-        return total_parts
+        return sum(
+            future.result() for future in concurrent.futures.as_completed(futures)
+        )
 
     @staticmethod
     def __get_video_chapters(video: Video) -> list[VideoChapter]:
@@ -482,3 +482,14 @@ class VideoService:
             except Exception as e:
                 transaction.rollback()
                 raise e
+
+    @staticmethod
+    def get(page_no: int) -> tuple[int, list[Video]]:
+        total = Video.select().count()
+        limit = 12
+        if total // limit < page_no:
+            page_no = total // limit
+        offset = (page_no - 1) * 12
+        videos = list(Video.select().order_by(Video.id.desc()).offset(offset).limit(limit))
+        video_data = [model_to_dict(video) for video in videos]
+        return total, video_data

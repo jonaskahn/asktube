@@ -1,5 +1,4 @@
 import logging
-import warnings
 
 from sanic.log import logger
 
@@ -7,7 +6,6 @@ from engine.supports import env
 
 
 def setup_log():
-    warnings.warn("setup log")
     if env.DEBUG_MODE in ["on", "yes", "enabled"]:
         logging.getLogger('peewee').addHandler(logging.StreamHandler())
         logging.getLogger('peewee').setLevel(logging.DEBUG)

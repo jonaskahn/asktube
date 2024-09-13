@@ -48,7 +48,7 @@ class YoutubeService:
             'captions': captions
         }
 
-    async def fetch_video_data(self) -> Video:
+    async def fetch_video_data(self, provider: str) -> Video:
         """
         Fetches video data from YouTube and saves it to the database.
 
@@ -66,11 +66,13 @@ class YoutubeService:
         video = Video(
             youtube_id=self.__agent.video_id,
             url=self.__agent.watch_url,
+            play_url=self.__agent.embed_url,
             author=self.__agent.author,
             title=self.__agent.title,
             description=self.__agent.description,
             thumbnail=self.__agent.thumbnail_url,
-            duration=self.__agent.length
+            duration=self.__agent.length,
+            embedding_provider=provider
         )
         video_chapters = self.__extract_chapters()
         language, transcript = self.__extract_transcript()
