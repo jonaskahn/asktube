@@ -1,9 +1,9 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 
 </script>
 
 <template>
-<div>Process</div>
+  <div>Process</div>
 </template>
 
 <style scoped>

@@ -12,8 +12,12 @@
   },
   "dependencies": {
     "@nuxtjs/tailwindcss": "^6.12.1",
+    "@vesp/nuxt-fontawesome": "^1.1.0",
+    "daisyui": "^4.12.10",
     "nuxt": "^3.13.1",
-    "vue": "^3.5.3",
-    "daisyui": "^4.12.10"
+    "vue": "^3.5.3"
+  },
+  "devDependencies": {
+    "@fortawesome/free-solid-svg-icons": "^6.6.0"
   }
 }
