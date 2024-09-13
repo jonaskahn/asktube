@@ -13,5 +13,6 @@ export default defineNuxtConfig({
                 }
             ]
         }
-    }
+    },
+    css: ['vue-loading-overlay/dist/css/index.css']
 })
