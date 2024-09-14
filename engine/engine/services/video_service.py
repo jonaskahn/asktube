@@ -303,9 +303,10 @@ class VideoService:
         if video is None:
             raise VideoError("video is not found")
         video.summary = VideoService.__summary_content(lang_code, model, provider, video)
+        video.save()
         asyncio.create_task(VideoService.__analysis_summary_video(model, provider, video))
         log.debug("finish summary video")
-        return video.summary
+        return video
 
     @staticmethod
     def __summary_content(lang_code: str, model: str, provider: str, video: Video) -> str:
@@ -321,9 +322,9 @@ class VideoService:
 
     @staticmethod
     async def __analysis_summary_video(model: str, provider: str, video: Video):
-        log.debug("start analysis summary video")
         if video.analysis_summary_state in [constants.ANALYSIS_STAGE_COMPLETED, constants.ANALYSIS_STAGE_PROCESSING]:
             return
+        log.debug("start analysis summary video")
         VideoService.__update_analysis_summary_state(video, constants.ANALYSIS_STAGE_PROCESSING)
         system_summary = VideoService.__summary_content(video.language, model, provider, video)
         texts, embeddings = VideoService.__get_query_embedding(video.embedding_provider, system_summary)
@@ -417,7 +418,7 @@ class VideoService:
             provider=provider
         )
         chat.save()
-        return result
+        return model_to_dict(chat)
 
     @staticmethod
     def __refine_question(model: str, provider: str, question: str, question_lang: str, video: Video):
@@ -486,10 +487,27 @@ class VideoService:
     @staticmethod
     def get(page_no: int) -> tuple[int, list[Video]]:
         total = Video.select().count()
-        limit = 12
+        limit = 48
         if total // limit < page_no:
             page_no = total // limit
-        offset = (page_no - 1) * 12
+        offset = (page_no - 1) * 48
         videos = list(Video.select().order_by(Video.id.desc()).offset(offset).limit(limit))
         video_data = [model_to_dict(video) for video in videos]
         return total, video_data
+
+    @staticmethod
+    def get_chat_histories(video_id: int) -> list[{}]:
+        selected_video: Video = VideoService.find_video_by_id(video_id)
+        chat_histories = list(Chat.select().where(Chat.video == selected_video).order_by(Chat.id.asc()))
+        result = []
+        for chat in chat_histories:
+            chat.video = None
+            result.append(model_to_dict(chat))
+
+        return result
+
+    @staticmethod
+    def clear_chat(video_id: int):
+        selected_video: Video = VideoService.find_video_by_id(video_id)
+        for chat in Chat.select().where(Chat.video == selected_video):
+            chat.delete_instance()

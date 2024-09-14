@@ -426,7 +426,13 @@ class AiService:
                 temperature=temperature,
                 top_p=top_p,
                 top_k=top_k
-            )
+            ),
+            safety_settings={
+                'HATE': 'BLOCK_NONE',
+                'HARASSMENT': 'BLOCK_NONE',
+                'SEXUAL': 'BLOCK_NONE',
+                'DANGEROUS': 'BLOCK_NONE'
+            }
         )
         chat = agent.start_chat(history=chat_histories)
         response = chat.send_message(prompt)

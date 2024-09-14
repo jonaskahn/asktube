@@ -119,22 +119,18 @@ async def analysis_youtube_video(request: Request):
     })
 
 
-@app.options("/api/video/chat")
-async def opts_chat(request: Request):
+@app.options("/api/video/detail/<video_id>")
+async def opts_detail(request: Request, video_id: int):
     return response.HTTPResponse(status=200)
 
 
-@app.post("/api/video/chat")
-async def chat(request: Request):
-    vid = request.json['video_id']
-    question = request.json['question']
-    provider = request.json['provider']
-    model = request.json.get("model", None)
-    data = await  asyncio.create_task(VideoService.ask(question, vid, provider, model))
+@app.get("/api/video/detail/<video_id>")
+async def get_video_detail(request: Request, video_id: int):
+    video = VideoService.find_video_by_id(video_id)
     return json({
         "status_code": 200,
-        "message": "Successfully",
-        "payload": data
+        "message": "Successfully get video detail",
+        "payload": model_to_dict(video)
     })
 
 
@@ -149,11 +145,11 @@ async def summary(request: Request):
     lang_code = request.json['lang_code']
     provider = request.json['provider']
     model = request.json.get("model", None)
-    data = await asyncio.create_task(VideoService.summary_video(vid, lang_code, provider, model))
+    video = await asyncio.create_task(VideoService.summary_video(vid, lang_code, provider, model))
     return json({
         "status_code": 200,
         "message": "Successfully summary video",
-        "payload": data
+        "payload": video.summary
     })
 
 
@@ -179,7 +175,6 @@ async def opts_list_videos(request: Request, page: int):
 @app.get("/api/videos/<page>")
 async def list_videos(request: Request, page: int):
     total, videos = VideoService.get(page)
-
     return json({
         "status_code": 200,
         "message": "Successfully",
@@ -188,6 +183,51 @@ async def list_videos(request: Request, page: int):
             "videos": videos
         }
     })
+
+
+@app.options("/api/chat")
+async def opts_chat(request: Request):
+    return response.HTTPResponse(status=200)
+
+
+@app.post("/api/chat")
+async def chat(request: Request):
+    vid = request.json['video_id']
+    question = request.json['question']
+    provider = request.json['provider']
+    model = request.json.get("model", None)
+    data = await asyncio.create_task(VideoService.ask(question, vid, provider, model))
+    return json({
+        "status_code": 200,
+        "message": "Successfully",
+        "payload": data
+    })
+
+
+@app.options("/api/chat/history/<video_id>")
+async def opts_chat_history(request: Request, video_id: int):
+    return response.HTTPResponse(status=200)
+
+
+@app.get("/api/chat/history/<video_id>")
+async def chat_history(request: Request, video_id: int):
+    chat_histories = VideoService.get_chat_histories(video_id=video_id)
+    return json({
+        "status_code": 200,
+        "message": "Successfully",
+        "payload": chat_histories
+    })
+
+
+@app.options("/api/chat/clear/<video_id>")
+async def opts_clear_chat(request: Request, video_id: int):
+    return response.HTTPResponse(status=200)
+
+
+@app.delete("/api/chat/clear/<video_id>")
+async def clear_chat(request: Request, video_id: int):
+    VideoService.clear_chat(video_id)
+    return response.HTTPResponse(status=200)
 
 
 app.register_middleware(add_cors_headers, "response")

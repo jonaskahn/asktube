@@ -1,37 +1,47 @@
 <script lang="js" setup>
 import settings from "~/supports/settings.js";
 import {useLoading} from "vue-loading-overlay";
+import {request, shortenWord} from "~/supports/request.js";
 
 const videos = ref([])
 const total = ref(0)
 const pageNo = ref(1)
 
 const fetchVideos = async () => {
-  const response = await $fetch(settings.BASE_URL + '/api/videos/' + pageNo.value)
-      .then((response) => response)
-      .catch((error) => error.data)
-  if (response.status_code === 500) {
+  const response = await request(`${settings.BASE_URL}/api/videos/${pageNo.value}`, 'GET')
+  if (response.status_code >= 400) {
     return
   }
   total.value = response.payload.total
-  videos.value = response.payload.videos
+  videos.value.push(...response.payload.videos)
 }
+
+const loadMore = async () => {
+  if (videos.value.length >= total.value) {
+    return
+  }
+  try {
+    pageNo.value++
+    await fetchVideos()
+  } catch (e) {
+    pageNo.value--
+    useNuxtApp().$toast.error("Cannot load more records", {
+      autoClose: 2000
+    })
+  }
+}
+
 onBeforeMount(async () => {
   await fetchVideos()
 })
 
-const shortenWord = (str) => {
-  if (str.length <= 20) return str
-  return str.split(' ').slice(0, 20).join(' ') + "...";
-}
-
 
 const url = ref(null)
 const invalidUrl = ref(false)
-const provider = ref('Provider')
+const provider = ref('Analysis Provider')
 const invalidProvider = ref(false)
 
-const $loading = useLoading({...settings.LOADING_PROPERTIES});
+
 const onOpenAddDialog = () => {
   document.getElementById('chatModal').showModal()
 }
@@ -39,14 +49,9 @@ const onCloseAddDialog = () => {
   document.getElementById('chatModal').close()
 }
 
-const request = async (url, method, body) => {
-  return await $fetch(url, {
-    method: method,
-    body: body
-  })
-      .then((response) => response)
-      .catch((error) => error.data)
-}
+const displayLoadMore = computed(() => videos.value.length > total.value)
+
+const $loading = useLoading({...settings.LOADING_PROPERTIES});
 const process = async () => {
   const error = []
   if (!url.value) {
@@ -60,7 +65,7 @@ const process = async () => {
   }
 
   if (error.length > 0) {
-    console.log("Please enter valid youtube url and select right provider")
+    console.debug("Please enter valid youtube url and select right provider")
     return
   }
 
@@ -69,8 +74,7 @@ const process = async () => {
   onCloseAddDialog()
   const loader = $loading.show({});
   try {
-
-    const data = await request(settings.BASE_URL + '/api/youtube/process', 'POST', {
+    const data = await request(`${settings.BASE_URL}/api/youtube/process`, 'POST', {
       url: url.value,
       provider: provider.value
     })
@@ -84,7 +88,7 @@ const process = async () => {
       })
       url.value = null
       videos.value.unshift(data.payload)
-      if (videos.value >= 12) {
+      if (videos.value >= 50) {
         videos.value.pop()
       }
     }
@@ -124,7 +128,7 @@ const analysis = async (id) => {
       class="grid grid-cols-1 gap-1 sm:grid-cols-2 sm:gap-2  lg:grid-cols-3 lg:gap-3 xl:grid-cols-4 xl:gap-4">
     <div v-for="item in videos" class="card bg-base-100 w-full shadow-xl">
       <figure>
-        <img :src="item.thumbnail"/>
+        <img :src="item.thumbnail" style="height: 200px; width: 300px"/>
       </figure>
       <div class="card-body">
         <h2 :data-tip="item.title" class="card-title tooltip">{{ shortenWord(item.title) }}</h2>
@@ -137,8 +141,8 @@ const analysis = async (id) => {
           <button v-show="item.analysis_state === 0" class="btn btn-secondary text-base-100" @click="analysis(item.id)">
             Analysis
           </button>
-          <button v-show="item.analysis_state === 2" class="btn btn-square" disabled>
-            <span class="loading loading-spinner"></span>
+          <button v-show="item.analysis_state === 2" class="btn btn-secondary text-base-100" @click="analysis(item.id)">
+            Refresh
           </button>
         </div>
       </div>
@@ -148,8 +152,9 @@ const analysis = async (id) => {
           @click="onOpenAddDialog">
     Add
   </button>
-  <button
-      class="fixed bottom-4 right-4  transform -translate-x-1 btn btn-accent  px-8 py-4 rounded-full shadow-lg">
+  <button v-if="displayLoadMore"
+          class="fixed bottom-4 right-4  transform -translate-x-1 btn btn-accent  px-8 py-4 rounded-full shadow-lg"
+          @click="loadMore">
     Load More
   </button>
 
@@ -165,7 +170,7 @@ const analysis = async (id) => {
         <div class="justify-start">
           <select v-model="provider" :class="{'select-error' : invalidProvider}"
                   class="select select-bordered w-full rounded-full">
-            <option disabled selected>Provider</option>
+            <option disabled selected>Analysis Provider</option>
             <option>local</option>
             <option>gemini</option>
             <option>voyageai</option>

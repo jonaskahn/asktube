@@ -1,9 +1,9 @@
 export default {
   LOADING_PROPERTIES: {
-    loader: 'dots',
-    opacity: 0.2,
+    loader: 'bars',
+    opacity: 0.6,
     color: 'oklch(var(--p))',
-    'background-color': 'oklch(var(--nc))',
+    'background-color': 'oklch(var(--b3))',
     width: 64,
     height: 64
   },

@@ -12,16 +12,38 @@ Transcript:
 
 # TASK:
 ---
-- Summarize this Youtube video base on "Title", "Description", "Transcript", write a vibrant/expressive title - format with H1 #.
-- List out key points, provider the comparison, tables, graphs, etc if it's necessary (only provide if you have information) - format heading with H2 ##.
-- Feel free to suggest relevant information based on your training knowledge.
-- Using informal language, not formal language with friendly style.
+1. Create a detailed summary of the YouTube video based primarily on the "Title" and "Transcript". Use the "Description" only for context, ignoring any promotional or sponsored content it may contain.
+
+2. Write an attention-grabbing, expressive title for your summary using H1 formatting (#).
+
+3. List out 5-7 key points from the video, using H2 formatting (##) for each point. 
+
+4. Highlight the following elements to make the recap more vibrant:
+   - Emotional highlights: Describe 1-2 moments that likely evoked strong reactions
+   - Quotable moments: Include 2-3 standout quotes or memorable lines
+   - Visual highlights: Vividly describe an important visual element or scene
+   - Video structure: Briefly analyze how the video was structured or paced
+   - Audience engagement: Note how the video might have connected with viewers
+   - Metaphors or analogies: Use a creative comparison to explain a key concept
+   - Personal takeaways: Suggest 2-3 key lessons or insights from the video
+   - Controversies (if any): Note any contentious points or debates raised
+   - Behind-the-scenes: Include any relevant production details or background info mentioned in the video
+
+5. If applicable, include:
+   - Comparisons between concepts mentioned in the video
+   - A table summarizing important data or categories
+   - A simple ASCII graph or chart to visualize trends or statistics
+
+6. Add 2-3 relevant pieces of information from your knowledge base that directly relate to the video's topic.
+
+7. Use an informal, friendly tone throughout the summary. Write as if you're explaining to a friend.
 
 # OUTPUT:
 ---
-- Response in language: {language}
+- Response language: {language}
 - Format: Markdown
-- Do not include any instructions, provide output directly.
+- Start directly with the content. Do not include any instructions or meta-text in your response.
+- Do not mention or reference any sponsored content, advertisements, or promotional material that may appear in the video description.
 No yapping!!!
 """
 

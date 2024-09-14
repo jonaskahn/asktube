@@ -46,3 +46,32 @@
     opacity: 0;
     transform: translateX(20px);
 }
+
+::-webkit-scrollbar-track {
+    border-radius: 20px;
+    width: 0.6rem;
+    position: absolute;
+    right: -3rem;
+    top: -50rem;
+    background: transparent;
+}
+
+::-webkit-scrollbar {
+    width: 0.5rem;
+    background-color: transparent;
+}
+
+::-webkit-scrollbar:horizontal {
+    width: 0.2rem;
+    background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 20px;
+    background-color: rgba(176, 176, 176, 0.15);
+}
+
+:hover::-webkit-scrollbar-thumb {
+    border-radius: 20px;
+    background-color: rgba(176, 176, 176, 0.9);
+}
