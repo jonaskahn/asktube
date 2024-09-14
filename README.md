@@ -16,7 +16,8 @@
 ## 🔨 Technology
 
 - **Language**: Python, JS
-- **Framework/Lib**: Sanic, Peewee, Pytubefix, Sentence Transformers, Sqlite, Chroma, VueJs, etc.
+- **Server**: Python@v3.10, Bun@v1
+- **Framework/Lib**: Sanic, Peewee, Pytubefix, Sentence Transformers, Sqlite, Chroma, NuxtJs/DaisyUI, etc.
 - **Embedding Provider**:
   - [x] OpenAI
   - [x] Gemini
@@ -33,9 +34,28 @@
   - [x] Faster-Whisper (Local)
   - [ ] OpenAI
   - [ ] Gemini
+ 
+## How to run ?
+### Run on your machine
+- **1**. Ensure you installed Python/Poetry and Bun before we start.
+- **2**. Clone repostiory
+  ```shell
+  git clone https://github.com/jonaskahn/asktube.git
+  ```
+- **3**. Prepare ENV settings 
+  - [Locally](/engine#prefer-env-for-running-local)
+  - [Free with some limitations](/engine#prefer-env-for-free-with-limitation)
+- **4**. Run program
+  ```shell
+  cd engine && poetry install && poetry python engine/server.py
+  ```
+  ```shell
+  cd web && bun install && bun run dev
+  ```
+### With docker
+[Place holder]
 
 ---
-
 ## 🤷🏽 Why does this project exist?
 
 - I’ve seen several GitHub repositories offering **AI-powered** summaries for YouTube videos, but none include **Q&A**
