@@ -71,8 +71,7 @@
 
 ## 🏃🏽‍➡️ Demo
 
-> [Placeholder]
-
+[AskTube First Demo](https://www.youtube.com/watch?v=TkoxcM6NcB4)
 ---
 
 ## ✍🏿 For development
