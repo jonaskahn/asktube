@@ -9,15 +9,6 @@
 </p>
 
 ---
-## Screenshot
-<p align="center">
-  <img src="docs/images/demo2.png" alt="Demo image 2"/>
-</p>
-
-<p align="center">
-  <img src="docs/images/demo1.png" alt="Demo image 1"/>
-</p>
-
 ## 🔨 Technology
 
 - **Language**: Python, JS
@@ -94,7 +85,15 @@
 
 ---
 
-## 🏃🏽‍➡️ Demo
+## 🏃🏽‍➡️ Demo & Screenshot
+
+<p align="center">
+  <img src="docs/images/demo2.png" alt="Demo image 2"/>
+</p>
+
+<p align="center">
+  <img src="docs/images/demo1.png" alt="Demo image 1"/>
+</p>
 
 [AskTube First Demo](https://www.youtube.com/watch?v=TkoxcM6NcB4)
 ---
