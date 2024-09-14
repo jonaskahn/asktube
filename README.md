@@ -10,7 +10,10 @@
 <p align="center">
   <i>Run it entirely on your local machine with Ollama, or cloud-based models like Claude, OpenAI, Gemini, Mistral, and more</i>
 </p>
-    
+
+<p align="center">
+  <img src="docs/images/demo2.png" alt="Demo image"/>
+</p>
 ---
 
 ## 🔨 Technology
