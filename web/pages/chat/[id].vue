@@ -22,7 +22,7 @@ const aiModels = {
 
 const selectedSummaryProvider = ref("gemini")
 const selectedSummaryModel = ref("gemini-1.5-flash")
-const selectedSummaryLang = ref("vi")
+const selectedSummaryLang = ref("en")
 const summaryModels = ref(aiModels[selectedSummaryProvider.value])
 
 const languages = ref([])
@@ -42,9 +42,10 @@ const $loading = useLoading({...settings.LOADING_PROPERTIES});
 const doSummary = async () => {
   const loader = $loading.show({});
   try {
+    console.log(selectedSummaryLang.value)
     const response = await request(`${settings.BASE_URL}/api/video/summary`, 'POST', {
       "video_id": video.value.id,
-      "lang_code": selectedSummaryLang.value,
+      "lang_code": selectedSummaryLang.value ?? 'en',
       "provider": selectedSummaryProvider.value,
       "model": selectedSummaryModel.value
     })
@@ -75,7 +76,7 @@ watch(selectedChatProvider, (newValue, oldValue) => {
 
 const chatMessage = ref(null)
 const chats = ref([])
-const chatRef = ref(null)
+const chatRef = ref({})
 
 const onHoldMessageResponse = ref(false)
 const onChat = async () => {
@@ -129,11 +130,12 @@ const doClearChat = async () => {
 
 }
 
+
 onMounted(async () => {
   try {
     const videoResponse = await request(`${settings.BASE_URL}/api/video/detail/${route.params.id}`, 'GET')
     video.value = videoResponse.payload
-    summary.value = await parseMarkdown(videoResponse.payload.summary)
+    summary.value = videoResponse.payload.summary ? await parseMarkdown(videoResponse.payload.summary) : null
 
     const chatResponse = await request(`${settings.BASE_URL}/api/chat/history/${route.params.id}`, 'GET')
     chats.value = chatResponse.payload
@@ -186,8 +188,8 @@ onMounted(async () => {
             </div>
           </div>
           <div class="divider">🌟</div>
-          <article class="prose overflow-auto h-96">
-            <MDCRenderer v-if="summary !== null" :body="summary.body" :data="summary.data"/>
+          <article v-if="summary" class="prose overflow-auto h-96">
+            <MDCRenderer :body="summary.body" :data="summary.data"/>
           </article>
 
         </div>
