@@ -37,15 +37,15 @@
  
 ## How to run ?
 ### Run on your machine
-- **1**. Ensure you installed Python/Poetry and Bun before we start.
-- **2**. Clone repostiory
+- Ensure you installed Python/Poetry and Bun before we start.
+- Clone repostiory
   ```shell
   git clone https://github.com/jonaskahn/asktube.git
   ```
-- **3**. Prepare ENV settings 
+- Prepare ENV settings 
   - [Locally](/engine#prefer-env-for-running-local)
   - [Free with some limitations](/engine#prefer-env-for-free-with-limitation)
-- **4**. Run program
+- Run program
   ```shell
   cd engine && poetry install && poetry python engine/server.py
   ```
