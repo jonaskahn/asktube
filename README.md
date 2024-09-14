@@ -4,17 +4,19 @@
 <p align="center">
   <strong>AskTube - An AI-powered YouTube video summarizer and QA assistant powered by Retrieval Augmented Generation (RAG) 🤖</strong>
 </p>
-
----
-
 <p align="center">
   <i>Run it entirely on your local machine with Ollama, or cloud-based models like Claude, OpenAI, Gemini, Mistral, and more</i>
 </p>
 
-<p align="center">
-  <img src="docs/images/demo2.png" alt="Demo image"/>
-</p>
 ---
+## Screenshot
+<p align="center">
+  <img src="docs/images/demo2.png" alt="Demo image 2"/>
+</p>
+
+<p align="center">
+  <img src="docs/images/demo1.png" alt="Demo image 1"/>
+</p>
 
 ## 🔨 Technology
 
