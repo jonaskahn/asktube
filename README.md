@@ -53,7 +53,7 @@
   cd web && bun install && bun run dev
   ```
 ### With docker
-[Place holder]
+[Placeholder]
 
 ---
 ## 🤷🏽 Why does this project exist?
