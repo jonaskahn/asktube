@@ -8,6 +8,7 @@ import pytubefix
 from audio_extract import extract_audio
 from pytubefix import YouTube, Caption
 from pytubefix.cli import on_progress
+from sanic.log import logger
 
 from engine.database.models import VideoChapter, Video
 from engine.processors.audio_processor import process_audio
@@ -15,7 +16,6 @@ from engine.services.ai_service import AiService
 from engine.services.video_service import VideoService
 from engine.supports import env
 from engine.supports.constants import TEMP_AUDIO_DIR
-from engine.supports.logger import log
 
 
 class YoutubeService:
@@ -30,9 +30,6 @@ class YoutubeService:
     def fetch_basic_info(self):
         """
         Fetches and returns the basic information of a YouTube video.
-
-        Args:
-            None
 
         Returns:
             dict: A dictionary containing the title, description, duration, author, thumbnail, and captions of the video.
@@ -49,15 +46,6 @@ class YoutubeService:
         }
 
     async def fetch_video_data(self, provider: str) -> Video:
-        """
-        Fetches video data from YouTube and saves it to the database.
-
-        Args:
-            None
-
-        Returns:
-            Video: The fetched video object.
-        """
 
         video = VideoService.find_video_by_youtube_id(self.__agent.video_id)
         if video is not None:
@@ -184,7 +172,7 @@ class YoutubeService:
                 start_time = e.get('tStartMs')
                 duration = e.get('dDurationMs')
                 if start_time is None or duration is None:
-                    log.debug("Cannot get start_time or duration")
+                    logger.debug("Cannot get start_time or duration")
                     continue
                 result.append({
                     'start_time': start_time,
@@ -194,7 +182,7 @@ class YoutubeService:
         return result
 
     def __extract_audio(self):
-        log.debug(f"start to download audio {self.__agent.title}")
+        logger.debug(f"start to download audio {self.__agent.title}")
         output_audio_file = self.__download_audio()
         language = AiService.recognize_audio_language(
             audio_path=output_audio_file,

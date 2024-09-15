@@ -4,6 +4,7 @@ from json import dumps
 from playhouse.shortcuts import model_to_dict
 from sanic import Sanic, Request, response
 from sanic import json, text
+from sanic.log import logger
 from sanic.worker.manager import WorkerManager
 
 from engine.cors import add_cors_headers
@@ -12,7 +13,7 @@ from engine.database.specs import sqlite_client
 from engine.services.video_service import VideoService
 from engine.services.youtube_service import YoutubeService
 from engine.supports.errors import LogicError
-from engine.supports.logger import log
+from engine.supports.logger import setup_log
 
 Sanic.START_METHOD_SET = True
 Sanic.start_method = "fork"
@@ -26,7 +27,7 @@ app.config.RESPONSE_TIMEOUT = 300
 
 @app.listener('before_server_start')
 async def connect_db(app, loop):
-    log.debug("open sqlite Connection")
+    logger.debug("open sqlite Connection")
     sqlite_client.connect()
     sqlite_client.create_tables([Video, VideoChapter, Chat])
 
@@ -34,13 +35,13 @@ async def connect_db(app, loop):
 @app.listener('after_server_stop')
 async def close_db(app, loop):
     if not sqlite_client.is_closed():
-        log.debug("close sqlite")
+        logger.debug("close sqlite")
         sqlite_client.close()
 
 
 @app.exception(Exception)
 async def handle_exception(request: Request, exception: Exception):
-    log.error(exception, exc_info=True)
+    logger.error(exception, exc_info=True)
     return json(
         {
             "status_code": 500,
@@ -52,7 +53,7 @@ async def handle_exception(request: Request, exception: Exception):
 
 @app.exception(LogicError)
 async def handle_exception(request: Request, exception: LogicError):
-    log.error(exception, exc_info=True)
+    logger.error(exception, exc_info=True)
     return json(
         {
             "status_code": 400,
@@ -233,4 +234,5 @@ async def clear_chat(request: Request, video_id: int):
 app.register_middleware(add_cors_headers, "response")
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=8000, access_log=True, debug=True, workers=100)
+    setup_log()
+    app.run(host="0.0.0.0", port=8000, access_log=False, debug=True, workers=10)

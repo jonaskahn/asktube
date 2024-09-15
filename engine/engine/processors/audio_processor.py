@@ -8,11 +8,11 @@ import noisereduce as nr
 import numpy as np
 import soundfile as sf
 from pydub import AudioSegment
+from sanic.log import logger
 from scipy.io import wavfile
 
 from engine.supports import env
 from engine.supports.constants import TEMP_AUDIO_DIR
-from engine.supports.logger import log
 
 
 class __AudioChainProcessor:
@@ -27,11 +27,11 @@ class __AudioChainProcessor:
         for fnc in self.filters:
             original_audio_file_path = audio_input_path
             try:
-                log.debug(f"audio input: {audio_input_path}")
+                logger.debug(f"audio input: {audio_input_path}")
                 audio_input_path = fnc(audio_input_path)
                 if Path(original_audio_file_path).exists():
                     os.remove(original_audio_file_path)
-                log.debug(f"audio output: {audio_input_path}")
+                logger.debug(f"audio output: {audio_input_path}")
             except Exception as e:
                 raise e
 

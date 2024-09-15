@@ -8,13 +8,13 @@ import iso639
 import tiktoken
 from lingua import LanguageDetectorBuilder
 from playhouse.shortcuts import model_to_dict
+from sanic.log import logger
 
 from engine.database.models import Video, VideoChapter, Chat
 from engine.database.specs import sqlite_client
 from engine.services.ai_service import AiService
 from engine.supports import constants, env
 from engine.supports.errors import VideoError, AiError
-from engine.supports.logger import log
 from engine.supports.prompts import SUMMARY_PROMPT, ASKING_PROMPT, REFINED_QUESTION_PROMPT
 
 detector = LanguageDetectorBuilder.from_all_languages().build()
@@ -77,14 +77,14 @@ class VideoService:
 
     @staticmethod
     async def __internal_analysis(video):
-        log.debug("start analysis video")
+        logger.debug("start analysis video")
         video_chapters = VideoService.__get_video_chapters(video)
         VideoService.__update_analysis_content_state(video, constants.ANALYSIS_STAGE_PROCESSING)
         VideoService.__prepare_video_transcript(video, video_chapters)
         video.total_parts = await VideoService.__analysis_chapters(video_chapters, video.embedding_provider)
         video.analysis_state = constants.ANALYSIS_STAGE_COMPLETED
         VideoService.save(video, video_chapters)
-        log.debug("finish analysis video")
+        logger.debug("finish analysis video")
 
     @staticmethod
     def __prepare_video_transcript(video: Video, video_chapters: list[VideoChapter]):
@@ -110,7 +110,7 @@ class VideoService:
         """
 
         if not video.raw_transcript:
-            log.debug("start to recognize video transcript")
+            logger.debug("start to recognize video transcript")
             with ThreadPoolExecutor(max_workers=4) as executor:
                 futures = [executor.submit(AiService.speech_to_text, chapter.audio_path, chapter.start_time) for chapter in video_chapters]
             transcripts = []
@@ -120,7 +120,7 @@ class VideoService:
                 transcripts.append(transcript)
                 predict_langs.append(lang)
             sorted_transcripts = sorted([item for sublist in transcripts for item in sublist], key=lambda x: x['start_time'])
-            log.debug("finish to recognize video transcript")
+            logger.debug("finish to recognize video transcript")
             video.raw_transcript = json.dumps(sorted_transcripts, ensure_ascii=False)
             predict_lang, count = Counter(predict_langs).most_common(1)[0]
             video.language = predict_lang if count >= 2 or len(predict_langs) == 1 else None
@@ -155,7 +155,7 @@ class VideoService:
                 start_transcript_ms = transcript['start_time']
                 duration_transcript_ms = transcript['duration']
                 if start_transcript_ms is None or start_transcript_ms < 0 or duration_transcript_ms is None or duration_transcript_ms < 0:
-                    log.warn("skip this invalid transcript part")
+                    logger.warn("skip this invalid transcript part")
                     continue
 
                 end_transcript_ms = start_transcript_ms + duration_transcript_ms
@@ -218,7 +218,7 @@ class VideoService:
             elif provider == "voyageai":
                 futures = [executor.submit(VideoService.__analysis_video_with_voyageai, chapter) for chapter in video_chapters]
             else:
-                log.debug(f"selected provider: {provider}")
+                logger.debug(f"selected provider: {provider}")
                 raise AiError("unknown embedding provider")
         return sum(
             future.result() for future in concurrent.futures.as_completed(futures)
@@ -299,7 +299,7 @@ class VideoService:
         video.summary = VideoService.__summary_content(lang_code, model, provider, video)
         video.save()
         asyncio.create_task(VideoService.__analysis_summary_video(model, provider, video))
-        log.debug("finish summary video")
+        logger.debug("finish summary video")
         return video
 
     @staticmethod
@@ -318,7 +318,7 @@ class VideoService:
     async def __analysis_summary_video(model: str, provider: str, video: Video):
         if video.analysis_summary_state in [constants.ANALYSIS_STAGE_COMPLETED, constants.ANALYSIS_STAGE_PROCESSING]:
             return
-        log.debug("start analysis summary video")
+        logger.debug("start analysis summary video")
         VideoService.__update_analysis_summary_state(video, constants.ANALYSIS_STAGE_PROCESSING)
         system_summary = VideoService.__summary_content(video.language, model, provider, video)
         texts, embeddings = VideoService.__get_query_embedding(video.embedding_provider, system_summary)
@@ -330,7 +330,7 @@ class VideoService:
         AiService.store_embeddings(f"video_summary_{video.id}", ids, texts, embeddings)
         video.analysis_summary_state = constants.ANALYSIS_STAGE_COMPLETED
         video.save()
-        log.debug("finish analysis summary video")
+        logger.debug("finish analysis summary video")
 
     @staticmethod
     def __get_query_embedding(provider: str, text: str) -> tuple[list[str], list[list[float]]]:

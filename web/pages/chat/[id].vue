@@ -141,6 +141,7 @@ onMounted(async () => {
     chats.value = chatResponse.payload
     await nextTick();
     scrollToBottom();
+    chatRef.value.focus()
   } catch (e) {
     useNuxtApp().$toast.error("Something went wrong, try later", {
       autoClose: 2000

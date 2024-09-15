@@ -15,6 +15,7 @@ from future.backports.datetime import timedelta
 from mistralai import Mistral
 from ollama import Client
 from openai import OpenAI
+from sanic.log import logger
 from sentence_transformers import SentenceTransformer
 
 from engine.database.models import Chat
@@ -22,7 +23,6 @@ from engine.database.specs import chromadb_client
 from engine.supports import env
 from engine.supports.env import MISTRAL_API_KEY
 from engine.supports.errors import AiError
-from engine.supports.logger import log
 from engine.supports.prompts import SYSTEM_PROMPT
 
 has_cuda = torch.cuda.is_available()
@@ -96,7 +96,7 @@ class AiService:
             str: The recognized language of the audio file, or None if the language could not be determined.
         """
 
-        log.debug("start to recognize audio language")
+        logger.debug("start to recognize audio language")
         model = AiService.__get_local_whisper_model()
         if duration <= 120:
             _, info = model.transcribe(audio_path)
@@ -111,7 +111,7 @@ class AiService:
             most_common_lang, count = Counter(languages).most_common(1)[0]
             return most_common_lang if count >= 2 else None
         finally:
-            log.debug("finish to recognize audio language")
+            logger.debug("finish to recognize audio language")
             for segment in [start_segment, middle_segment, end_segment]:
                 if segment is not None and os.path.exists(segment):
                     os.remove(segment)
@@ -184,7 +184,7 @@ class AiService:
             for segment in segments:
                 start = (segment.start + delta) * 1000.0
                 duration = (segment.end - segment.start) * 1000.0
-                log.debug(f"segment: start: {timedelta(seconds=int(start / 1000.0))}, duration: {int(duration)}ms, text: {segment.text}")
+                logger.debug(f"segment: start: {timedelta(seconds=int(start / 1000.0))}, duration: {int(duration)}ms, text: {segment.text}")
                 result.append({
                     'start_time': int(start),
                     'duration': int(duration),
@@ -253,7 +253,7 @@ class AiService:
             genai.configure(api_key=env.GEMINI_API_KEY)
             return texts, [genai.embed_content(content=text, model=env.GEMINI_EMBEDDING_MODEL)['embedding'] for text in texts]
         except Exception as e:
-            log.debug(f"\nerror in embedding_document_with_gemini: \n{text}", exc_info=True)
+            logger.debug(f"\nerror in embedding_document_with_gemini: \n{text}", exc_info=True)
             raise e
 
     @staticmethod
