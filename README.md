@@ -95,7 +95,7 @@
   <img src="docs/images/demo1.png" alt="Demo image 1"/>
 </p>
 
-[Watch "AskTube First Demo" on YouTube](https://www.youtube.com/watch?v=TkoxcM6NcB4)
+[Watch "AskTube First Demo" on YouTube](https://www.youtube.com/watch?v=S5T0nVjYRbQ)
 ---
 
 ## ✍🏿 For development
