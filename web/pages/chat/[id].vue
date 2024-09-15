@@ -140,7 +140,9 @@ onMounted(async () => {
     const chatResponse = await request(`${settings.BASE_URL}/api/chat/history/${route.params.id}`, 'GET')
     chats.value = chatResponse.payload
     await nextTick();
-    scrollToBottom();
+    if (chats.value.length > 0) {
+      scrollToBottom();
+    }
     chatRef.value.focus()
   } catch (e) {
     useNuxtApp().$toast.error("Something went wrong, try later", {
