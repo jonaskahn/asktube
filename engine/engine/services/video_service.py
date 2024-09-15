@@ -1,10 +1,8 @@
 import asyncio
 import concurrent.futures
 import json
-import os
 from collections import Counter
 from concurrent.futures.thread import ThreadPoolExecutor
-from pathlib import Path
 
 import iso639
 import tiktoken
@@ -125,7 +123,7 @@ class VideoService:
             log.debug("finish to recognize video transcript")
             video.raw_transcript = json.dumps(sorted_transcripts, ensure_ascii=False)
             predict_lang, count = Counter(predict_langs).most_common(1)[0]
-            video.language = predict_lang if count >= 2 else None
+            video.language = predict_lang if count >= 2 or len(predict_langs) == 1 else None
         raw_transcripts = json.loads(video.raw_transcript) if video.raw_transcript else None
         VideoService.__pair_video_chapters_with_transcripts(video, video_chapters, raw_transcripts)
         video.transcript_tokens = len(tiktoken.get_encoding("cl100k_base").encode(video.transcript))
@@ -166,10 +164,6 @@ class VideoService:
                 chapter_transcript += f"{transcript['text']}\n"
             if chapter_transcript != "":
                 chapter.transcript = chapter_transcript
-
-            if chapter.audio_path and Path(chapter.audio_path).exists():
-                os.remove(chapter.audio_path)
-                chapter.audio_path = None
 
         video_transcript = "\n".join([f"## {ct.title}\n-----\n{ct.transcript}" for ct in video_chapters if ct.transcript])
         video.transcript = video_transcript
