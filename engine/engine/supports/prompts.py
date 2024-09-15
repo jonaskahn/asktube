@@ -16,7 +16,7 @@ Transcript:
 
 2. Write an attention-grabbing, expressive title for your summary using H1 formatting (#).
 
-3. List out 5-7 key points from the video, using H2 formatting (##) for each point. 
+3. List out all potential key points from the video, using H2 formatting (##) for each point. 
 
 4. Highlight the following elements to make the recap more vibrant:
    - Emotional highlights: Describe 1-2 moments that likely evoked strong reactions
@@ -44,6 +44,7 @@ Transcript:
 - Format: Markdown
 - Start directly with the content. Do not include any instructions or meta-text in your response.
 - Do not mention or reference any sponsored content, advertisements, or promotional material that may appear in the video description.
+- Do not include this prompt in response.
 No yapping!!!
 """
 

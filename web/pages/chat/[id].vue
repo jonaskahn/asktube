@@ -231,7 +231,10 @@ onMounted(async () => {
                   <div class="chat-bubble bg-blue-600 text-base-100">{{ chat.question }}</div>
                 </div>
                 <div v-if="chat.answer" class="chat chat-start">
-                  <div class="chat-bubble bg-green-600 text-base-100">{{ chat.answer }}</div>
+                  <div class="chat-bubble bg-gray-600 text-base-100">
+                    <MDC :value="chat.answer" tag="article"/>
+                    <div class="badge badge-info gap-2">{{ chat.provider }}</div>
+                  </div>
                 </div>
                 <div v-else class="chat chat-start">
                   <button class="btn btn-square btn-ghost">
@@ -242,21 +245,18 @@ onMounted(async () => {
 
             </div>
 
-            <div v-if="onHoldMessageResponse" class="flex mt-auto justify-end">
-              <button class="btn btn-square">
-                <span class="loading loading-spinner"></span>
-              </button>
-            </div>
-            <div v-else class="flex mt-auto">
+            <div class="flex mt-auto">
               <input
                   ref="chatRef"
                   v-model="chatMessage"
+                  :disabled="onHoldMessageResponse"
                   class="input input-bordered flex-grow rounded-full"
                   placeholder="Type your message here..."
                   type="text"
                   @keydown.enter="onChat"
               />
-              <button class="ml-5 btn btn-primary rounded-full" @click="onChat">Send</button>
+              <button :disabled="onHoldMessageResponse" class="ml-5 btn btn-primary rounded-full" @click="onChat">Send
+              </button>
             </div>
           </div>
         </div>
