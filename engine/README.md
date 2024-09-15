@@ -1,5 +1,10 @@
 # Getting Started
 
+## Setup development env
+  - [Python 3.10](https://www.python.org/downloads/)
+  - [Poetry](https://python-poetry.org/docs/#installation)
+  - [ffmpeg](https://www.ffmpeg.org/download.html)
+
 ## Install requirements libraries
 
 ```shell

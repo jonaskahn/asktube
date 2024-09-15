@@ -33,12 +33,16 @@
  
 ## How to run ?
 ### Run on your machine
-- Ensure you installed Python/Poetry and Bun before we start.
+- Ensure you installed:
+  - [Python 3.10](https://www.python.org/downloads/)
+  - [Poetry](https://python-poetry.org/docs/#installation)
+  - [Bun](https://bun.sh/)
+  - [ffmpeg](https://www.ffmpeg.org/download.html)
 - Clone repostiory
   ```shell
   git clone https://github.com/jonaskahn/asktube.git
   ```
-- Prepare ENV settings 
+- Prepare backend ENV settings:
   - [Locally](/engine#prefer-env-for-running-local)
   - [Free with some limitations](/engine#prefer-env-for-free-with-limitation)
 - Run program
@@ -59,7 +63,6 @@
 - I want to implement a more comprehensive solution while also gaining experience with AI to build my own RAG application.
 
 ---
-
 ## 💡 Architecture
 
 > The real implementation might differ from this art due to its complexity.
@@ -95,7 +98,7 @@
   <img src="docs/images/demo1.png" alt="Demo image 1"/>
 </p>
 
-[Watch "AskTube First Demo" on YouTube](https://www.youtube.com/watch?v=TkoxcM6NcB4)
+[Watch "AskTube First Demo" on YouTube](https://www.youtube.com/watch?v=S5T0nVjYRbQ)
 ---
 
 ## ✍🏿 For development
