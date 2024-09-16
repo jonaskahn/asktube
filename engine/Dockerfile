@@ -1,7 +1,7 @@
-FROM ubuntu:22.04
+FROM python:3.10-bookworm
 
 RUN apt update && apt upgrade -y
-RUN apt install build-essential cmake ffmpeg curl software-properties-common python3-pip -y
+RUN apt install g++ gcc cmake ffmpeg curl libssl-dev python3-pip -y
 RUN pip install poetry
 RUN apt autoremove -y
 RUN apt autoclean -y
@@ -12,4 +12,4 @@ RUN poetry install
 COPY engine engine
 
 EXPOSE 8000
-CMD ["poetry", "python", "engine/server.py"]
+CMD ["poetry", "python3", "engine/server.py"]

@@ -1,11 +1,76 @@
 # Getting Started
 
 ## Setup development env
-  - [Python 3.10](https://www.python.org/downloads/)
-  - [Poetry](https://python-poetry.org/docs/#installation)
-  - [ffmpeg](https://www.ffmpeg.org/download.html)
+
+- [Python 3.10](https://www.python.org/downloads/)
+- [Poetry](https://python-poetry.org/docs/#installation)
+- [ffmpeg](https://www.ffmpeg.org/download.html)
 
 ## Install requirements libraries
+
+### Configuration
+
+The default source configuration for torch in [pyproject.toml](pyproject.toml):
+
+```toml
+torch = "^2.4.1"
+```
+
+If you want to explicitly use a CPU, GPU, or ROCM, remove line `torch = "^2.4.1"` and add one of these lines below:
+
+**CPU**
+
+```toml
+#PYTORCH
+torch = { version = "^2.4.1", source = "pytorch-src" }
+
+[[tool.poetry.source]]
+name = "pytorch-src"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
+```
+
+**NVIDIA**
+
+- CUDA118
+
+```toml
+#PYTORCH
+torch = { version = "^2.4.1", source = "pytorch-src" }
+
+[[tool.poetry.source]]
+name = "pytorch-src"
+url = "https://download.pytorch.org/whl/cu118"
+priority = "explicit"
+```
+
+- CUDA121: `Use default`
+- CUDA124
+
+```toml
+#PYTORCH
+torch = { version = "^2.4.1", source = "pytorch-src" }
+
+[[tool.poetry.source]]
+name = "pytorch-src"
+url = "https://download.pytorch.org/whl/cu124"
+priority = "explicit"
+```
+
+**AMD**
+> **Windows** does not support AMD GPU with **PyTorch**, only config for **Linux**
+
+```toml
+#PYTORCH
+torch = { version = "^2.4.1", source = "pytorch-src" }
+
+[[tool.poetry.source]]
+name = "pytorch-src"
+url = "https://download.pytorch.org/whl/rocm6.1"
+priority = "explicit"
+```
+
+### Run
 
 ```shell
 poetry install
@@ -28,7 +93,7 @@ poetry run python engine/server.py
 | AT_LANGUAGE_PREFER_USAGE        | en                            | Default subtitle language that will be chosen                                                |
 | AT_QUERY_SIMILAR_THRESHOLD      | 0.4                           | Default threshold to query similar documents for each question                               |
 | AT_TOKEN_CONTEXT_THRESHOLD      | 2048                          | Default threshold to use whole transcript if context is not found                            |
-| AT_AUDIO_ENHANCE_ENABLED        | no                            | Using enhance audio process (experiment)                                                     |
+| AT_AUDIO_ENHANCE_ENABLED        | off                           | Using enhance audio process (experiment)                                                     |
 | AT_GEMINI_API_KEY               | None                          | If you prefer using embedding and QA with Google                                             |
 | AT_OPENAI_API_KEY               | None                          | If you want to use embedding and QA with OpenAI                                              |
 | AT_CLAUDE_API_KEY               | None                          | Iff you want to use QA with Claude                                                           |

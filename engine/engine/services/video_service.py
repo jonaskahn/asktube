@@ -17,7 +17,7 @@ from engine.supports import constants, env
 from engine.supports.errors import VideoError, AiError
 from engine.supports.prompts import SUMMARY_PROMPT, ASKING_PROMPT, REFINED_QUESTION_PROMPT
 
-detector = LanguageDetectorBuilder.from_all_languages().build()
+detector = LanguageDetectorBuilder.from_all_spoken_languages().build()
 
 
 class VideoService:
@@ -373,7 +373,7 @@ class VideoService:
             raise VideoError("video is not found")
         if not video.analysis_state:
             raise VideoError("video has not analyzed yet")
-        question_lang = detector.detect_language_of(question)
+        question_lang = detector.detect_languages_in_parallel_of(question)
         question_lang_code = question_lang.iso_code_639_1.name.__str__().lower()
         chats: list[Chat] = list(Chat.select().where(Chat.video == video).limit(10))
         refined_question = VideoService.__refine_question(model, provider, question, question_lang_code, video)

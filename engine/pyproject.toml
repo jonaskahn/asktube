@@ -6,7 +6,7 @@ authors = ["Jonas <me@ifelse.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<=3.12"
+python = "^3.10"
 sanic = "^24.6.0"
 pytubefix = "^6.15.1"
 audio-extract = "^0.6.0"
@@ -30,10 +30,12 @@ mistralai = "^1.0.3"
 ollama = "^0.3.2"
 noisereduce = "^3.0.2"
 pydub = "^0.25.1"
+torch = "^2.4.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"
 pytest-mock = "^3.14.0"
+
 
 [build-system]
 requires = ["poetry-core"]
