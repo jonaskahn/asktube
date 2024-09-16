@@ -5,3 +5,5 @@
 bun.lockb
 package-lock.json
 .env.development
+node_modules
+.git
