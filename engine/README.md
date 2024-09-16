@@ -6,11 +6,11 @@
 - [Poetry](https://python-poetry.org/docs/#installation)
 - [ffmpeg](https://www.ffmpeg.org/download.html)
 
-## Install requirements libraries
+## Configuration & Install
 
 ### Configuration
 
-The default source configuration for torch in [pyproject.toml](pyproject.toml):
+The default source configuration for `torch` in [pyproject.toml](pyproject.toml):
 
 ```toml
 torch = "^2.4.1"
@@ -70,7 +70,7 @@ url = "https://download.pytorch.org/whl/rocm6.1"
 priority = "explicit"
 ```
 
-### Run
+### Install libraries
 
 ```shell
 poetry install
