@@ -1,15 +1,25 @@
 FROM python:3.10-bookworm
 
+SHELL [ "/bin/bash", "-c" ]
+
+ENV SHELL=/bin/bash
+ENV POETRY_HOME=/etc/poetry
+ENV PATH="$POETRY_HOME/venv/bin:$PATH"
+
 RUN apt update && apt upgrade -y
-RUN apt install g++ gcc cmake ffmpeg curl libssl-dev python3-pip -y
-RUN pip install poetry
+RUN apt install g++ gcc cmake ffmpeg curl libssl-dev bash -y
+RUN apt install python3-pip pipx -y
 RUN apt autoremove -y
 RUN apt autoclean -y
 
-WORKDIR /app
-COPY pyproject.toml pyproject.toml
+#INSTALL POETRY
+RUN curl -sSL https://install.python-poetry.org | POETRY_HOME=/etc/poetry python3 -
+
+WORKDIR /usr/src/engine
+COPY  pyproject.toml .
+RUN poetry env use $(which python3)
 RUN poetry install
-COPY engine engine
+COPY engine .
 
 EXPOSE 8000
-CMD ["poetry", "python3", "engine/server.py"]
+CMD ["poetry", "run", "python", "engine/server.py"]
