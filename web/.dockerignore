@@ -1,0 +1,7 @@
+.nuxt
+.output
+.dist
+.idea
+bun.lockb
+package-lock.json
+.env.development

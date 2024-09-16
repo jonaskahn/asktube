@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "engine"
-version = "0.1.0"
+version = "0.1.2"
 description = "Engine to handle application logic"
 authors = ["Jonas <me@ifelse.com>"]
 readme = "README.md"

@@ -2,6 +2,7 @@
   "name": "web",
   "description": "WebUI for AskTube",
   "private": true,
+  "version": "0.1.2",
   "type": "module",
   "scripts": {
     "build": "nuxt build",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@nuxt/kit": "^3.13.2",
-    "daisyui": "^4.12.10"
+    "daisyui": "^4.12.10",
+    "esbuild": "^0.23.1"
   }
 }

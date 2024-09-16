@@ -5,6 +5,7 @@ SHELL [ "/bin/bash", "-c" ]
 ENV SHELL=/bin/bash
 ENV POETRY_HOME=/etc/poetry
 ENV PATH="$POETRY_HOME/venv/bin:$PATH"
+ENV AT_APP_DIR=/var/asktube
 
 RUN apt update && apt upgrade -y
 RUN apt install g++ gcc cmake ffmpeg curl libssl-dev bash -y

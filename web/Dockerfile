@@ -1,14 +1,15 @@
 # build stage
-FROM node:lts-alpine as build-stage
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
+FROM node:lts-bookworm AS build-stage
+WORKDIR /src
+RUN npm install -g pnpm
+COPY package.json .
+RUN pnpm install
 COPY . .
-RUN npm run build
+RUN pnpm run build
 
 # production stage
-FROM oven/bun:1 as production-stage
+FROM oven/bun:1 AS production-stage
 WORKDIR /usr/src/app
-COPY --from=build-stage /app/.output .
-EXPOSE 80
+COPY --from=build-stage /src/.output .
+EXPOSE 3000
 CMD ["bun", ".output/server/index.mjs"]
