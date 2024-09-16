@@ -20,7 +20,7 @@ logs
 
 # Local env files
 .env
-.env.*
+.env.production
 !.env.example
 package-lock.json
 bun.lockb
