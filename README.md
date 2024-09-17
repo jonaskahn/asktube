@@ -10,7 +10,7 @@
 
 ---
 ## 🗓️ Next Todo Tasks
-- [ ] Impplement Speech To Text for cloud models
+- [ ] Implement Speech To Text for cloud models
   - [ ] AssemblyAI
   - [ ] OpenAI
   - [ ] Gemini
@@ -38,9 +38,9 @@
   - [x] Ollama (Local)
 - **Speech To Text**:
   - [x] [Faster-Whisper (Local)](https://github.com/SYSTRAN/faster-whisper)
-  - [ ] [AssemblyAI](https://www.assemblyai.com/docs)
-  - [ ] [OpenAI](https://platform.openai.com/docs/guides/speech-to-text)
-  - [ ] [Gemini](https://ai.google.dev/gemini-api/docs/audio)
+  - [x] [AssemblyAI](https://www.assemblyai.com/docs)
+  - [x] [OpenAI](https://platform.openai.com/docs/guides/speech-to-text)
+  - [x] [Gemini](https://ai.google.dev/gemini-api/docs/audio)
 
 ## How to run ?
 
