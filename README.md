@@ -28,9 +28,10 @@
   - [x] Mistral
   - [x] Ollama (Local)
 - **Speech To Text**:
-  - [x] Faster-Whisper (Local)
-  - [ ] OpenAI
-  - [ ] Gemini
+  - [x] [Faster-Whisper (Local)](https://github.com/SYSTRAN/faster-whisper)
+  - [ ] [AssemblyAI](https://www.assemblyai.com/docs)
+  - [ ] [OpenAI](https://platform.openai.com/docs/guides/speech-to-text)
+  - [ ] [Gemini](https://ai.google.dev/gemini-api/docs/audio)
 
 ## How to run ?
 
@@ -64,7 +65,7 @@
 
 **Locally**
 
-- Use `[local.yaml](compose/local.yaml)` compose file to start
+- Use [local.yaml](compose/local.yaml) compose file to start
 
 ```shell
 docker compose -f compose/local.yaml pull && docker compose -f compose/local.yaml up -d
@@ -81,8 +82,8 @@ docker run ollama ollama run llama3.1
 
 - You need to go Google Gemini and VoyageAI to register account and generate your own API keys:
   - Gemini is free with your Google Account
-  - VoyageAI (recommended by Claude) gives you free 50M tokens (a huge amount) but you need add your credit card first.
-- Replace your ENV setting in docker file `[free](compose/free.yaml)` and start docker
+  - VoyageAI (recommended by Claude) gives you free 50M tokens (a huge amount) but you need to add your credit card first.
+- Replace your ENV setting in docker file [free](compose/free.yaml) and start docker
 
 ```shell
 docker compose -f compose/free.yaml pull && docker compose -f compose/free.yaml up -d
@@ -91,8 +92,8 @@ docker compose -f compose/free.yaml pull && docker compose -f compose/free.yaml 
 **Ideal**
 
 - Using `VoyageAI` for embedding (analysis provider)
-- `OpenAI` and `Claude` for QA, register account and generate your own API keys
-- Replace your ENV setting in docker file `[ideal](compose/ideal.yaml)` and start docker
+- Using `OpenAI` and `Claude` for QA, register account and generate your own API keys
+- Replace your ENV setting in docker file [ideal](compose/ideal.yaml) and start docker
 
 ```shell
 docker compose -f compose/ideal.yaml pull && docker compose -f compose/ideal.yaml up -d
