@@ -231,7 +231,7 @@ setup_log()
 if __name__ == '__main__':
     WorkerManager.THRESHOLD = 50
     app.config.KEEP_ALIVE = False
-    logger.debug(f"Run on {platform.system()}")
+    logger.debug(f"run on {platform.system()}")
     if platform.system() == "Linux":
         logger.debug(' . . . "fork" will be explicit set')
         Sanic.START_METHOD_SET = True

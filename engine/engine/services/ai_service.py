@@ -71,7 +71,7 @@ class AiService:
             device = "cuda"
         else:
             device = "cpu"
-
+        logger.log(f"using {device} for embedding")
         local_model_path: str = str(os.path.join(env.APP_DIR, env.LOCAL_EMBEDDING_MODEL))
         if not os.path.exists(local_model_path):
             encoder = SentenceTransformer(
@@ -184,7 +184,8 @@ class AiService:
             for segment in segments:
                 start = (segment.start + delta) * 1000.0
                 duration = (segment.end - segment.start) * 1000.0
-                logger.debug(f"segment: start: {timedelta(seconds=int(start / 1000.0))}, duration: {int(duration)}ms, text: {segment.text}")
+                logger.debug(
+                    f"segment: start: {timedelta(seconds=int(start / 1000.0))}, duration: {int(duration)}ms, text: {segment.text}")
                 result.append({
                     'start_time': int(start),
                     'duration': int(duration),
@@ -251,7 +252,8 @@ class AiService:
         try:
             texts = AiService.__chunk_text(text, max_tokens)
             genai.configure(api_key=env.GEMINI_API_KEY)
-            return texts, [genai.embed_content(content=text, model=env.GEMINI_EMBEDDING_MODEL)['embedding'] for text in texts]
+            return texts, [genai.embed_content(content=text, model=env.GEMINI_EMBEDDING_MODEL)['embedding'] for text in
+                           texts]
         except Exception as e:
             logger.debug(f"\nerror in embedding_document_with_gemini: \n{text}", exc_info=True)
             raise e
@@ -276,7 +278,8 @@ class AiService:
             raise AiError("openai api key is not set or is empty.")
         texts = AiService.__chunk_text(text, max_tokens)
         client = OpenAI(api_key=env.OPENAI_API_KEY)
-        return texts, [client.embeddings.create(input=[text], model=env.OPENAI_EMBEDDING_MODEL).data[0].embedding for text in texts]
+        return texts, [client.embeddings.create(input=[text], model=env.OPENAI_EMBEDDING_MODEL).data[0].embedding for
+                       text in texts]
 
     @staticmethod
     def embed_document_with_voyageai(text: str, max_tokens=16000) -> tuple[list[str], list[list[float]]]:
@@ -285,7 +288,9 @@ class AiService:
             raise AiError("voyageai api key is not set or is empty.")
         texts = AiService.__chunk_text(text, max_tokens)
         client = voyageai.Client(api_key=env.VOYAGEAI_API_KEY)
-        return texts, [client.embed(texts=[text], model=env.VOYAGEAI_EMBEDDING_MODEL, input_type="document").embeddings[0] for text in texts]
+        return texts, [
+            client.embed(texts=[text], model=env.VOYAGEAI_EMBEDDING_MODEL, input_type="document").embeddings[0] for text
+            in texts]
 
     @staticmethod
     def embed_document_with_mistral(text: str, max_tokens=8000) -> tuple[list[str], list[list[float]]]:
@@ -307,7 +312,8 @@ class AiService:
             raise AiError("mistral api key is not set or is empty.")
         texts = AiService.__chunk_text(text, max_tokens)
         client = Mistral(api_key=MISTRAL_API_KEY)
-        return texts, [client.embeddings.create(inputs=[text], model=env.MISTRAL_EMBEDDING_MODEL).data[0].embedding for text in texts]
+        return texts, [client.embeddings.create(inputs=[text], model=env.MISTRAL_EMBEDDING_MODEL).data[0].embedding for
+                       text in texts]
 
     @staticmethod
     def embed_document_with_local(text: str, max_tokens=16000) -> tuple[list[str], list[list[float]]]:
@@ -324,7 +330,8 @@ class AiService:
 
         texts = AiService.__chunk_text(text, max_tokens)
         encoder = AiService.__get_local_embedding_encoder()
-        return texts, [encoder.encode([text], normalize_embeddings=True, convert_to_numpy=True).tolist()[0] for text in texts]
+        return texts, [encoder.encode([text], normalize_embeddings=True, convert_to_numpy=True).tolist()[0] for text in
+                       texts]
 
     @staticmethod
     def store_embeddings(table: str, ids: list[str], texts: list[str], embeddings: list[list[float]]):
