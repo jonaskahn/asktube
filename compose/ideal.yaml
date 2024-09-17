@@ -1,0 +1,66 @@
+networks:
+  asktube-net:
+    internal: false
+    enable_ipv6: false
+
+volumes:
+  llm-data:
+  engine-data:
+
+services:
+  proxy:
+    image: traefik:v2.11
+    container_name: proxy
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "80:80"
+      - "8080:8080"
+    command:
+      - "--api.insecure=false"
+      - "--providers.docker"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.traefik.address=:8080"
+      - "--entrypoints.websecure.http.tls=false"
+      - "--log.level=DEBUG"
+    networks:
+      - asktube-net
+  engine:
+    image: ifelsedotone/asktube-engine:latest
+    container_name: engine
+    restart: unless-stopped
+    environment:
+      - AT_VOYAGEAI_API_KEY=[replace-with-your-voyageai-api-key]
+      - AT_VOYAGEAI_EMBEDDING_MODEL=voyage-large-2
+      - AT_GEMINI_API_KEY=[replace-with-your-gemini-api-key]
+      - AT_OPENAI_API_KEY=[replace-with-your-openai-api-key]
+      - AT_CLAUDE_API_KEY=[replace-with-your-claude-api-key]
+      - AT_LOCAL_WHISPER_MODEL=base
+      - AT_LOCAL_WHISPER_DEVICE=cpu
+    volumes:
+      - engine-data:/var/asktube
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.engine.loadbalancer.server.port=8000"
+      - "traefik.http.routers.engine-route.entrypoints=web"
+      - "traefik.http.routers.engine-route.service=engine"
+      - "traefik.http.routers.engine-route.rule=PathPrefix(`/api`)"
+      - "traefik.http.middlewares.engine-block-management.replacepathregex.regex=^/(.*)"
+      - "traefik.http.middlewares.engine-block-management.replacepathregex.replacement=/api/$1"
+    networks:
+      - asktube-net
+  web:
+    image: ifelsedotone/asktube-web:latest
+    container_name: web
+    restart: unless-stopped
+    networks:
+      - asktube-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.web.loadbalancer.server.port=3000"
+      - "traefik.http.routers.web-route.entrypoints=web"
+      - "traefik.http.routers.web-route.service=web"
+      - "traefik.http.routers.web-route.rule=PathPrefix(`/`)"

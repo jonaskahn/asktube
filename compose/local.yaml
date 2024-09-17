@@ -9,7 +9,7 @@ volumes:
 
 services:
   proxy:
-    image: traefik:v3.1
+    image: traefik:v2.11
     container_name: proxy
     restart: unless-stopped
     volumes:
