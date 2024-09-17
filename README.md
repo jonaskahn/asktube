@@ -9,6 +9,15 @@
 </p>
 
 ---
+## 🗓️ Plan
+- [ ] Impplement Speech To Text for cloud models
+  - [ ] AssemblyAI
+  - [ ] OpenAI
+  - [ ] Gemini
+- [ ] Enhance
+  - [ ] Skip using RAG for short videos
+  - [ ] Chat prompts, chat messages by context limit
+  - [ ] RAG: Implement Query Translation
 
 ## 🔨 Technology
 
