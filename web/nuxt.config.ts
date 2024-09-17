@@ -27,5 +27,10 @@ export default defineNuxtConfig({
                 h6: 'strong'
             }
         }
-    }
+    },
+    runtimeConfig: {
+        public: {
+            apiUrl: 'http://localhost:8000/api',
+        }
+    },
 })

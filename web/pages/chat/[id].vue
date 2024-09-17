@@ -1,10 +1,12 @@
 <script lang="js" setup>
-import { useRoute } from "#app";
-import { request, shortenWord } from "~/supports/request";
+import {useRoute} from "#app";
+import {request, shortenWord} from "~/supports/request";
 import settings from "~/supports/settings";
 import ISO6391 from 'iso-639-1'
-import { useLoading } from "vue-loading-overlay";
-import { parseMarkdown } from '@nuxtjs/mdc/runtime'
+import {useLoading} from "vue-loading-overlay";
+import {parseMarkdown} from '@nuxtjs/mdc/runtime'
+
+const config = useRuntimeConfig()
 
 const route = useRoute()
 const video = ref({})
@@ -38,12 +40,12 @@ watch(selectedSummaryProvider, (newValue, oldValue) => {
   summaryModels.value = aiModels[newValue]
 })
 
-const $loading = useLoading({ ...settings.LOADING_PROPERTIES });
+const $loading = useLoading({...settings.LOADING_PROPERTIES});
 const doSummary = async () => {
   const loader = $loading.show({});
   try {
-    console.log(selectedSummaryLang.value)
-    const response = await request(`${settings.BASE_URL}/api/video/summary`, 'POST', {
+    console.debug(config.public.apiUrl)
+    const response = await request(`${config.public.apiUrl}/api/video/summary`, 'POST', {
       "video_id": video.value.id,
       "lang_code": selectedSummaryLang.value ?? 'en',
       "provider": selectedSummaryProvider.value,
@@ -88,7 +90,7 @@ const onChat = async () => {
     })
     await nextTick();
     scrollToBottom();
-    const chatResponse = await request(`${settings.BASE_URL}/api/chat`, 'POST', {
+    const chatResponse = await request(`${config.public.apiUrl}/api/chat`, 'POST', {
       'video_id': video.value.id,
       'question': chatMessage.value,
       'provider': selectedChatProvider.value,
@@ -120,7 +122,7 @@ const scrollToBottom = () => {
 
 const doClearChat = async () => {
   try {
-    await request(`${settings.BASE_URL}/api/chat/clear/${route.params.id}`, 'DELETE')
+    await request(`${config.public.apiUrl}/api/chat/clear/${route.params.id}`, 'DELETE')
     chats.value = []
   } catch (e) {
     useNuxtApp().$toast.error("Something went wrong, try later", {
@@ -133,11 +135,11 @@ const doClearChat = async () => {
 
 onMounted(async () => {
   try {
-    const videoResponse = await request(`${settings.BASE_URL}/api/video/detail/${route.params.id}`, 'GET')
+    const videoResponse = await request(`${config.public.apiUrl}/api/video/detail/${route.params.id}`, 'GET')
     video.value = videoResponse.payload
     summary.value = videoResponse.payload.summary ? await parseMarkdown(videoResponse.payload.summary) : null
 
-    const chatResponse = await request(`${settings.BASE_URL}/api/chat/history/${route.params.id}`, 'GET')
+    const chatResponse = await request(`${config.public.apiUrl}/api/chat/history/${route.params.id}`, 'GET')
     chats.value = chatResponse.payload
     await nextTick();
     if (chats.value.length > 0) {
@@ -158,12 +160,12 @@ onMounted(async () => {
     <div class="basis-1/2 border-amber-300 w-full h-screen">
       <div class="card bg-base-100 shadow-xl w-full ">
         <figure class="w-full">
-          <iframe :src="video.play_url" class="w-full rounded-lg shadow-2xl" height="400" />
+          <iframe :src="video.play_url" class="w-full rounded-lg shadow-2xl" height="400"/>
         </figure>
         <div class="card-body rounded-2xl">
           <h1 class="card-title"> {{ shortenWord(video.title) }}</h1>
           <div class="collapse collapse-arrow bg-base-200">
-            <input type="checkbox" />
+            <input type="checkbox"/>
             <div class="collapse-title text-xl font-medium rounded-2xl">Summary Settings</div>
             <div class="collapse-content">
               <div class="flex flex-col lg:flex-row ">
@@ -193,7 +195,7 @@ onMounted(async () => {
           </div>
           <div class="divider">🌟</div>
           <article v-if="summary" class="prose overflow-auto h-96">
-            <MDCRenderer :body="summary.body" :data="summary.data" />
+            <MDCRenderer :body="summary.body" :data="summary.data"/>
           </article>
 
         </div>
@@ -205,7 +207,7 @@ onMounted(async () => {
         <div class="card w-full h-3/4 bg-base-100 shadow-xl flex flex-col">
           <div class="card-header p-4">
             <div class="collapse collapse-arrow bg-base-200">
-              <input type="checkbox" />
+              <input type="checkbox"/>
               <div class="collapse-title text-xl font-medium rounded-2xl">Chat Settings</div>
               <div class="collapse-content">
                 <div class="flex flex-col lg:flex-row ">
@@ -237,7 +239,7 @@ onMounted(async () => {
                 </div>
                 <div v-if="chat.answer" class="chat chat-start">
                   <div class="chat-bubble bg-gray-600 text-base-100">
-                    <MDC :value="chat.answer" tag="article" />
+                    <MDC :value="chat.answer" tag="article"/>
                     <div class="badge badge-info gap-2">{{ chat.provider }}</div>
                   </div>
                 </div>
@@ -252,8 +254,9 @@ onMounted(async () => {
 
             <div class="flex mt-auto">
               <input ref="chatRef" v-model="chatMessage" :disabled="onHoldMessageResponse"
-                class="input input-bordered flex-grow rounded-full" placeholder="Type your message here..." type="text"
-                @keydown.enter="onChat" />
+                     class="input input-bordered flex-grow rounded-full" placeholder="Type your message here..."
+                     type="text"
+                     @keydown.enter="onChat"/>
               <button :disabled="onHoldMessageResponse" class="ml-5 btn btn-primary rounded-full" @click="onChat">Send
               </button>
             </div>

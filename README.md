@@ -9,7 +9,9 @@
 </p>
 
 ---
+
 ## 🗓️ Next Todo Tasks
+
 - [ ] Implement Speech To Text for cloud models
   - [ ] AssemblyAI
   - [ ] OpenAI
@@ -67,6 +69,7 @@
   ```shell
   cd web && bun install && bun run dev
   ```
+- Open web: [http://localhost:3000](http://localhost:3000)
 
 ### With docker
 
@@ -107,6 +110,10 @@ docker compose -f compose/free.yaml pull && docker compose -f compose/free.yaml 
 ```shell
 docker compose -f compose/ideal.yaml pull && docker compose -f compose/ideal.yaml up -d
 ```
+
+**Result**
+
+- Open web: [http://localhost:8080](http://localhost:8080)
 
 ---
 

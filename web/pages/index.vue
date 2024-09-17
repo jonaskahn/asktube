@@ -1,14 +1,17 @@
 <script lang="js" setup>
 import settings from "~/supports/settings.js";
-import { useLoading } from "vue-loading-overlay";
-import { request, shortenWord } from "~/supports/request.js";
+import {useLoading} from "vue-loading-overlay";
+import {request, shortenWord} from "~/supports/request.js";
+
+const config = useRuntimeConfig()
 
 const videos = ref([])
 const total = ref(0)
 const pageNo = ref(1)
 
 const fetchVideos = async () => {
-  const response = await request(`${settings.BASE_URL}/api/videos/${pageNo.value}`, 'GET')
+  console.debug(config.public.apiUrl)
+  const response = await request(`${config.public.apiUrl}/api/videos/${pageNo.value}`, 'GET')
   if (response.status_code >= 400) {
     return
   }
@@ -51,7 +54,7 @@ const onCloseAddDialog = () => {
 
 const displayLoadMore = computed(() => videos.value.length > total.value)
 
-const $loading = useLoading({ ...settings.LOADING_PROPERTIES });
+const $loading = useLoading({...settings.LOADING_PROPERTIES});
 const process = async () => {
   const error = []
   if (!url.value) {
@@ -74,7 +77,7 @@ const process = async () => {
   onCloseAddDialog()
   const loader = $loading.show({});
   try {
-    const data = await request(`${settings.BASE_URL}/api/youtube/process`, 'POST', {
+    const data = await request(`${config.public.apiUrl}/api/youtube/process`, 'POST', {
       url: url.value,
       provider: provider.value
     })
@@ -93,7 +96,7 @@ const process = async () => {
       }
     }
   } catch (e) {
-    console.log(e)
+    console.debug(e)
   } finally {
     setTimeout(() => {
       loader.hide()
@@ -102,7 +105,7 @@ const process = async () => {
 }
 
 const analysis = async (id) => {
-  const data = await request(settings.BASE_URL + `/api/video/analysis`, 'POST', {
+  const data = await request(config.public.apiUrl + `/api/video/analysis`, 'POST', {
     'video_id': id
   })
   if (data.status_code >= 400) {
@@ -127,7 +130,7 @@ const analysis = async (id) => {
   <div class="grid grid-cols-1 gap-1 sm:grid-cols-2 sm:gap-2  lg:grid-cols-3 lg:gap-3 xl:grid-cols-4 xl:gap-4">
     <div v-for="item in videos" class="card bg-base-100 w-full shadow-xl">
       <figure>
-        <img :src="item.thumbnail" style="height: 200px; width: 300px" />
+        <img :src="item.thumbnail" style="height: 200px; width: 300px"/>
       </figure>
       <div class="card-body">
         <h2 :data-tip="item.title" class="card-title tooltip">{{ shortenWord(item.title) }}</h2>
@@ -148,12 +151,12 @@ const analysis = async (id) => {
     </div>
   </div>
   <button class="fixed bottom-4 left-4 transform -translate-x-1 btn btn-primary px-8 py-4 rounded-full shadow-lg "
-    @click="onOpenAddDialog">
+          @click="onOpenAddDialog">
     Add
   </button>
   <button v-if="displayLoadMore"
-    class="fixed bottom-4 right-4  transform -translate-x-1 btn btn-accent  px-8 py-4 rounded-full shadow-lg"
-    @click="loadMore">
+          class="fixed bottom-4 right-4  transform -translate-x-1 btn btn-accent  px-8 py-4 rounded-full shadow-lg"
+          @click="loadMore">
     Load More
   </button>
 
@@ -164,11 +167,11 @@ const analysis = async (id) => {
       </form>
       <h3 class="text-lg font-bold mb-5">Add new video ✨</h3>
       <input v-model="url" :class="{ 'input-error': invalidUrl }" class="input input-bordered w-full rounded-full"
-        placeholder="Enter Youtube URL . . ." />
+             placeholder="Enter Youtube URL . . ."/>
       <div class="modal-action align-middle flex justify-between">
         <div class="justify-start">
           <select v-model="provider" :class="{ 'select-error': invalidProvider }"
-            class="select select-bordered w-full rounded-full">
+                  class="select select-bordered w-full rounded-full">
             <option disabled selected>Analysis Provider</option>
             <option>local</option>
             <option>gemini</option>
