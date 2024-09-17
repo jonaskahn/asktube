@@ -42,7 +42,7 @@
   - [x] [OpenAI](https://platform.openai.com/docs/guides/speech-to-text)
   - [x] [Gemini](https://ai.google.dev/gemini-api/docs/audio)
 
-## How to run ?
+## 🚀 How to run ?
 
 > For the first time running, the program maybe a bit slow due they need to install local models.
 
