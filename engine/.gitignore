@@ -163,3 +163,5 @@ cython_debug/
 poetry.lock
 .idea
 .env
+.DS_Store
+tmp
