@@ -15,8 +15,6 @@ from engine.services.youtube_service import YoutubeService
 from engine.supports.errors import LogicError
 from engine.supports.logger import setup_log
 
-Sanic.START_METHOD_SET = True
-Sanic.start_method = "fork"
 WorkerManager.THRESHOLD = 50
 
 app = Sanic("AskTube", dumps=dumps)
@@ -235,4 +233,4 @@ app.register_middleware(add_cors_headers, "response")
 
 if __name__ == '__main__':
     setup_log()
-    app.run(host="0.0.0.0", port=8000, access_log=False, debug=True, workers=10)
+    app.run(host="0.0.0.0", port=8000, access_log=False, debug=True)
