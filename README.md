@@ -136,7 +136,7 @@ docker compose -f compose/ideal.yaml pull && docker compose -f compose/ideal.yam
 
 ---
 
-## 🔊 Notice
+## 🪧 Notice
 
 > 1. Do not use this for production. This aimed for end-users on their local machines.
 > 2. Do not request any advanced features for management.
