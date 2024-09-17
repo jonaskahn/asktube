@@ -4,3 +4,9 @@ tests
 build
 .idea
 server.spec
+build.sh
+Dockerfile
+.git
+dist
+*/__pycache__/
+__pycache__/

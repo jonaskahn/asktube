@@ -17,7 +17,9 @@ RUN apt autoclean -y
 RUN curl -sSL https://install.python-poetry.org | POETRY_HOME=/etc/poetry python3 -
 
 WORKDIR /usr/src/engine
-COPY . .
+COPY engine engine
+COPY pyproject.toml .
+COPY README.md .
 RUN poetry env use $(which python3)
 RUN poetry install
 

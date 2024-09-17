@@ -1,10 +1,10 @@
 <script lang="js" setup>
-import {useRoute} from "#app";
-import {request, shortenWord} from "~/supports/request";
+import { useRoute } from "#app";
+import { request, shortenWord } from "~/supports/request";
 import settings from "~/supports/settings";
 import ISO6391 from 'iso-639-1'
-import {useLoading} from "vue-loading-overlay";
-import {parseMarkdown} from '@nuxtjs/mdc/runtime'
+import { useLoading } from "vue-loading-overlay";
+import { parseMarkdown } from '@nuxtjs/mdc/runtime'
 
 const route = useRoute()
 const video = ref({})
@@ -38,7 +38,7 @@ watch(selectedSummaryProvider, (newValue, oldValue) => {
   summaryModels.value = aiModels[newValue]
 })
 
-const $loading = useLoading({...settings.LOADING_PROPERTIES});
+const $loading = useLoading({ ...settings.LOADING_PROPERTIES });
 const doSummary = async () => {
   const loader = $loading.show({});
   try {
@@ -158,12 +158,12 @@ onMounted(async () => {
     <div class="basis-1/2 border-amber-300 w-full h-screen">
       <div class="card bg-base-100 shadow-xl w-full ">
         <figure class="w-full">
-          <iframe :src="video.play_url" class="w-full rounded-lg shadow-2xl" height="400"/>
+          <iframe :src="video.play_url" class="w-full rounded-lg shadow-2xl" height="400" />
         </figure>
         <div class="card-body rounded-2xl">
           <h1 class="card-title"> {{ shortenWord(video.title) }}</h1>
           <div class="collapse collapse-arrow bg-base-200">
-            <input type="checkbox"/>
+            <input type="checkbox" />
             <div class="collapse-title text-xl font-medium rounded-2xl">Summary Settings</div>
             <div class="collapse-content">
               <div class="flex flex-col lg:flex-row ">
@@ -171,7 +171,8 @@ onMounted(async () => {
                   <select v-model="selectedSummaryProvider" class="select select-bordered rounded-full w-full">
                     <option disabled selected>Provider</option>
                     <option v-for="item in providers" :value="item">{{ item }}</option>
-                  </select></div>
+                  </select>
+                </div>
                 <div class="md:basis-1/3 p-2">
                   <select v-model="selectedSummaryModel" class="select select-bordered rounded-full w-full">
                     <option disabled selected>Model</option>
@@ -192,7 +193,7 @@ onMounted(async () => {
           </div>
           <div class="divider">🌟</div>
           <article v-if="summary" class="prose overflow-auto h-96">
-            <MDCRenderer :body="summary.body" :data="summary.data"/>
+            <MDCRenderer :body="summary.body" :data="summary.data" />
           </article>
 
         </div>
@@ -204,7 +205,7 @@ onMounted(async () => {
         <div class="card w-full h-3/4 bg-base-100 shadow-xl flex flex-col">
           <div class="card-header p-4">
             <div class="collapse collapse-arrow bg-base-200">
-              <input type="checkbox"/>
+              <input type="checkbox" />
               <div class="collapse-title text-xl font-medium rounded-2xl">Chat Settings</div>
               <div class="collapse-content">
                 <div class="flex flex-col lg:flex-row ">
@@ -212,7 +213,8 @@ onMounted(async () => {
                     <select v-model="selectedChatProvider" class="select select-bordered rounded-full w-full">
                       <option disabled selected>Provider</option>
                       <option v-for="item in providers" :value="item">{{ item }}</option>
-                    </select></div>
+                    </select>
+                  </div>
                   <div class="md:basis-1/2 p-2">
                     <select v-model="selectedChatModel" class="select select-bordered rounded-full w-full">
                       <option disabled selected>Model</option>
@@ -235,7 +237,7 @@ onMounted(async () => {
                 </div>
                 <div v-if="chat.answer" class="chat chat-start">
                   <div class="chat-bubble bg-gray-600 text-base-100">
-                    <MDC :value="chat.answer" tag="article"/>
+                    <MDC :value="chat.answer" tag="article" />
                     <div class="badge badge-info gap-2">{{ chat.provider }}</div>
                   </div>
                 </div>
@@ -249,15 +251,9 @@ onMounted(async () => {
             </div>
 
             <div class="flex mt-auto">
-              <input
-                  ref="chatRef"
-                  v-model="chatMessage"
-                  :disabled="onHoldMessageResponse"
-                  class="input input-bordered flex-grow rounded-full"
-                  placeholder="Type your message here..."
-                  type="text"
-                  @keydown.enter="onChat"
-              />
+              <input ref="chatRef" v-model="chatMessage" :disabled="onHoldMessageResponse"
+                class="input input-bordered flex-grow rounded-full" placeholder="Type your message here..." type="text"
+                @keydown.enter="onChat" />
               <button :disabled="onHoldMessageResponse" class="ml-5 btn btn-primary rounded-full" @click="onChat">Send
               </button>
             </div>
@@ -268,6 +264,4 @@ onMounted(async () => {
   </div>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>
