@@ -15,7 +15,7 @@
 - **Language**: Python, JS
 - **Server**: Python@v3.10, Bun@v1
 - **Framework/Lib**: Sanic, Peewee, Pytubefix, Sentence Transformers, Sqlite, Chroma, NuxtJs/DaisyUI, etc.
-- **Embedding Provider**:
+- **Embedding Provider (Analysis Provider)**:
   - [x] OpenAI
   - [x] Gemini
   - [x] VoyageAI
@@ -91,7 +91,7 @@ docker compose -f compose/free.yaml pull && docker compose -f compose/free.yaml 
 
 **Ideal**
 
-- Using `VoyageAI` for embedding (analysis provider)
+- Using `VoyageAI` for embedding texts
 - Using `OpenAI` and `Claude` for QA, register account and generate your own API keys
 - Replace your ENV setting in docker file [ideal](compose/ideal.yaml) and start docker
 
