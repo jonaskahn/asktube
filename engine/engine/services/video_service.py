@@ -46,7 +46,14 @@ class VideoService:
         return Video.get_or_none(Video.id == vid)
 
     @staticmethod
-    def analysis_video(vid: int):
+    def get_video_detail(vid: int):
+        video = Video.get_or_none(Video.id == vid)
+        if video is None:
+            raise VideoError("video is not found")
+        return model_to_dict(video)
+
+    @staticmethod
+    async def analysis_video(vid: int):
         """
         Analyzes a video by its ID and updates its analysis status.
 
@@ -64,27 +71,27 @@ class VideoService:
             Exception: If an error occurs during the analysis process.
         """
         video: Video = VideoService.find_video_by_id(vid)
-        try:
-            if video is None:
-                raise VideoError("video is not found")
-            if video.analysis_state in [constants.ANALYSIS_STAGE_COMPLETED, constants.ANALYSIS_STAGE_PROCESSING]:
-                return video
-            asyncio.create_task(VideoService.__internal_analysis(video))
-            return video
-        except Exception as e:
-            VideoService.__update_analysis_content_state(video, constants.ANALYSIS_STAGE_INITIAL)
-            raise e
+        if video is None:
+            raise VideoError("video is not found")
+        asyncio.create_task(VideoService.__internal_analysis(video))
+        return model_to_dict(video)
 
     @staticmethod
     async def __internal_analysis(video):
-        logger.debug("start analysis video")
-        video_chapters = VideoService.__get_video_chapters(video)
-        VideoService.__update_analysis_content_state(video, constants.ANALYSIS_STAGE_PROCESSING)
-        VideoService.__prepare_video_transcript(video, video_chapters)
-        video.total_parts = await VideoService.__analysis_chapters(video_chapters, video.embedding_provider)
-        video.analysis_state = constants.ANALYSIS_STAGE_COMPLETED
-        VideoService.save(video, video_chapters)
-        logger.debug("finish analysis video")
+        if video.analysis_state in [constants.ANALYSIS_STAGE_COMPLETED, constants.ANALYSIS_STAGE_PROCESSING]:
+            return
+        try:
+            logger.debug("start analysis video")
+            video_chapters = VideoService.__get_video_chapters(video)
+            VideoService.__update_analysis_content_state(video, constants.ANALYSIS_STAGE_PROCESSING)
+            VideoService.__prepare_video_transcript(video, video_chapters)
+            video.total_parts = await VideoService.__analysis_chapters(video_chapters, video.embedding_provider)
+            video.analysis_state = constants.ANALYSIS_STAGE_COMPLETED
+            VideoService.save(video, video_chapters)
+            logger.debug("finish analysis video")
+        except Exception as e:
+            VideoService.__update_analysis_content_state(video, constants.ANALYSIS_STAGE_INITIAL)
+            raise e
 
     @staticmethod
     def __prepare_video_transcript(video: Video, video_chapters: list[VideoChapter]):
@@ -112,14 +119,16 @@ class VideoService:
         if not video.raw_transcript:
             logger.debug("start to recognize video transcript")
             with ThreadPoolExecutor(max_workers=4) as executor:
-                futures = [executor.submit(AiService.speech_to_text, chapter.audio_path, chapter.start_time) for chapter in video_chapters]
+                futures = [executor.submit(AiService.speech_to_text, chapter.audio_path, chapter.start_time) for chapter
+                           in video_chapters]
             transcripts = []
             predict_langs = []
             for future in concurrent.futures.as_completed(futures):
                 lang, transcript = future.result()
                 transcripts.append(transcript)
                 predict_langs.append(lang)
-            sorted_transcripts = sorted([item for sublist in transcripts for item in sublist], key=lambda x: x['start_time'])
+            sorted_transcripts = sorted([item for sublist in transcripts for item in sublist],
+                                        key=lambda x: x['start_time'])
             logger.debug("finish to recognize video transcript")
             video.raw_transcript = json.dumps(sorted_transcripts, ensure_ascii=False)
             predict_lang, count = Counter(predict_langs).most_common(1)[0]
@@ -165,7 +174,8 @@ class VideoService:
             if chapter_transcript != "":
                 chapter.transcript = chapter_transcript
 
-        video_transcript = "\n".join([f"## {ct.title}\n-----\n{ct.transcript}" for ct in video_chapters if ct.transcript])
+        video_transcript = "\n".join(
+            [f"## {ct.title}\n-----\n{ct.transcript}" for ct in video_chapters if ct.transcript])
         video.transcript = video_transcript
 
     @staticmethod
@@ -208,15 +218,20 @@ class VideoService:
 
         with ThreadPoolExecutor(max_workers=len(video_chapters)) as executor:
             if provider == "gemini":
-                futures = [executor.submit(VideoService.__analysis_video_with_gemini, chapter) for chapter in video_chapters]
+                futures = [executor.submit(VideoService.__analysis_video_with_gemini, chapter) for chapter in
+                           video_chapters]
             elif provider == "local":
-                futures = [executor.submit(VideoService.__analysis_video_with_local, chapter) for chapter in video_chapters]
+                futures = [executor.submit(VideoService.__analysis_video_with_local, chapter) for chapter in
+                           video_chapters]
             elif provider == "mistral":
-                futures = [executor.submit(VideoService.__analysis_video_with_mistral, chapter) for chapter in video_chapters]
+                futures = [executor.submit(VideoService.__analysis_video_with_mistral, chapter) for chapter in
+                           video_chapters]
             elif provider == "openai":
-                futures = [executor.submit(VideoService.__analysis_video_with_openai, chapter) for chapter in video_chapters]
+                futures = [executor.submit(VideoService.__analysis_video_with_openai, chapter) for chapter in
+                           video_chapters]
             elif provider == "voyageai":
-                futures = [executor.submit(VideoService.__analysis_video_with_voyageai, chapter) for chapter in video_chapters]
+                futures = [executor.submit(VideoService.__analysis_video_with_voyageai, chapter) for chapter in
+                           video_chapters]
             else:
                 logger.debug(f"selected provider: {provider}")
                 raise AiError("unknown embedding provider")
@@ -226,7 +241,8 @@ class VideoService:
 
     @staticmethod
     def __get_video_chapters(video: Video) -> list[VideoChapter]:
-        video_chapters = list(VideoChapter.select().where(VideoChapter.video == video).order_by(VideoChapter.chapter_no))
+        video_chapters = list(
+            VideoChapter.select().where(VideoChapter.video == video).order_by(VideoChapter.chapter_no))
         for video_chapter in video_chapters:
             video_chapter.vid = video.id
         return video_chapters
@@ -276,7 +292,7 @@ class VideoService:
         return len(texts)
 
     @staticmethod
-    async def summary_video(vid: int, lang_code: str, provider: str, model: str = None):
+    async def summary_video(vid: int, lang_code: str, provider: str, model: str = None) -> str:
         """
         Generates a summary of a video.
 
@@ -298,9 +314,8 @@ class VideoService:
             raise VideoError("video is not found")
         video.summary = VideoService.__summary_content(lang_code, model, provider, video)
         video.save()
-        asyncio.create_task(VideoService.__analysis_summary_video(model, provider, video))
         logger.debug("finish summary video")
-        return video
+        return video.summary
 
     @staticmethod
     def __summary_content(lang_code: str, model: str, provider: str, video: Video) -> str:
@@ -315,7 +330,10 @@ class VideoService:
         return VideoService.__get_response_from_ai(model=model, prompt=prompt, provider=provider)
 
     @staticmethod
-    async def __analysis_summary_video(model: str, provider: str, video: Video):
+    async def analysis_summary_video(vid: int, model: str, provider: str):
+        video: Video = VideoService.find_video_by_id(vid)
+        if video is None:
+            raise VideoError("video is not found")
         if video.analysis_summary_state in [constants.ANALYSIS_STAGE_COMPLETED, constants.ANALYSIS_STAGE_PROCESSING]:
             return
         logger.debug("start analysis summary video")

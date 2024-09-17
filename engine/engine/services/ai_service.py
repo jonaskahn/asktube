@@ -71,7 +71,8 @@ class AiService:
             device = "cuda"
         else:
             device = "cpu"
-        logger.log(f"using {device} for embedding")
+
+        logger.debug(f"using {device} for embedding")
         local_model_path: str = str(os.path.join(env.APP_DIR, env.LOCAL_EMBEDDING_MODEL))
         if not os.path.exists(local_model_path):
             encoder = SentenceTransformer(

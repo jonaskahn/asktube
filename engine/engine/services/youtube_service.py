@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytubefix
 from audio_extract import extract_audio
+from playhouse.shortcuts import model_to_dict
 from pytubefix import YouTube, Caption
 from pytubefix.cli import on_progress
 from sanic.log import logger
@@ -68,7 +69,7 @@ class YoutubeService:
         video.raw_transcript = json.dumps(transcript, ensure_ascii=False) if transcript else None
         video.amount_chapters = len(video_chapters)
         VideoService.save(video, video_chapters)
-        return video
+        return model_to_dict(video)
 
     def __extract_chapters(self) -> list[VideoChapter]:
         chapters: list[pytubefix.Chapter] = self.__agent.chapters

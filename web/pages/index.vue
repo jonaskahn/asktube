@@ -95,6 +95,14 @@ const process = async () => {
         videos.value.pop()
       }
     }
+    // try to fetch analysis immediately
+   try {
+     request(config.public.apiUrl + `/api/video/analysis`, 'POST', {
+        'video_id': data.payload.id
+      })
+   } catch (error) {
+      console.warn(error)
+   }
   } catch (e) {
     console.debug(e)
   } finally {

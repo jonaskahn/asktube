@@ -2,7 +2,6 @@ import asyncio
 import platform
 from json import dumps
 
-from playhouse.shortcuts import model_to_dict
 from sanic import Sanic, Request, response
 from sanic import json, text
 from sanic.log import logger
@@ -89,12 +88,11 @@ async def process_youtube_video(request: Request):
     url = request.json['url']
     provider = request.json['provider']
     youtube_service = YoutubeService(url)
-    video = await asyncio.create_task(youtube_service.fetch_video_data(provider))
-    video = VideoService.analysis_video(video.id)
+    data = await asyncio.create_task(youtube_service.fetch_video_data(provider))
     return json({
         "status_code": 200,
         "message": "Successfully fetch video data, analyze video in processing.",
-        "payload": model_to_dict(video)
+        "payload": data
     })
 
 
@@ -106,11 +104,11 @@ async def opts_analysis_youtube_video(request: Request):
 @app.post("/api/video/analysis")
 async def analysis_youtube_video(request: Request):
     video_id: int = int(request.json['video_id'])
-    video = VideoService.analysis_video(video_id)
+    data = await asyncio.create_task(VideoService.analysis_video(video_id))
     return json({
         "status_code": 200,
         "message": "Analyze video in processing.",
-        "payload": model_to_dict(video)
+        "payload": data
     })
 
 
@@ -121,11 +119,11 @@ async def opts_detail(request: Request, video_id: int):
 
 @app.get("/api/video/detail/<video_id>")
 async def get_video_detail(request: Request, video_id: int):
-    video = VideoService.find_video_by_id(video_id)
+    data = VideoService.get_video_detail(video_id)
     return json({
         "status_code": 200,
         "message": "Successfully get video detail",
-        "payload": model_to_dict(video)
+        "payload": data
     })
 
 
@@ -140,11 +138,12 @@ async def summary(request: Request):
     lang_code = request.json['lang_code']
     provider = request.json['provider']
     model = request.json.get("model", None)
-    video = await asyncio.create_task(VideoService.summary_video(vid, lang_code, provider, model))
+    data = await asyncio.create_task(VideoService.summary_video(vid, lang_code, provider, model))
+    asyncio.create_task(VideoService.analysis_summary_video(vid, model, provider))
     return json({
         "status_code": 200,
         "message": "Successfully summary video",
-        "payload": video.summary
+        "payload": data
     })
 
 
@@ -169,13 +168,13 @@ async def opts_list_videos(request: Request, page: int):
 
 @app.get("/api/videos/<page>")
 async def list_videos(request: Request, page: int):
-    total, videos = VideoService.get(page)
+    total, data = VideoService.get(page)
     return json({
         "status_code": 200,
         "message": "Successfully",
         "payload": {
             "total": total,
-            "videos": videos
+            "videos": data
         }
     })
 
@@ -236,4 +235,4 @@ if __name__ == '__main__':
         logger.debug(' . . . "fork" will be explicit set')
         Sanic.START_METHOD_SET = True
         Sanic.start_method = "fork"
-    app.run(host="0.0.0.0", port=8000, access_log=True, debug=True, workers=5)
+    app.run(host="0.0.0.0", port=8000, access_log=True, dev=True, debug=True, workers=3)
