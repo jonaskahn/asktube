@@ -9,7 +9,7 @@
 </p>
 
 ---
-## 🗓️ Plan
+## 🗓️ Next Todo Tasks
 - [ ] Impplement Speech To Text for cloud models
   - [ ] AssemblyAI
   - [ ] OpenAI
