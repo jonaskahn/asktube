@@ -22,5 +22,6 @@ RUN poetry env use $(which python3)
 RUN poetry install
 COPY engine .
 
+VOLUME [ "/var/asktube" ]
 EXPOSE 8000
 CMD ["poetry", "run", "python", "engine/server.py"]
