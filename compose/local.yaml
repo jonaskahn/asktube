@@ -1,0 +1,75 @@
+networks:
+  asktube-network:
+    internal: false
+    enable_ipv6: false
+
+volumes:
+  llm-data:
+  engine-data:
+
+services:
+  proxy:
+    image: traefik:2
+    container_name: proxy
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "8080:80"
+      - "8081:8080"
+    command:
+      - "--api.insecure=true"
+      - "--tracing=true"
+      - "--accesslog=true"
+      - "--providers.docker"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.traefik.address=:8080"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.http.tls=false"
+      - "--log.level=DEBUG"
+    networks:
+      - asktube-network
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    volumes:
+      - llm-data:/root/.ollama
+    networks:
+      - asktube-network
+  engine:
+    image: ifelsedotone/asktube-engine:latest
+    container_name: engine
+    restart: unless-stopped
+    environment:
+      - AT_LOCAL_OLLAMA_HOST=http://ollama:11434
+      - AT_LOCAL_OLLAMA_MODEL=qwen2
+      - AT_LOCAL_EMBEDDING_MODEL=intfloat/multilingual-e5-base
+      - AT_LOCAL_EMBEDDING_DEVICE=cpu
+      - AT_LOCAL_WHISPER_MODEL=base
+      - AT_LOCAL_WHISPER_DEVICE=cpu
+    volumes:
+      - engine-data:/var/asktube
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.asktube-engine.loadbalancer.server.port=8000"
+      - "traefik.http.routers.asktube-engine-route.entrypoints=web"
+      - "traefik.http.routers.asktube-engine-route.service=asktube-engine"
+      - "traefik.http.routers.asktube-engine-route.rule=PathPrefix(`/api`)"
+      - "traefik.http.middlewares.asktube-engine-block-management.replacepathregex.regex=^/(.*)"
+      - "traefik.http.middlewares.asktube-engine-block-management.replacepathregex.replacement=/api/$1"
+    networks:
+      - asktube-network
+  web:
+    image: ifelsedotone/asktube-web:latest
+    container_name: web
+    restart: unless-stopped
+    networks:
+      - asktube-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.asktube-web.loadbalancer.server.port=3000"
+      - "traefik.http.routers.asktube-web-route.entrypoints=web"
+      - "traefik.http.routers.asktube-web-route.service=asktube-web"
+      - "traefik.http.routers.asktube-web-route.rule=PathPrefix(`/`)"

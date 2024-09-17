@@ -6,6 +6,8 @@ import ISO6391 from 'iso-639-1'
 import {useLoading} from "vue-loading-overlay";
 import {parseMarkdown} from '@nuxtjs/mdc/runtime'
 
+const config = useRuntimeConfig()
+
 const route = useRoute()
 const video = ref({})
 const summary = ref(null)
@@ -42,8 +44,8 @@ const $loading = useLoading({...settings.LOADING_PROPERTIES});
 const doSummary = async () => {
   const loader = $loading.show({});
   try {
-    console.log(selectedSummaryLang.value)
-    const response = await request(`${settings.BASE_URL}/api/video/summary`, 'POST', {
+    console.debug(config.public.apiUrl)
+    const response = await request(`${config.public.apiUrl}/api/video/summary`, 'POST', {
       "video_id": video.value.id,
       "lang_code": selectedSummaryLang.value ?? 'en',
       "provider": selectedSummaryProvider.value,
@@ -88,7 +90,7 @@ const onChat = async () => {
     })
     await nextTick();
     scrollToBottom();
-    const chatResponse = await request(`${settings.BASE_URL}/api/chat`, 'POST', {
+    const chatResponse = await request(`${config.public.apiUrl}/api/chat`, 'POST', {
       'video_id': video.value.id,
       'question': chatMessage.value,
       'provider': selectedChatProvider.value,
@@ -120,7 +122,7 @@ const scrollToBottom = () => {
 
 const doClearChat = async () => {
   try {
-    await request(`${settings.BASE_URL}/api/chat/clear/${route.params.id}`, 'DELETE')
+    await request(`${config.public.apiUrl}/api/chat/clear/${route.params.id}`, 'DELETE')
     chats.value = []
   } catch (e) {
     useNuxtApp().$toast.error("Something went wrong, try later", {
@@ -133,11 +135,11 @@ const doClearChat = async () => {
 
 onMounted(async () => {
   try {
-    const videoResponse = await request(`${settings.BASE_URL}/api/video/detail/${route.params.id}`, 'GET')
+    const videoResponse = await request(`${config.public.apiUrl}/api/video/detail/${route.params.id}`, 'GET')
     video.value = videoResponse.payload
     summary.value = videoResponse.payload.summary ? await parseMarkdown(videoResponse.payload.summary) : null
 
-    const chatResponse = await request(`${settings.BASE_URL}/api/chat/history/${route.params.id}`, 'GET')
+    const chatResponse = await request(`${config.public.apiUrl}/api/chat/history/${route.params.id}`, 'GET')
     chats.value = chatResponse.payload
     await nextTick();
     if (chats.value.length > 0) {
@@ -171,7 +173,8 @@ onMounted(async () => {
                   <select v-model="selectedSummaryProvider" class="select select-bordered rounded-full w-full">
                     <option disabled selected>Provider</option>
                     <option v-for="item in providers" :value="item">{{ item }}</option>
-                  </select></div>
+                  </select>
+                </div>
                 <div class="md:basis-1/3 p-2">
                   <select v-model="selectedSummaryModel" class="select select-bordered rounded-full w-full">
                     <option disabled selected>Model</option>
@@ -212,7 +215,8 @@ onMounted(async () => {
                     <select v-model="selectedChatProvider" class="select select-bordered rounded-full w-full">
                       <option disabled selected>Provider</option>
                       <option v-for="item in providers" :value="item">{{ item }}</option>
-                    </select></div>
+                    </select>
+                  </div>
                   <div class="md:basis-1/2 p-2">
                     <select v-model="selectedChatModel" class="select select-bordered rounded-full w-full">
                       <option disabled selected>Model</option>
@@ -249,15 +253,10 @@ onMounted(async () => {
             </div>
 
             <div class="flex mt-auto">
-              <input
-                  ref="chatRef"
-                  v-model="chatMessage"
-                  :disabled="onHoldMessageResponse"
-                  class="input input-bordered flex-grow rounded-full"
-                  placeholder="Type your message here..."
-                  type="text"
-                  @keydown.enter="onChat"
-              />
+              <input ref="chatRef" v-model="chatMessage" :disabled="onHoldMessageResponse"
+                     class="input input-bordered flex-grow rounded-full" placeholder="Type your message here..."
+                     type="text"
+                     @keydown.enter="onChat"/>
               <button :disabled="onHoldMessageResponse" class="ml-5 btn btn-primary rounded-full" @click="onChat">Send
               </button>
             </div>
@@ -268,6 +267,4 @@ onMounted(async () => {
   </div>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>

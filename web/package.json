@@ -2,6 +2,7 @@
   "name": "web",
   "description": "WebUI for AskTube",
   "private": true,
+  "version": "0.1.2",
   "type": "module",
   "scripts": {
     "build": "nuxt build",
@@ -14,11 +15,15 @@
     "@nuxtjs/mdc": "^0.9.0",
     "@nuxtjs/tailwindcss": "^6.12.1",
     "@tailwindcss/typography": "^0.5.15",
-    "daisyui": "^4.12.10",
     "iso-639-1": "^3.1.3",
-    "nuxt": "^3.13.1",
-    "vue": "^3.5.3",
-    "vue-loading-overlay": "^6.0",
+    "nuxt": "^3.13.2",
+    "vue": "^3.5.6",
+    "vue-loading-overlay": "^6.0.6",
     "vue3-toastify": "^0.2.3"
+  },
+  "devDependencies": {
+    "@nuxt/kit": "^3.13.2",
+    "daisyui": "^4.12.10",
+    "esbuild": "^0.23.1"
   }
 }

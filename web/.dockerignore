@@ -1,0 +1,11 @@
+.nuxt
+.output
+.dist
+.idea
+bun.lockb
+package-lock.json
+.env
+.env.*
+node_modules
+.git
+Dockerfile
