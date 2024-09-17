@@ -21,6 +21,16 @@
   - [ ] Chat prompts, chat messages by context limit
   - [ ] RAG: Implement Query Translation
 
+---
+
+## 🤷🏽 Why does this project exist?
+
+- I’ve seen several GitHub repositories offering **AI-powered** summaries for YouTube videos, but none include **Q&A**
+  functionality.
+- I want to implement a more comprehensive solution while also gaining experience with AI to build my own RAG application.
+
+---
+
 ## 🔨 Technology
 
 - **Language**: Python, JS
@@ -44,6 +54,8 @@
   - [x] [OpenAI](https://platform.openai.com/docs/guides/speech-to-text)
   - [x] [Gemini](https://ai.google.dev/gemini-api/docs/audio)
 
+---
+
 ## 🚀 How to run ?
 
 > For the first time running, the program maybe a bit slow due they need to install local models.
@@ -55,7 +67,7 @@
   - [Poetry](https://python-poetry.org/docs/#installation)
   - [Bun](https://bun.sh/)
   - [ffmpeg](https://www.ffmpeg.org/download.html)
-    - For `**Windows User**`, please follow this tutorial [Install ffmpeg for Windows](https://phoenixnap.com/kb/ffmpeg-windows)
+    - For **`Windows User`**, please follow this tutorial [Install ffmpeg for Windows](https://phoenixnap.com/kb/ffmpeg-windows)
 - Clone repostiory
   ```shell
   git clone https://github.com/jonaskahn/asktube.git
@@ -72,12 +84,12 @@
   ```
 - Open web: [http://localhost:3000](http://localhost:3000)
 
-### With docker
+### With docker (In process)
 
 **Before You Start**
 
-> 1. I built these service to docker images, but if you want to build local images, please run `build.local.bat` for Windows or `build.local.sh` for MacOS, Linux
-> 2. If you have a GPU (cuda or rocm), please refer ENV settings, change params like above
+> 1. I built these services to docker images, but if you want to build local images, please run `build.local.bat` for **`Windows`** or `build.local.sh` for **`MacOS`**, **`Linux`**
+> 2. If you have a GPU (cuda or rocm), please refer **ENV settings** above, change params like above
 
 **Locally**
 
@@ -118,14 +130,6 @@ docker compose -f compose/ideal.yaml pull && docker compose -f compose/ideal.yam
 **Result**
 
 - Open web: [http://localhost:8080](http://localhost:8080)
-
----
-
-## 🤷🏽 Why does this project exist?
-
-- I’ve seen several GitHub repositories offering **AI-powered** summaries for YouTube videos, but none include **Q&A**
-  functionality.
-- I want to implement a more comprehensive solution while also gaining experience with AI to build my own RAG application.
 
 ---
 
