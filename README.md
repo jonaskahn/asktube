@@ -9,6 +9,7 @@
 </p>
 
 ---
+
 ## 🔨 Technology
 
 - **Language**: Python, JS
@@ -30,9 +31,13 @@
   - [x] Faster-Whisper (Local)
   - [ ] OpenAI
   - [ ] Gemini
- 
+
 ## How to run ?
+
+> For the first time running, the program maybe a bit slow due they need to install local models.
+
 ### Run on your machine
+
 - Ensure you installed:
   - [Python 3.10](https://www.python.org/downloads/)
   - [Poetry](https://python-poetry.org/docs/#installation)
@@ -52,10 +57,49 @@
   ```shell
   cd web && bun install && bun run dev
   ```
+
 ### With docker
-[Placeholder]
+
+> Recommend if you have a GPU, then change params like above
+
+**Locally**
+
+- Use `[local.yaml](compose/local.yaml)` compose file to start
+
+```shell
+docker compose -f compose/local.yaml pull && docker compose -f compose/local.yaml up -d
+```
+
+- After run, you need install `Ollama` model `qwen2` and `llama3.1` for QA
+
+```shell
+docker run ollama ollama run qwen2
+docker run ollama ollama run llama3.1
+```
+
+**Free** (with rate limit)
+
+- You need to go Google Gemini and VoyageAI to register account and generate your own API keys:
+  - Gemini is free with your Google Account
+  - VoyageAI (recommended by Claude) gives you free 50M tokens (a huge amount) but you need add your credit card first.
+- Replace your ENV setting in docker file `[free](compose/free.yaml)` and start docker
+
+```shell
+docker compose -f compose/free.yaml pull && docker compose -f compose/free.yaml up -d
+```
+
+**Ideal**
+
+- Using `VoyageAI` for embedding (analysis provider)
+- `OpenAI` and `Claude` for QA, register account and generate your own API keys
+- Replace your ENV setting in docker file `[ideal](compose/ideal.yaml)` and start docker
+
+```shell
+docker compose -f compose/ideal.yaml pull && docker compose -f compose/ideal.yaml up -d
+```
 
 ---
+
 ## 🤷🏽 Why does this project exist?
 
 - I’ve seen several GitHub repositories offering **AI-powered** summaries for YouTube videos, but none include **Q&A**
@@ -63,6 +107,7 @@
 - I want to implement a more comprehensive solution while also gaining experience with AI to build my own RAG application.
 
 ---
+
 ## 💡 Architecture
 
 > The real implementation might differ from this art due to its complexity.
@@ -98,8 +143,7 @@
   <img src="docs/images/demo1.png" alt="Demo image 1"/>
 </p>
 
-[Watch "AskTube First Demo" on YouTube](https://www.youtube.com/watch?v=S5T0nVjYRbQ)
----
+## [Watch "AskTube First Demo" on YouTube](https://www.youtube.com/watch?v=S5T0nVjYRbQ)
 
 ## ✍🏿 For development
 
@@ -108,4 +152,5 @@
 ---
 
 ## ⁉️ FAQ and Troubleshooting
+
 - [FQA](./docs/FQA.md)
