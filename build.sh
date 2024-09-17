@@ -11,8 +11,17 @@ version=$(cat RELEASE)
 echo "Current version: $version"
 
 # Log files for each job
-ENGINE_LOG="engine_build.log"
-WEB_LOG="web_build.log"
+ENGINE_LOG="logs/engine_build.log"
+WEB_LOG="logs/web_build.log"
+
+# Start to build web and log output
+echo -e "\nStart to build web . . .\n"
+(
+    cd web || exit
+    docker buildx create --use --name bun-builder --node bun-builder0
+    docker buildx build --platform linux/arm64,linux/amd64 --tag ifelsedotone/asktube-web:latest --tag ifelsedotone/asktube-web:$version . --push 2>&1 | tee "../$WEB_LOG"
+) &  # Run in background
+
 
 # Start to build engine and log output
 echo -e "\nStart to build engine . . .\n"
@@ -22,13 +31,6 @@ echo -e "\nStart to build engine . . .\n"
     docker buildx build --platform linux/arm64,linux/amd64 --tag ifelsedotone/asktube-engine:latest --tag ifelsedotone/asktube-engine:$version . --push 2>&1 | tee "../$ENGINE_LOG"
 ) &  # Run in background
 
-# Start to build web and log output
-echo -e "\nStart to build web . . .\n"
-(
-    cd web || exit
-    docker buildx create --use --name bun-builder --node bun-builder0
-    docker buildx build --platform linux/arm64,linux/amd64 --tag ifelsedotone/asktube-web:latest --tag ifelsedotone/asktube-web:$version . --push 2>&1 | tee "../$WEB_LOG"
-) &  # Run in background
 
 wait
 

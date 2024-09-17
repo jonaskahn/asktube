@@ -1,2 +1,6 @@
 engine/.env
 Dockerfile
+tests
+build
+.idea
+server.spec

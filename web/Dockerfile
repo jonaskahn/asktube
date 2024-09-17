@@ -12,4 +12,4 @@ FROM oven/bun:1 AS production-stage
 WORKDIR /usr/src/app
 COPY --from=build-stage /src/.output .
 EXPOSE 3000
-CMD ["bun", ".output/server/index.mjs"]
+CMD ["bun", "./server/index.mjs"]

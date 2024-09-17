@@ -18,14 +18,14 @@ services:
       - "80:80"
       - "8080:8080"
     command:
-      - "--api.insecure=false"
+      - "--api.insecure=true"
       - "--providers.docker"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.traefik.address=:8080"
-      - "--entrypoints.websecure.http.tls=false"
-      - "--log.level=DEBUG"
+      # - "--providers.docker.exposedbydefault=false"
+      # - "--entrypoints.traefik.address=:8080"
+      # - "--entrypoints.web.address=:80"
+      # - "--entrypoints.websecure.address=:443"
+      # - "--entrypoints.websecure.http.tls=false"
+      # - "--log.level=DEBUG"
     networks:
       - asktube-net
   ollama:
@@ -67,7 +67,7 @@ services:
       - asktube-net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.web.loadbalancer.server.port=3000"
-      - "traefik.http.routers.web-route.entrypoints=web"
-      - "traefik.http.routers.web-route.service=web"
-      - "traefik.http.routers.web-route.rule=PathPrefix(`/`)"
+      - "traefik.http.services.asktube-web.loadbalancer.server.port=3000"
+      - "traefik.http.routers.asktube-web-route.entrypoints=asktube-web"
+      - "traefik.http.routers.asktube-web-route.service=asktube-web"
+      - "traefik.http.routers.asktube-web-route.rule=PathPrefix(`/`)"

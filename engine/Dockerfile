@@ -17,11 +17,9 @@ RUN apt autoclean -y
 RUN curl -sSL https://install.python-poetry.org | POETRY_HOME=/etc/poetry python3 -
 
 WORKDIR /usr/src/engine
-COPY  pyproject.toml .
+COPY . .
 RUN poetry env use $(which python3)
 RUN poetry install
-COPY engine .
-COPY README.md . 
 
 VOLUME [ "/var/asktube" ]
 EXPOSE 8000
