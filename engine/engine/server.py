@@ -1,4 +1,5 @@
 import asyncio
+import platform
 from json import dumps
 
 from playhouse.shortcuts import model_to_dict
@@ -15,14 +16,7 @@ from engine.services.youtube_service import YoutubeService
 from engine.supports.errors import LogicError
 from engine.supports.logger import setup_log
 
-Sanic.START_METHOD_SET = True
-Sanic.start_method = "fork"
-WorkerManager.THRESHOLD = 50
-
 app = Sanic("AskTube", dumps=dumps)
-app.config.KEEP_ALIVE = False
-app.config.REQUEST_TIMEOUT = 90
-app.config.RESPONSE_TIMEOUT = 300
 
 
 @app.listener('before_server_start')
@@ -233,6 +227,13 @@ async def clear_chat(request: Request, video_id: int):
 
 app.register_middleware(add_cors_headers, "response")
 
+setup_log()
 if __name__ == '__main__':
-    setup_log()
-    app.run(host="0.0.0.0", port=8000, access_log=False, debug=True, workers=10)
+    WorkerManager.THRESHOLD = 50
+    app.config.KEEP_ALIVE = False
+    logger.debug(f"Run on {platform.system()}")
+    if platform.system() == "Linux":
+        logger.debug(' . . . "fork" will be explicit set')
+        Sanic.START_METHOD_SET = True
+        Sanic.start_method = "fork"
+    app.run(host="0.0.0.0", port=8000, access_log=True, debug=True, workers=5)

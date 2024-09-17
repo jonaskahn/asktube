@@ -173,6 +173,7 @@ docker compose -f compose/ideal.yaml pull && docker compose -f compose/ideal.yam
 ## ✍🏿 For development
 
 - [Backend](./engine/README.md)
+- [Frontend](./web/README.md)
 
 ---
 
