@@ -4,6 +4,8 @@
 .idea
 bun.lockb
 package-lock.json
-.env.development
+.env
+.env.*
 node_modules
 .git
+Dockerfile

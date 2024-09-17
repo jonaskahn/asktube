@@ -55,6 +55,7 @@
   - [Poetry](https://python-poetry.org/docs/#installation)
   - [Bun](https://bun.sh/)
   - [ffmpeg](https://www.ffmpeg.org/download.html)
+    - For `**Windows User**`, please follow this tutorial [Install ffmpeg for Windows](https://phoenixnap.com/kb/ffmpeg-windows)
 - Clone repostiory
   ```shell
   git clone https://github.com/jonaskahn/asktube.git
@@ -73,7 +74,10 @@
 
 ### With docker
 
-> Recommend if you have a GPU, then change params like above
+**Before You Start**
+
+> 1. I built these service to docker images, but if you want to build local images, please run `build.local.bat` for Windows or `build.local.sh` for MacOS, Linux
+> 2. If you have a GPU (cuda or rocm), please refer ENV settings, change params like above
 
 **Locally**
 
