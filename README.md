@@ -18,19 +18,6 @@
 
 ---
 
-## 🗓️ Next Todo Tasks
-
-- [ ] Implement Speech To Text for cloud models
-  - [ ] AssemblyAI
-  - [ ] OpenAI
-  - [ ] Gemini
-- [ ] Enhance
-  - [ ] Skip using RAG for short videos
-  - [ ] Chat prompts, chat messages by context limit
-  - [ ] RAG: Implement Query Translation
-
----
-
 ## 🔨 Technology
 
 - **Language**: Python, JS
@@ -53,6 +40,19 @@
   - [x] [AssemblyAI](https://www.assemblyai.com/docs)
   - [x] [OpenAI](https://platform.openai.com/docs/guides/speech-to-text)
   - [x] [Gemini](https://ai.google.dev/gemini-api/docs/audio)
+
+---
+
+## 🗓️ Next Todo Tasks
+
+- [ ] Implement Speech To Text for cloud models
+  - [ ] AssemblyAI
+  - [ ] OpenAI
+  - [ ] Gemini
+- [ ] Enhance
+  - [ ] Skip using RAG for short videos
+  - [ ] Chat prompts, chat messages by context limit
+  - [ ] RAG: Implement Query Translation
 
 ---
 
