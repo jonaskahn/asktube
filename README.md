@@ -97,7 +97,7 @@
   git clone https://github.com/jonaskahn/asktube.git
   ```
 
-- Prepare backend ENV settings:
+- Create file `.env` in `asktube/engine` directory:
   - [Locally](/engine#prefer-env-for-running-local)
   - [Free with some limitations](/engine#prefer-env-for-free-with-limitation)
 - Run program
@@ -105,11 +105,11 @@
   ```shell
   poetry env use python
   ```
-  - Open `terminal/cmd/powershell` in `asktube/engine` folder, then run: 
+  - Open `terminal/cmd/powershell` in `asktube/engine` directory, then run: 
   ```shell
   poetry install && poetry python engine/server.py
   ```
-  - Open `terminal/cmd/powershell` in `asktube/web` folder, then run:
+  - Open `terminal/cmd/powershell` in `asktube/web` directory, then run:
   ```shell
   bun install && bun run dev
   ```
