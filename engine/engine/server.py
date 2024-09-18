@@ -16,6 +16,15 @@ from engine.supports.errors import LogicError
 from engine.supports.logger import setup_log
 
 app = Sanic("AskTube", dumps=dumps)
+app.register_middleware(add_cors_headers, "response")
+app.config.KEEP_ALIVE = False
+
+WorkerManager.THRESHOLD = 600
+if platform.system() == "Linux":
+    logger.debug('use "fork" for multi-process')
+    Sanic.start_method = "fork"
+else:
+    logger.debug('use "spawn" for multi-process')
 
 
 @app.listener('before_server_start')
@@ -223,16 +232,6 @@ async def clear_chat(request: Request, video_id: int):
     VideoService.clear_chat(video_id)
     return response.HTTPResponse(status=200)
 
-
-app.register_middleware(add_cors_headers, "response")
-
-setup_log()
 if __name__ == '__main__':
-    WorkerManager.THRESHOLD = 50
-    app.config.KEEP_ALIVE = False
-    logger.debug(f"run on {platform.system()}")
-    if platform.system() == "Linux":
-        logger.debug(' . . . "fork" will be explicit set')
-        Sanic.START_METHOD_SET = True
-        Sanic.start_method = "fork"
-    app.run(host="0.0.0.0", port=8000, access_log=True, dev=True, debug=True, workers=3)
+    setup_log()
+    app.run(host="0.0.0.0", port=8000, access_log=True, dev=True, debug=True, workers=10)
