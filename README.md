@@ -10,6 +10,14 @@
 
 ---
 
+## 🤷🏽 Why does this project exist?
+
+- I’ve seen several GitHub repositories offering **AI-powered** summaries for YouTube videos, but none include **Q&A**
+  functionality.
+- I want to implement a more comprehensive solution while also gaining experience with AI to build my own RAG application.
+
+---
+
 ## 🗓️ Next Todo Tasks
 
 - [ ] Implement Speech To Text for cloud models
@@ -20,14 +28,6 @@
   - [ ] Skip using RAG for short videos
   - [ ] Chat prompts, chat messages by context limit
   - [ ] RAG: Implement Query Translation
-
----
-
-## 🤷🏽 Why does this project exist?
-
-- I’ve seen several GitHub repositories offering **AI-powered** summaries for YouTube videos, but none include **Q&A**
-  functionality.
-- I want to implement a more comprehensive solution while also gaining experience with AI to build my own RAG application.
 
 ---
 
@@ -69,19 +69,24 @@
   - [ffmpeg](https://www.ffmpeg.org/download.html)
     - For **`Windows User`**, please follow this tutorial [Install ffmpeg for Windows](https://phoenixnap.com/kb/ffmpeg-windows)
 - Clone repostiory
+
   ```shell
   git clone https://github.com/jonaskahn/asktube.git
   ```
+
 - Prepare backend ENV settings:
   - [Locally](/engine#prefer-env-for-running-local)
   - [Free with some limitations](/engine#prefer-env-for-free-with-limitation)
 - Run program
+
   ```shell
   cd engine && poetry install && poetry python engine/server.py
   ```
+
   ```shell
   cd web && bun install && bun run dev
   ```
+
 - Open web: [http://localhost:3000](http://localhost:3000)
 
 ### With docker (In process)
@@ -180,3 +185,5 @@ docker compose -f compose/ideal.yaml pull && docker compose -f compose/ideal.yam
 ## ⁉️ FAQ and Troubleshooting
 
 - [FQA](./docs/FQA.md)
+
+---
