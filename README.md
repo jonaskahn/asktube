@@ -125,10 +125,11 @@
 
 **Before You Start**
 
-> 1. I built these services to docker images, but if you want to build local images, please run `build.local.bat` for **`Windows`** or `build.local.x86.sh` or `build.local.aarch64.sh` for **`MacOS`**, **`Linux`**
+> 1. I built these services to docker images, but if you want to build local images, please run `build.local.bat` for **`Windows`** or `build.local.amd64.sh` or `build.local.aarch64.sh` for **`MacOS`**, **`Linux`**
 > 2. If you have a GPU (cuda or rocm), please refer **ENV settings** above, change params like above
 
 **Locally**
+
 - Use [local.yaml](compose/local.yaml) compose file to start
 - Open `terminal/cmd/powershell` in `asktube` directory
 
