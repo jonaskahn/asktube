@@ -235,7 +235,7 @@ onMounted(async () => {
             <div id="chatContainer" class="flex-grow overflow-y-auto space-y-4 rounded-2xl p-4 mb-4">
               <div v-for="chat in chats">
                 <div class="chat chat-end">
-                  <div class="chat-bubble bg-base-200 text-base-content">{{ chat.question }}</div>
+                  <div class="chat-bubble bg-base-300 text-base-content">{{ chat.question }}</div>
                 </div>
                 <div v-if="chat.answer" class="chat chat-start">
                   <div class="chat-bubble bg-base-100 text-base-content">
