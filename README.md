@@ -64,27 +64,54 @@
 
 - Ensure you installed:
   - [Python 3.10](https://www.python.org/downloads/)
+    - **Windows User**, please [download here](https://www.python.org/downloads/release/python-31011/)
+    - **Linux, MacOS User**, please use `homebrew` or your install package command `(apt, dnf, etc)`
+    - Or use `conda`
   - [Poetry](https://python-poetry.org/docs/#installation)
+    - **Windows User** open `Powershell` and run:
+    ```shell
+    (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
+    ```
+    - **Linux, MacOS User** open `Terminal` and run:
+    ```shell
+    curl -sSL https://install.python-poetry.org | python3 -
+    ```
+     
   - [Bun](https://bun.sh/)
   - [ffmpeg](https://www.ffmpeg.org/download.html)
-    - For **`Windows User`**, please follow this tutorial [Install ffmpeg for Windows](https://phoenixnap.com/kb/ffmpeg-windows)
+    - **MacOS User**
+    ```shell
+    brew install ffmpeg
+    ```
+    - **Linux User**
+    ```shell
+    # Ubuntu
+    sudo apt install ffmpeg
+    # Fedora
+    sudo dnf install -y ffmpeg
+    ```
+    - **Windows**, please follow this tutorial [Install ffmpeg for Windows](https://phoenixnap.com/kb/ffmpeg-windows)
 - Clone repostiory
 
   ```shell
   git clone https://github.com/jonaskahn/asktube.git
   ```
 
-- Prepare backend ENV settings:
+- Create file `.env` in `asktube/engine` directory:
   - [Locally](/engine#prefer-env-for-running-local)
   - [Free with some limitations](/engine#prefer-env-for-free-with-limitation)
 - Run program
-
+  - *You may need to run first:*
   ```shell
-  cd engine && poetry install && poetry python engine/server.py
+  poetry env use python
   ```
-
+  - Open `terminal/cmd/powershell` in `asktube/engine` directory, then run: 
   ```shell
-  cd web && bun install && bun run dev
+  poetry install && poetry python engine/server.py
+  ```
+  - Open `terminal/cmd/powershell` in `asktube/web` directory, then run:
+  ```shell
+  bun install && bun run dev
   ```
 
 - Open web: [http://localhost:3000](http://localhost:3000)
