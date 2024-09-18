@@ -19,7 +19,7 @@ echo -e "\nStart to build web . . .\n"
 (
     cd web || exit
     docker buildx create --use --name bun-builder --node bun-builder0
-    docker buildx build --platform linux/arm64,linux/amd64 --tag ifelsedotone/asktube-web:latest . --load 2>&1 | tee "../$WEB_LOG"
+    docker buildx build --platform linux/amd64 --tag ifelsedotone/asktube-web:latest . --load 2>&1 | tee "../$WEB_LOG"
 ) &  # Run in background
 
 
@@ -28,7 +28,7 @@ echo -e "\nStart to build engine . . .\n"
 (
     cd engine || exit
     docker buildx create --use --name py3-builder --node py3-builder0
-    docker buildx build --platform linux/arm64,linux/amd64 --tag ifelsedotone/asktube-engine:latest . --load 2>&1 | tee "../$ENGINE_LOG"
+    docker buildx build --platform linux/amd64 --tag ifelsedotone/asktube-engine:latest . --load 2>&1 | tee "../$ENGINE_LOG"
 ) &  # Run in background
 
 
