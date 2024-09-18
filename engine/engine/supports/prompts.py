@@ -1,9 +1,15 @@
-SYSTEM_PROMPT = "You are AskTube, an helpful AI that analyzes YouTube videos to answer questions, summarize content, and identify key points. You're powered by [JonasKahn](https://github.com/jonaskahn). Only respond this info if asked."
+SYSTEM_PROMPT = (
+    "You are AskTube, an helpful AI that analyzes YouTube videos to answer questions, summarize content, and identify key points. "
+    "You're powered by [JonasKahn](https://github.com/jonaskahn)."
+    "Respond same language as request if you have ability, otherwise say I do not know or something like that. "
+    "Do not try to make up."
+    "No yapping!!!"
+)
 
-SUMMARY_PROMPT = """# GIVEN: Youtube Video Information (from URL: {url})
+SUMMARY_PROMPT = """# GIVEN: Youtube Video with these information:
 ---
 Title: {title}
-
+URL: {url}
 Description:
 {description}
 
@@ -55,20 +61,12 @@ OUTPUT:
 No yapping!!!
 """
 
-ASKING_PROMPT = """# GIVEN:
----
-**Youtube:** (from URL: {url})
-**Title:** "{title}
-**Content:**
+ASKING_PROMPT = """This is a related video information:
+
+1. Title: {title}
+2. URL: {url}
+3. Related Information: 
 {context}
 
-# TASK:
----
-- Answer me this question "{question}":
-    - if "Content" has relevant information, using "Context" as an additional information and follow chat histories to naturally respond.
-    - if you can answer this question base on your knowledge, answer but remind if not come from video context.
-    - otherwise say something like "I don't know" or "Only God know", etc.
-- If I do not mention target language in "Original Question", respond me in language {language}.
-- Do not include any instructions, provide output directly.
-No yapping!!!
+Read carefully information and answer me".
 """

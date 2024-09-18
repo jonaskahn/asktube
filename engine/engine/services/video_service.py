@@ -10,12 +10,12 @@ from lingua import LanguageDetectorBuilder
 from playhouse.shortcuts import model_to_dict
 from sanic.log import logger
 
-from engine.database.models import Video, VideoChapter, Chat
-from engine.database.specs import sqlite_client
+from engine.database.models import Video, VideoChapter
+from engine.database.specs import sqlite_client, chromadb_client
 from engine.services.ai_service import AiService
-from engine.supports import constants, env
+from engine.supports import constants
 from engine.supports.errors import VideoError, AiError
-from engine.supports.prompts import SUMMARY_PROMPT, ASKING_PROMPT, REFINED_QUESTION_PROMPT
+from engine.supports.prompts import SUMMARY_PROMPT
 
 detector = LanguageDetectorBuilder.from_all_spoken_languages().build()
 
@@ -51,6 +51,15 @@ class VideoService:
         if video is None:
             raise VideoError("video is not found")
         return model_to_dict(video)
+
+    @staticmethod
+    def get_analyzed_video(vid: int) -> Video:
+        video: Video = VideoService.find_video_by_id(vid)
+        if video is None:
+            raise VideoError("video is not found")
+        if not video.analysis_state:
+            raise VideoError("video has not analyzed yet")
+        return video
 
     @staticmethod
     async def analysis_video(vid: int):
@@ -134,11 +143,11 @@ class VideoService:
             predict_lang, count = Counter(predict_langs).most_common(1)[0]
             video.language = predict_lang if count >= 2 or len(predict_langs) == 1 else None
         raw_transcripts = json.loads(video.raw_transcript) if video.raw_transcript else None
-        VideoService.__pair_video_chapters_with_transcripts(video, video_chapters, raw_transcripts)
+        VideoService.__merge_transcript_to_chapter(video, video_chapters, raw_transcripts)
         video.transcript_tokens = len(tiktoken.get_encoding("cl100k_base").encode(video.transcript))
 
     @staticmethod
-    def __pair_video_chapters_with_transcripts(video: Video, video_chapters: list[VideoChapter], transcripts: [{}]):
+    def __merge_transcript_to_chapter(video: Video, video_chapters: list[VideoChapter], transcripts: [{}]):
         """
         Pairs video chapters with their corresponding transcripts.
 
@@ -327,7 +336,7 @@ class VideoService:
             "transcript": video.transcript,
             "language": language,
         })
-        return VideoService.__get_response_from_ai(model=model, prompt=prompt, provider=provider)
+        return AiService.chat_with_ai(provider=provider, model=model, question=prompt)
 
     @staticmethod
     async def analysis_summary_video(vid: int, model: str, provider: str):
@@ -338,131 +347,22 @@ class VideoService:
             return
         logger.debug("start analysis summary video")
         VideoService.__update_analysis_summary_state(video, constants.ANALYSIS_STAGE_PROCESSING)
-        system_summary = VideoService.__summary_content(video.language, model, provider, video)
-        texts, embeddings = VideoService.__get_query_embedding(video.embedding_provider, system_summary)
-        ids: list[str] = []
-        documents: list[str] = []
-        for index, text in enumerate(texts):
-            ids.append(f"{video.id}_0_{index}")
-            documents.append(f"## Summary - Part {index + 1}: \n---\n{text}")
-        AiService.store_embeddings(f"video_summary_{video.id}", ids, texts, embeddings)
-        video.analysis_summary_state = constants.ANALYSIS_STAGE_COMPLETED
-        video.save()
-        logger.debug("finish analysis summary video")
-
-    @staticmethod
-    def __get_query_embedding(provider: str, text: str) -> tuple[list[str], list[list[float]]]:
-        if provider == "gemini":
-            return AiService.embedding_document_with_gemini(text)
-        elif provider == "openai":
-            return AiService.embed_document_with_openai(text)
-        elif provider == "voyageai":
-            return AiService.embed_document_with_voyageai(text)
-        elif provider == "mistral":
-            return AiService.embed_document_with_mistral(text)
-        elif provider == "local":
-            return AiService.embed_document_with_local(text)
-        else:
-            raise AiError("unknown embedding provider")
-
-    @staticmethod
-    async def ask(question: str, vid: int, provider: str, model: str = None):
-        """
-        Asks a question about a video and returns the answer.
-
-        The function takes a question, video id, provider, and optional model as input.
-        It first checks if the video exists and has been analyzed. Then, it detects the language of the question,
-        refines the question if necessary, and gets the query embedding. It queries the embeddings in the ChromaDB
-        to find similar transcripts and uses the context to ask the AI provider.
-        The function returns the answer from the AI provider and saves the chat history.
-
-        Parameters:
-            question (str): The question to ask about the video.
-            vid (int): The id of the video.
-            provider (str): The provider to use for asking the question.
-            model (str): The optional model to use for asking the question.
-
-        Returns:
-            str: The answer from the AI provider.
-        """
-
-        video: Video = VideoService.find_video_by_id(vid)
-        if video is None:
-            raise VideoError("video is not found")
-        if not video.analysis_state:
-            raise VideoError("video has not analyzed yet")
-        question_lang = detector.detect_languages_in_parallel_of(question)
-        question_lang_code = question_lang.iso_code_639_1.name.__str__().lower()
-        chats: list[Chat] = list(Chat.select().where(Chat.video == video).limit(10))
-        refined_question = VideoService.__refine_question(model, provider, question, question_lang_code, video)
-        _, embedding_question = VideoService.__get_query_embedding(video.embedding_provider, refined_question)
-
-        amount, context = AiService.query_embeddings(
-            table=f"video_{video.id}",
-            query=embedding_question,
-            fetch_size=video.total_parts
-        )
-        aware_context = context
-        if not context:
-            aware_context = "No information" if env.TOKEN_CONTEXT_THRESHOLD > video.transcript_tokens else video.transcript
-
-        asking_prompt = ASKING_PROMPT.format(**{
-            "url": video.url,
-            "title": video.title,
-            "context": aware_context,
-            "question": question,
-            "refined_question": refined_question,
-            "language": question_lang.name.__str__()
-        })
-        result = VideoService.__get_response_from_ai(
-            model=model,
-            prompt=asking_prompt,
-            provider=provider,
-            chats=chats
-        )
-        chat = Chat.create(
-            video=video,
-            question=question,
-            refined_question=refined_question,
-            answer=result,
-            context=context,
-            prompt=asking_prompt,
-            provider=provider
-        )
-        chat.save()
-        return model_to_dict(chat)
-
-    @staticmethod
-    def __refine_question(model: str, provider: str, question: str, question_lang: str, video: Video):
-        if question_lang == video.language:
-            return question
-        prompt = REFINED_QUESTION_PROMPT.format(**{
-            "video_lang": iso639.Language.from_part1(video.language).name,
-            "question": question
-        })
-        return VideoService.__get_response_from_ai(model=model, prompt=prompt, provider=provider)
-
-    @staticmethod
-    def __get_response_from_ai(
-            model: str,
-            prompt: str,
-            provider: str,
-            chats: list[Chat] = None
-    ) -> str:
-        if chats is None:
-            chats = []
-        if provider == "gemini":
-            return AiService.chat_with_gemini(model=model, prompt=prompt, previous_chats=chats)
-        elif provider == "openai":
-            return AiService.chat_with_openai(model=model, prompt=prompt, previous_chats=chats)
-        elif provider == "claude":
-            return AiService.chat_with_claude(model=model, prompt=prompt, previous_chats=chats)
-        elif provider == "mistral":
-            return AiService.chat_with_mistral(model=model, prompt=prompt, previous_chats=chats)
-        elif provider == "ollama":
-            return AiService.chat_with_ollama(model=model, prompt=prompt, previous_chats=chats)
-        else:
-            raise AiError("unknown AI provider")
+        try:
+            system_summary = VideoService.__summary_content(video.language, model, provider, video)
+            texts, embeddings = AiService.get_texts_embedding(video.embedding_provider, system_summary)
+            ids: list[str] = []
+            documents: list[str] = []
+            for index, text in enumerate(texts):
+                ids.append(f"{video.id}_0_{index}")
+                documents.append(f"## Summary - Part {index + 1}: \n---\n{text}")
+            AiService.store_embeddings(f"video_summary_{video.id}", ids, texts, embeddings)
+            video.analysis_summary_state = constants.ANALYSIS_STAGE_COMPLETED
+            video.save()
+            logger.debug("finish analysis summary video")
+        except Exception as e:
+            VideoService.__update_analysis_summary_state(video, constants.ANALYSIS_STAGE_INITIAL)
+            logger.debug("fail to analysis summary video")
+            raise e
 
     @staticmethod
     def delete(video_id: int):
@@ -490,14 +390,18 @@ class VideoService:
                 video.delete_instance()
                 for chapter in chapters:
                     chapter.delete_instance()
-                AiService.delete_collection(f"video_{video_id}")
+                VideoService.delete_collection(f"video_{video_id}")
                 transaction.commit()
             except Exception as e:
                 transaction.rollback()
                 raise e
 
     @staticmethod
-    def get(page_no: int) -> tuple[int, list[Video]]:
+    def delete_collection(table: str):
+        chromadb_client.delete_collection(table)
+
+    @staticmethod
+    def get_videos_with_paging(page_no: int) -> tuple[int, list[Video]]:
         total = Video.select().count()
         limit = 48
         if total // limit < page_no:
@@ -506,20 +410,3 @@ class VideoService:
         videos = list(Video.select().order_by(Video.id.desc()).offset(offset).limit(limit))
         video_data = [model_to_dict(video) for video in videos]
         return total, video_data
-
-    @staticmethod
-    def get_chat_histories(video_id: int) -> list[{}]:
-        selected_video: Video = VideoService.find_video_by_id(video_id)
-        chat_histories = list(Chat.select().where(Chat.video == selected_video).order_by(Chat.id.asc()))
-        result = []
-        for chat in chat_histories:
-            chat.video = None
-            result.append(model_to_dict(chat))
-
-        return result
-
-    @staticmethod
-    def clear_chat(video_id: int):
-        selected_video: Video = VideoService.find_video_by_id(video_id)
-        for chat in Chat.select().where(Chat.video == selected_video):
-            chat.delete_instance()

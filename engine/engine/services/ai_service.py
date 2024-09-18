@@ -260,6 +260,21 @@ class AiService:
             raise e
 
     @staticmethod
+    def get_texts_embedding(provider: str, text: str) -> tuple[list[str], list[list[float]]]:
+        if provider == "gemini":
+            return AiService.embedding_document_with_gemini(text)
+        elif provider == "openai":
+            return AiService.embed_document_with_openai(text)
+        elif provider == "voyageai":
+            return AiService.embed_document_with_voyageai(text)
+        elif provider == "mistral":
+            return AiService.embed_document_with_mistral(text)
+        elif provider == "local":
+            return AiService.embed_document_with_local(text)
+        else:
+            raise AiError("unknown embedding provider")
+
+    @staticmethod
     def embed_document_with_openai(text: str, max_tokens=8000) -> tuple[list[str], list[list[float]]]:
         """
         Embeds a document using the OpenAI API.
@@ -394,37 +409,46 @@ class AiService:
         return len(unique_documents), "\n".join(unique_documents)
 
     @staticmethod
-    def chat_with_gemini(
+    def chat_with_ai(
+            provider: str,
             model: str,
-            prompt: str,
+            question: str,
+            previous_chats: list[dict] = None,
             system_prompt: str = SYSTEM_PROMPT,
-            previous_chats: list[Chat] = None,
             max_tokens: int = 4096,
             temperature: float = 0.6,
-            top_p: float = 0.6,
-            top_k: int = 32) -> str:
-        """
-        Initiates a conversation with the Gemini AI model.
+            top_p: float = 0.8,
+            top_k: int = 16
+    ) -> str:
+        match provider:
+            case "gemini":
+                return AiService.chat_with_gemini(model, question, previous_chats, system_prompt, max_tokens, temperature, top_p, top_k)
+            case "openai":
+                return AiService.chat_with_openai(model, question, previous_chats, system_prompt, max_tokens, temperature, top_p)
+            case "claude":
+                return AiService.chat_with_claude(model, question, previous_chats, system_prompt, max_tokens, temperature, top_p, top_k)
+            case "mistral":
+                return AiService.chat_with_mistral(model, question, previous_chats, system_prompt, max_tokens, temperature, top_p)
+            case "ollama":
+                return AiService.chat_with_ollama(model, question, previous_chats, system_prompt, temperature, top_p, top_k)
+            case _:
+                raise AiError(f"unknown provider: {provider}")
 
-        Args:
-            model (str): The name of the Gemini model to use.
-            prompt (str): The initial message to send to the model.
-            system_prompt (str, optional): The system prompt to use. Defaults to SYSTEM_PROMPT.
-            previous_chats (list[Chat], optional): A list of previous chat messages. Defaults to None.
-            max_tokens (int, optional): The maximum number of tokens to generate. Defaults to 4096.
-            temperature (float, optional): The temperature to use for generation. Defaults to 0.6.
-            top_p (float, optional): The top p value to use for generation. Defaults to 0.6.
-            top_k (int, optional): The top k value to use for generation. Defaults to 32.
-
-        Returns:
-            str: The response from the Gemini model.
-        """
+    @staticmethod
+    def chat_with_gemini(
+            model: str,
+            question: str,
+            previous_chats: list[dict] = None,
+            system_prompt: str = SYSTEM_PROMPT,
+            max_tokens: int = 4096,
+            temperature: float = 0.6,
+            top_p: float = 0.8,
+            top_k: int = 16) -> str:
 
         if previous_chats is None:
             previous_chats = []
         if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":
             raise AiError("gemini api key is not set or is empty.")
-        chat_histories = AiService.__build_gemini_chat_history(previous_chats)
         genai.configure(api_key=env.GEMINI_API_KEY)
         agent = genai.GenerativeModel(
             model_name=model if model is not None or model else "gemini-1.5-flash",
@@ -442,30 +466,16 @@ class AiService:
                 'DANGEROUS': 'BLOCK_NONE'
             }
         )
-        chat = agent.start_chat(history=chat_histories)
-        response = chat.send_message(prompt)
+        chat = agent.start_chat(history=previous_chats) if previous_chats else agent.start_chat()
+        response = chat.send_message(question)
         return response.text.removesuffix("\n").strip()
-
-    @staticmethod
-    def __build_gemini_chat_history(chats: list[Chat]):
-        if chats is None or not chats:
-            return []
-        chat_histories = []
-        for chat in chats:
-            chat_histories.extend(
-                (
-                    {"role": "user", "parts": chat.refined_question},
-                    {"role": "model", "parts": chat.answer},
-                )
-            )
-        return chat_histories
 
     @staticmethod
     def chat_with_openai(
             model: str,
-            prompt: str,
+            question: str,
+            previous_chats: list[dict] = None,
             system_prompt: str = SYSTEM_PROMPT,
-            previous_chats: list[Chat] = None,
             max_tokens: int = 4096,
             temperature: float = 0.7,
             top_p: float = 0.8) -> str:
@@ -474,7 +484,7 @@ class AiService:
 
         Args:
             model (str): The model to use for the chat completion. Defaults to "gpt-4o-mini" if not provided.
-            prompt (str): The prompt to send to the chat completion API.
+            question (str): The prompt to send to the chat completion API.
             system_prompt (str, optional): The system prompt to use for the chat completion. Defaults to SYSTEM_PROMPT.
             previous_chats (list[Chat], optional): A list of previous chats to include in the chat history. Defaults to None.
             max_tokens (int, optional): The maximum number of tokens to generate in the response. Defaults to 4096.
@@ -490,14 +500,18 @@ class AiService:
         if env.OPENAI_API_KEY is None or env.OPENAI_API_KEY.strip() == "":
             raise AiError("openai api key is not set or is empty.")
         client = OpenAI(api_key=env.OPENAI_API_KEY)
-        messages = AiService.__build_openai_chat_history(system_prompt, previous_chats)
-        messages.append({
+        chat_messages = previous_chats[:]
+        chat_messages.insert(0, {
+            "role": "system",
+            "content": system_prompt
+        })
+        chat_messages.append({
             "role": "user",
-            "content": prompt
+            "content": question
         })
         completion = client.chat.completions.create(
             model=model if model is not None or model else "gpt-4o-mini",
-            messages=messages,
+            messages=chat_messages,
             max_tokens=max_tokens,
             temperature=temperature,
             top_p=top_p
@@ -505,30 +519,13 @@ class AiService:
         return completion.choices[0].message.content
 
     @staticmethod
-    def __build_openai_chat_history(system_prompt: str, chats: list[Chat]):
-        if chats is None or not chats:
-            return []
-        chat_histories = [{
-            "role": "system",
-            "content": system_prompt
-        }]
-        for chat in chats:
-            chat_histories.extend(
-                (
-                    {"role": "user", "content": chat.refined_question},
-                    {"role": "assistant", "content": chat.answer},
-                )
-            )
-        return chat_histories
-
-    @staticmethod
     def chat_with_claude(
             model: str,
-            prompt: str,
+            question: str,
+            previous_chats: list[dict] = None,
             system_prompt: str = SYSTEM_PROMPT,
-            previous_chats: list[Chat] = None,
             max_tokens: int = 4096,
-            temperature: float = 0.7,
+            temperature: float = 0.6,
             top_p: float = 0.7,
             top_k: int = 16) -> str:
         """
@@ -536,11 +533,11 @@ class AiService:
 
         Args:
             model (str): The Claude model to use for the conversation.
-            prompt (str): The user's prompt for the conversation.
+            question (str): The user's prompt for the conversation.
             system_prompt (str, optional): The system prompt for the conversation. Defaults to SYSTEM_PROMPT.
             previous_chats (list[Chat], optional): A list of previous chats to include in the conversation history. Defaults to None.
             max_tokens (int, optional): The maximum number of tokens to generate in the response. Defaults to 4096.
-            temperature (float, optional): The temperature to use for the response generation. Defaults to 0.7.
+            temperature (float, optional): The temperature to use for the response generation. Defaults to 0.6.
             top_p (float, optional): The top p value to use for the response generation. Defaults to 0.7.
             top_k (int, optional): The top k value to use for the response generation. Defaults to 16.
 
@@ -553,14 +550,14 @@ class AiService:
         if env.CLAUDE_API_KEY is None or env.CLAUDE_API_KEY.strip() == "":
             raise AiError("claude api key is not set or is empty.")
         client = anthropic.Anthropic(api_key=env.CLAUDE_API_KEY)
-        messages = AiService.__build_claude_chat_history(chats=previous_chats)
-        messages.append({
-            "role": "user", "content": prompt
+        chat_messages = previous_chats[:]
+        chat_messages.append({
+            "role": "user", "content": question
         })
         response = client.messages.create(
             model=model if model is not None or model else "claude-3-haiku-20240307",
             system=system_prompt,
-            messages=messages,
+            messages=chat_messages,
             max_tokens=max_tokens,
             temperature=temperature,
             top_p=top_p,
@@ -569,34 +566,20 @@ class AiService:
         return response.content[0].text
 
     @staticmethod
-    def __build_claude_chat_history(chats: list[Chat]):
-        if chats is None or not chats:
-            return []
-        chat_histories = []
-        for chat in chats:
-            chat_histories.extend(
-                (
-                    {"role": "user", "content": chat.refined_question},
-                    {"role": "assistant", "content": chat.answer},
-                )
-            )
-        return chat_histories
-
-    @staticmethod
     def chat_with_mistral(
             model: str,
-            prompt: str,
+            question: str,
+            previous_chats: list[dict] = None,
             system_prompt: str = SYSTEM_PROMPT,
-            previous_chats: list[Chat] = None,
             max_tokens: int = 2048,
-            temperature: float = 0.7,
-            top_p: float = 1.0) -> str:
+            temperature: float = 0.6,
+            top_p: float = 0.8) -> str:
         """
         Sends a chat request to Mistral AI model and returns the response.
 
         Args:
             model (str): The Mistral AI model to use for the chat.
-            prompt (str): The user's prompt for the chat.
+            question (str): The user's prompt for the chat.
             system_prompt (str): The system's prompt for the chat. Defaults to SYSTEM_PROMPT.
             previous_chats (list[Chat]): A list of previous chats to include in the conversation. Defaults to None.
             max_tokens (int): The maximum number of tokens to generate in the response. Defaults to 2048.
@@ -612,13 +595,16 @@ class AiService:
         if env.MISTRAL_API_KEY is None or env.MISTRAL_API_KEY.strip() == "":
             raise AiError("mistral api key is not set or is empty.")
         client = Mistral(api_key=env.MISTRAL_API_KEY)
-        messages = AiService.__build_mistral_chat_history(system_prompt=system_prompt, chats=previous_chats)
-        messages.append({
-            "role": "user", "content": prompt
+        chat_messages = previous_chats[:]
+        chat_messages.insert(0, {
+            "role": "system", "content": system_prompt
+        })
+        chat_messages.append({
+            "role": "user", "content": question
         })
         response = client.chat.complete(
             model=model if model is not None or model else "mistral-large-latest",
-            messages=messages,
+            messages=chat_messages,
             max_tokens=max_tokens,
             temperature=temperature,
             top_p=top_p
@@ -626,24 +612,20 @@ class AiService:
         return response.choices[0].message.content
 
     @staticmethod
-    def __build_mistral_chat_history(system_prompt: str, chats: list[Chat]):
-        return AiService.__build_openai_chat_history(system_prompt=system_prompt, chats=chats)
-
-    @staticmethod
     def chat_with_ollama(
             model: str,
-            prompt: str,
+            question: str,
+            previous_chats: list[dict] = None,
             system_prompt: str = SYSTEM_PROMPT,
-            previous_chats: list[Chat] = None,
-            temperature: float = 0.7,
-            top_p: float = 1.0,
+            temperature: float = 0.6,
+            top_p: float = 0.8,
             top_k: int = 16) -> str:
         """
         Initiates a conversation with the Ollama AI model.
 
         Args:
             model (str): The model to use for the conversation.
-            prompt (str): The initial prompt to send to the model.
+            question (str): The initial prompt to send to the model.
             system_prompt (str, optional): The system prompt to use for the conversation. Defaults to SYSTEM_PROMPT.
             previous_chats (list[Chat], optional): A list of previous chats to include in the conversation. Defaults to None.
             temperature (float, optional): The temperature to use for the response generation. Defaults to 0.7.
@@ -657,21 +639,17 @@ class AiService:
         if previous_chats is None:
             previous_chats = []
         client = Client(host=env.LOCAL_OLLAMA_HOST)
-        messages = AiService.__build_ollama_chat_history(system_prompt=system_prompt, chats=previous_chats)
-        messages.append({
-            "role": "user", "content": prompt
+        chat_messages = previous_chats[:]
+        chat_messages.insert(0, {
+            "role": "system", "content": system_prompt
         })
-        response = client.chat(model=env.LOCAL_OLLAMA_MODEL, messages=messages, options={
+        chat_messages.append({
+            "role": "user", "content": question
+        })
+        used_model = model if model else env.LOCAL_OLLAMA_MODEL
+        response = client.chat(model=used_model, messages=chat_messages, options={
             "temperature": temperature,
             "top_p": top_p,
             "top_k": top_k
         })
         return response['message']['content']
-
-    @staticmethod
-    def __build_ollama_chat_history(system_prompt: str, chats: list[Chat]):
-        return AiService.__build_openai_chat_history(system_prompt=system_prompt, chats=chats)
-
-    @staticmethod
-    def delete_collection(table: str):
-        chromadb_client.delete_collection(table)

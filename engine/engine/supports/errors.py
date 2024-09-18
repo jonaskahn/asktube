@@ -8,3 +8,7 @@ class AiError(Exception):
 
 class VideoError(Exception):
     pass
+
+
+class ChatError(Exception):
+    pass
