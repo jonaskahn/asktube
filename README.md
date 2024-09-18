@@ -76,7 +76,6 @@
     ```shell
     curl -sSL https://install.python-poetry.org | python3 -
     ```
-     
   - [Bun](https://bun.sh/)
   - [ffmpeg](https://www.ffmpeg.org/download.html)
     - **MacOS User**
@@ -101,15 +100,21 @@
   - [Locally](/engine#prefer-env-for-running-local)
   - [Free with some limitations](/engine#prefer-env-for-free-with-limitation)
 - Run program
-  - *You may need to run first:*
+
+  - _You may need to run first:_
+
   ```shell
   poetry env use python
   ```
-  - Open `terminal/cmd/powershell` in `asktube/engine` directory, then run: 
+
+  - Open `terminal/cmd/powershell` in `asktube/engine` directory, then run:
+
   ```shell
   poetry install && poetry python engine/server.py
   ```
+
   - Open `terminal/cmd/powershell` in `asktube/web` directory, then run:
+
   ```shell
   bun install && bun run dev
   ```
@@ -120,12 +125,12 @@
 
 **Before You Start**
 
-> 1. I built these services to docker images, but if you want to build local images, please run `build.local.bat` for **`Windows`** or `build.local.sh` for **`MacOS`**, **`Linux`**
+> 1. I built these services to docker images, but if you want to build local images, please run `build.local.bat` for **`Windows`** or `build.local.x86.sh` or `build.local.aarch64.sh` for **`MacOS`**, **`Linux`**
 > 2. If you have a GPU (cuda or rocm), please refer **ENV settings** above, change params like above
 
 **Locally**
-
 - Use [local.yaml](compose/local.yaml) compose file to start
+- Open `terminal/cmd/powershell` in `asktube` directory
 
 ```shell
 docker compose -f compose/local.yaml pull && docker compose -f compose/local.yaml up -d
@@ -144,6 +149,7 @@ docker run ollama ollama run llama3.1
   - Gemini is free with your Google Account
   - VoyageAI (recommended by Claude) gives you free 50M tokens (a huge amount) but you need to add your credit card first.
 - Replace your ENV setting in docker file [free](compose/free.yaml) and start docker
+- Open `terminal/cmd/powershell` in `asktube` directory
 
 ```shell
 docker compose -f compose/free.yaml pull && docker compose -f compose/free.yaml up -d
@@ -154,6 +160,7 @@ docker compose -f compose/free.yaml pull && docker compose -f compose/free.yaml 
 - Using `VoyageAI` for embedding texts
 - Using `OpenAI` and `Claude` for QA, register account and generate your own API keys
 - Replace your ENV setting in docker file [ideal](compose/ideal.yaml) and start docker
+- Open `terminal/cmd/powershell` in `asktube` directory
 
 ```shell
 docker compose -f compose/ideal.yaml pull && docker compose -f compose/ideal.yaml up -d
