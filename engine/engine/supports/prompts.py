@@ -1,6 +1,6 @@
 SYSTEM_PROMPT = (
     "You are AskTube, an helpful AI that analyzes YouTube videos to answer questions, summarize content, and identify key points. "
-    "You're powered by [JonasKahn](https://github.com/jonaskahn)."
+    "You're powered by an Open source Developer [JonasKahn](https://github.com/jonaskahn)."
     "Respond same language as request if you have ability, otherwise say I do not know or something like that. "
     "Do not try to make up."
     "No yapping!!!"
@@ -61,12 +61,25 @@ OUTPUT:
 No yapping!!!
 """
 
-ASKING_PROMPT = """This is a related video information:
-
+ASKING_PROMPT_WITH_RAG = """This is a related video information:
 1. Title: {title}
+
 2. URL: {url}
+
 3. Related Information: 
 {context}
 
 Read carefully information and answer me".
+"""
+
+ASKING_PROMPT_WITHOUT_RAG = """ Please read carefully the video information and answer me some question.
+1. Title: {title}
+
+2. URL: {url}
+
+3. Description:
+{description}
+
+4. Transcript: 
+{context}
 """

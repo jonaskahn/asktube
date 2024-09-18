@@ -5,7 +5,7 @@ from engine.services.ai_service import AiService
 from engine.services.video_service import VideoService
 from engine.supports import env
 from engine.supports.errors import ChatError
-from engine.supports.prompts import ASKING_PROMPT
+from engine.supports.prompts import ASKING_PROMPT_WITH_RAG, ASKING_PROMPT_WITHOUT_RAG
 
 
 class ChatService:
@@ -23,7 +23,104 @@ class ChatService:
 
     @staticmethod
     async def __ask_without_rag(question: str, video: Video, chats: list[Chat], provider: str, model: str = None) -> dict[object]:
-        pass
+        context = ASKING_PROMPT_WITHOUT_RAG.format(**{
+            "title": video.title,
+            "url": video.url,
+            "description": video.description,
+            "context": video.transcript
+        })
+        match provider:
+            case "gemini":
+                result = await ChatService.__ask_gemini_without_rag(model=model, question=question, context=context, chats=chats)
+            case "openai":
+                result = await ChatService.__ask_openai_without_rag(model=model, question=question, context=context, chats=chats)
+            case "claude":
+                result = await ChatService.__ask_claude_without_rag(model=model, question=question, context=context, chats=chats)
+            case "mistral":
+                result = await ChatService.__ask_mistral_without_rag(model=model, question=question, context=context, chats=chats)
+            case "ollama":
+                result = await ChatService.__ask_ollama_without_rag(model=model, question=question, context=context, chats=chats)
+            case _:
+                raise ChatError("provider is not supported")
+
+        chat = Chat.create(
+            video=video,
+            question=question,
+            refined_question="No refined question",
+            answer=result,
+            context="No context provided",
+            prompt=context,
+            provider=provider
+        )
+        chat.save()
+        return model_to_dict(chat)
+
+    @staticmethod
+    async def __ask_gemini_without_rag(model, question, context, chats):
+        previous_chats = ChatService.__build_gemini_without_rag_chat_histories(context=context, chats=chats)
+        return AiService.chat_with_gemini(model=model, question=question, previous_chats=previous_chats)
+
+    @staticmethod
+    def __build_gemini_without_rag_chat_histories(context: str, chats: list[Chat]) -> list[dict]:
+        chat_histories = [
+            {
+                "role": "user",
+                "parts": context,
+            },
+            {
+                "role": "model",
+                "parts": "I read carefully the video information and what you provided, let's go QA",
+            }
+        ]
+        if chats is not None:
+            for chat in chats:
+                chat_histories.extend((
+                    {"role": "user", "parts": chat.question},
+                    {"role": "model", "parts": chat.answer},
+                ))
+        return chat_histories
+
+    @staticmethod
+    async def __ask_openai_without_rag(model, question, context, chats) -> str:
+        previous_chats = ChatService.__build_openai_without_rag_chat_histories(context=context, chats=chats)
+        return AiService.chat_with_gemini(model=model, question=question, previous_chats=previous_chats)
+
+    @staticmethod
+    def __build_openai_without_rag_chat_histories(context, chats) -> list[dict]:
+        chat_histories = [
+            {
+                "role": "user",
+                "content": context,
+            },
+            {
+                "role": "assistant",
+                "content": "I read carefully the video information and what you provided, let's go QA",
+            }
+        ]
+        if chats is not None:
+            for chat in chats:
+                chat_histories.extend(
+                    (
+                        {"role": "user", "content": chat.question},
+                        {"role": "assistant", "content": chat.answer},
+                    )
+                )
+        return chat_histories
+
+    @staticmethod
+    async def __ask_claude_without_rag(model, question, context, chats):
+        previous_chats = ChatService.__build_openai_without_rag_chat_histories(context=context, chats=chats)
+        return AiService.chat_with_claude(model=model, question=question, previous_chats=previous_chats)
+
+    @staticmethod
+    async def __ask_mistral_without_rag(model, question, context, chats):
+        previous_chats = ChatService.__build_openai_without_rag_chat_histories(context=context, chats=chats)
+        return AiService.chat_with_mistral(model=model, question=question, previous_chats=previous_chats)
+
+    @staticmethod
+    async def __ask_ollama_without_rag(model, question, context, chats):
+        previous_chats = ChatService.__build_openai_without_rag_chat_histories(context=context, chats=chats)
+        return AiService.chat_with_ollama(model=model, question=question, previous_chats=previous_chats)
 
     @staticmethod
     async def __ask_with_rag(question: str, video: Video, chats: list[Chat], provider: str, model: str = None) -> dict[object]:
@@ -35,11 +132,11 @@ class ChatService:
             fetch_size=video.total_parts
         )
 
-        context = ASKING_PROMPT.format(**{
+        context = ASKING_PROMPT_WITH_RAG.format(**{
             "title": video.title,
             "url": video.url,
             "context": document
-        }) if document else "No information, just answer me if you have ability"
+        }) if document else "No information, just answer me in your ability"
         match provider:
             case "gemini":
                 result = await ChatService.__ask_gemini_with_rag(model=model, question=question, context=context, chats=chats)

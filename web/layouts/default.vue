@@ -17,22 +17,22 @@ onMounted(() => {
 })
 
 watch(() => route.fullPath, (newPath, oldPath) => {
-      if (newPath === "/") {
-        indexStyle.value = "text-primary active bg-base-300"
-        processStyle.value = "text-secondary"
-        discoverStyle.value = "text-secondary"
-      }
-      if (newPath === "/discover") {
-        indexStyle.value = "text-secondary"
-        processStyle.value = "text-secondary"
-        discoverStyle.value = "text-primary active bg-base-300"
-      }
-      if (newPath === "/process") {
-        indexStyle.value = "text-secondary"
-        processStyle.value = "text-primary active bg-base-300"
-        discoverStyle.value = "text-secondary"
-      }
-    }
+  if (newPath === "/") {
+    indexStyle.value = "text-primary active bg-base-300"
+    processStyle.value = "text-secondary"
+    discoverStyle.value = "text-secondary"
+  }
+  if (newPath === "/discover") {
+    indexStyle.value = "text-secondary"
+    processStyle.value = "text-secondary"
+    discoverStyle.value = "text-primary active bg-base-300"
+  }
+  if (newPath === "/process") {
+    indexStyle.value = "text-secondary"
+    processStyle.value = "text-primary active bg-base-300"
+    discoverStyle.value = "text-secondary"
+  }
+}
 );
 </script>
 <template>
@@ -45,9 +45,9 @@ watch(() => route.fullPath, (newPath, oldPath) => {
     </div>
     <div class="navbar-end">
       <div class="btn btn-ghost btn-circle avatar" role="button" tabindex="0">
-        <div class="w-10 rounded-full">
+        <div class="w-10 ">
           <nuxt-link target="_blank" to="https://github.com/jonaskahn/asktube">
-            <img alt="AskTube" src="https://avatars.githubusercontent.com/u/4338500"/>
+            <img alt="AskTube" src="https://avatars.githubusercontent.com/u/4338500" />
           </nuxt-link>
         </div>
       </div>
@@ -55,6 +55,6 @@ watch(() => route.fullPath, (newPath, oldPath) => {
     </div>
   </div>
   <div class="container mx-auto md:px-8 px-4 pb-20">
-    <slot/>
+    <slot />
   </div>
 </template>
