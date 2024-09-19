@@ -84,7 +84,7 @@ Original question: "{question}"
 ----
 1. Determine if the original question is directly related to the video title's main topic or content.
 2. If related:
-   - Generate five different versions of the original question, seperated by lines that are :
+   - Generate five different versions of the original question, seperated by newlines that are :
      a) More specific to the video's content
      b) Using relevant keywords from the title
      c) Focusing on potential subtopics within the main theme
