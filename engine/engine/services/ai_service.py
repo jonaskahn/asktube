@@ -29,11 +29,16 @@ has_mps = torch.backends.mps.is_available()
 
 
 class AiService:
+    """
+    A service class that provides various AI-related functionalities including speech recognition,
+    text embedding, and interaction with different AI chat models.
+    """
+
     def __init__(self):
         pass
 
     @staticmethod
-    def __get_local_whisper_model():
+    def __get_local_whisper_model() -> WhisperModel:
         compute_type = 'fp16' if has_cuda else 'int8'
         return WhisperModel(
             env.LOCAL_WHISPER_MODEL,
@@ -43,7 +48,7 @@ class AiService:
         )
 
     @staticmethod
-    def __get_local_embedding_encoder():
+    def __get_local_embedding_encoder() -> SentenceTransformer:
         if has_mps:
             device = "mps"
         elif has_cuda:
@@ -64,8 +69,23 @@ class AiService:
         return SentenceTransformer(model_name_or_path=local_model_path, device=device, trust_remote_code=True)
 
     @staticmethod
-    def recognize_audio_language(audio_path: str, duration: int):
+    def recognize_audio_language(audio_path: str, duration: int) -> str:
+        """
+        Recognizes the language of the audio file.
 
+        This method uses a local Whisper model to transcribe a portion of the audio and determine its language.
+        For longer audio files, it samples from the beginning, middle, and end to make a more accurate determination.
+
+        Args:
+            audio_path (str): The path to the audio file.
+            duration (int): The duration of the audio file in seconds.
+
+        Returns:
+            str: The recognized language code.
+
+        Raises:
+            AiError: If there's an issue with audio processing or language recognition.
+        """
         logger.debug("start to recognize audio language")
         model = AiService.__get_local_whisper_model()
         if duration <= env.AUDIO_CHUNK_RECOGNIZE_THRESHOLD:
@@ -87,20 +107,20 @@ class AiService:
                     os.remove(segment)
 
     @staticmethod
-    def __split_segment_audio(audio_path: str, duration: int):
+    def __split_segment_audio(audio_path: str, duration: int) -> tuple[str, str, str]:
         if duration < env.AUDIO_CHUNK_RECOGNIZE_THRESHOLD:
-            raise AiError("duration must be greater than 120 seconds")
+            raise AiError(f"duration must be greater than {env.AUDIO_CHUNK_RECOGNIZE_DURATION} seconds")
         start_segment_audio_path = os.path.join(tempfile.gettempdir(), f"{uuid4()}.mp3")
         extract_audio(
             input_path=audio_path,
             output_path=start_segment_audio_path,
             start_time=f"{timedelta(seconds=0)}",
-            duration=env.AUDIO_CHUNK_DETECT_DURATION
+            duration=env.AUDIO_CHUNK_RECOGNIZE_DURATION
         )
 
         middle_start = random.randint(
-            duration // env.AUDIO_CHUNK_DETECT_DURATION,
-            duration // 3 - env.AUDIO_CHUNK_DETECT_DURATION
+            duration // env.AUDIO_CHUNK_RECOGNIZE_DURATION,
+            duration // 3 - env.AUDIO_CHUNK_RECOGNIZE_DURATION
         )
         middle_segment_audio_path = os.path.join(tempfile.gettempdir(), f"{uuid4()}.mp3")
 
@@ -108,21 +128,41 @@ class AiService:
             input_path=audio_path,
             output_path=middle_segment_audio_path,
             start_time=f"{timedelta(seconds=middle_start)}",
-            duration=env.AUDIO_CHUNK_DETECT_DURATION
+            duration=env.AUDIO_CHUNK_RECOGNIZE_DURATION
         )
 
         end_segment_audio_path = os.path.join(tempfile.gettempdir(), f"{uuid4()}.mp3")
         extract_audio(
             input_path=audio_path,
             output_path=end_segment_audio_path,
-            start_time=f"{timedelta(seconds=duration - env.AUDIO_CHUNK_DETECT_DURATION * 2)}"
+            start_time=f"{timedelta(seconds=duration - env.AUDIO_CHUNK_RECOGNIZE_DURATION * 2)}"
         )
 
         return start_segment_audio_path, middle_segment_audio_path, end_segment_audio_path
 
     @staticmethod
-    def speech_to_text(audio_path: str, delta: int):
+    def speech_to_text(audio_path: str, delta: int) -> tuple[str, list[dict]]:
+        """
+        Converts speech in an audio file to text.
 
+        This method currently supports local speech-to-text conversion using a Whisper model.
+        It processes the audio file and returns the recognized text along with timing information.
+
+        Args:
+            audio_path (str): The path to the audio file.
+            delta (int): A time offset to apply to the start times of recognized segments.
+
+        Returns:
+            tuple[str, list[dict]]: A tuple containing:
+                - The detected language of the audio (str)
+                - A list of dictionaries, each containing:
+                    - 'start_time': Start time of the segment in milliseconds (int)
+                    - 'duration': Duration of the segment in milliseconds (int)
+                    - 'text': The transcribed text for the segment (str)
+
+        Raises:
+            AiError: If the audio path is not found or if the speech-to-text provider is not supported.
+        """
         if audio_path is None:
             raise AiError("audio path is not found")
         if env.SPEECH_TO_TEXT_PROVIDER == "local":
@@ -147,7 +187,6 @@ class AiService:
 
     @staticmethod
     def __chunk_text(text: str, max_tokens: int) -> list[str]:
-
         encoding = tiktoken.get_encoding("cl100k_base")
         words = text.split()
         chunks = []
@@ -170,20 +209,26 @@ class AiService:
         return chunks
 
     @staticmethod
-    def embedding_document_with_gemini(text: str, max_tokens=2000) -> tuple[list[str], list[list[float]]]:
-        if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":
-            raise AiError("gemini api key is not set or is empty.")
-        try:
-            texts = AiService.__chunk_text(text, max_tokens)
-            genai.configure(api_key=env.GEMINI_API_KEY)
-            return texts, [genai.embed_content(content=text, model=env.GEMINI_EMBEDDING_MODEL)['embedding'] for text in
-                           texts]
-        except Exception as e:
-            logger.debug(f"\nerror in embedding_document_with_gemini: \n{text}", exc_info=True)
-            raise e
-
-    @staticmethod
     def get_texts_embedding(provider: str, text: str) -> tuple[list[str], list[list[float]]]:
+        """
+        Generates text embeddings using the specified provider.
+
+        This method supports multiple embedding providers and routes the request to the appropriate
+        embedding function based on the provider specified.
+
+        Args:
+            provider (str): The name of the embedding provider to use.
+                            Supported values: "gemini", "openai", "voyageai", "mistral", "local"
+            text (str): The text to generate embeddings for.
+
+        Returns:
+            tuple[list[str], list[list[float]]]: A tuple containing:
+                - A list of text chunks (str)
+                - A list of embedding vectors (list[float]) for each chunk
+
+        Raises:
+            AiError: If an unknown embedding provider is specified.
+        """
         if provider == "gemini":
             return AiService.embedding_document_with_gemini(text)
         elif provider == "openai":
@@ -198,6 +243,20 @@ class AiService:
             raise AiError("unknown embedding provider")
 
     @staticmethod
+    def embedding_document_with_gemini(text: str, max_tokens=2000) -> tuple[list[str], list[list[float]]]:
+
+        if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":
+            raise AiError("gemini api key is not set or is empty.")
+        try:
+            texts = AiService.__chunk_text(text, max_tokens)
+            genai.configure(api_key=env.GEMINI_API_KEY)
+            return texts, [genai.embed_content(content=text, model=env.GEMINI_EMBEDDING_MODEL)['embedding'] for text in
+                           texts]
+        except Exception as e:
+            logger.debug(f"\nerror in embedding_document_with_gemini: \n{text}", exc_info=True)
+            raise e
+
+    @staticmethod
     def embed_document_with_openai(text: str, max_tokens=8000) -> tuple[list[str], list[list[float]]]:
         if env.OPENAI_API_KEY is None or env.OPENAI_API_KEY.strip() == "":
             raise AiError("openai api key is not set or is empty.")
@@ -208,7 +267,6 @@ class AiService:
 
     @staticmethod
     def embed_document_with_voyageai(text: str, max_tokens=16000) -> tuple[list[str], list[list[float]]]:
-
         if env.VOYAGEAI_API_KEY is None or env.VOYAGEAI_API_KEY.strip() == "":
             raise AiError("voyageai api key is not set or is empty.")
         texts = AiService.__chunk_text(text, max_tokens)
@@ -228,7 +286,6 @@ class AiService:
 
     @staticmethod
     def embed_document_with_local(text: str, max_tokens=16000) -> tuple[list[str], list[list[float]]]:
-
         texts = AiService.__chunk_text(text, max_tokens)
         encoder = AiService.__get_local_embedding_encoder()
         return texts, [encoder.encode([text], normalize_embeddings=True, convert_to_numpy=True).tolist()[0] for text in
@@ -236,12 +293,46 @@ class AiService:
 
     @staticmethod
     def store_embeddings(table: str, ids: list[str], texts: list[str], embeddings: list[list[float]]):
+        """
+        Stores text embeddings in a Chroma database.
+
+        This method adds or updates embeddings in a specified collection (table) of the Chroma database.
+
+        Args:
+            table (str): The name of the collection to store the embeddings in.
+            ids (list[str]): A list of unique identifiers for each embedding.
+            texts (list[str]): A list of the original text strings corresponding to each embedding.
+            embeddings (list[list[float]]): A list of embedding vectors.
+
+        Note:
+            The lengths of ids, texts, and embeddings lists must be the same.
+        """
         collection = chromadb_client.get_or_create_collection(table)
         collection.add(ids=ids, embeddings=embeddings, documents=texts)
 
     @staticmethod
     def query_embeddings(table: str, queries: list[list[list[float]]], fetch_size: int = 3, thresholds: list[float] = None) -> tuple[int, list[str]]:
+        """
+        Queries the Chroma database for similar embeddings.
 
+        This method searches for embeddings in the specified collection (table) that are similar to the provided query embeddings.
+        It supports multiple thresholds for filtering results and returns unique documents across all queries.
+
+        Args:
+            table (str): The name of the collection to query.
+            queries (list[list[list[float]]]): A list of query embedding vectors.
+            fetch_size (int, optional): The maximum number of results to return. Defaults to 3.
+            thresholds (list[float], optional): A list of similarity thresholds to apply.
+                                                If None, uses a default threshold. Defaults to None.
+
+        Returns:
+            tuple[int, list[str]]: A tuple containing:
+                - The number of unique documents found (int)
+                - A list of the found documents (list[str])
+
+        Note:
+            The method ensures that duplicate documents are not returned, even if they match multiple queries or thresholds.
+        """
         if thresholds is None:
             thresholds = [env.QUERY_SIMILAR_THRESHOLD]
         collection = chromadb_client.get_or_create_collection(table)
@@ -286,6 +377,33 @@ class AiService:
             top_p: float = 0.8,
             top_k: int = 16
     ) -> str:
+        """
+        Interacts with various AI chat models to generate responses.
+
+        This method serves as a unified interface for interacting with different AI providers and models.
+        It routes the chat request to the appropriate provider-specific method based on the input.
+
+        Args:
+            provider (str): The AI provider to use. Supported values: "gemini", "openai", "claude", "mistral", "ollama"
+            model (str): The specific model to use within the chosen provider.
+            question (str): The user's input or question to send to the AI.
+            previous_chats (list[dict], optional): A list of previous chat messages for context. Defaults to None.
+            system_prompt (str, optional): A system message to set the behavior of the AI. Defaults to SYSTEM_PROMPT.
+            max_tokens (int, optional): The maximum number of tokens in the response. Defaults to 4096.
+            temperature (float, optional): Controls randomness in output. Higher values make output more random. Defaults to 0.6.
+            top_p (float, optional): Controls diversity of output. Defaults to 0.8.
+            top_k (int, optional): Controls the number of top tokens to consider. Defaults to 16.
+
+        Returns:
+            str: The AI-generated response.
+
+        Raises:
+            AiError: If an unknown provider is specified.
+
+        Note:
+            The specific parameters used (max_tokens, temperature, top_p, top_k) may vary depending on the provider.
+        """
+
         match provider:
             case "gemini":
                 return AiService.chat_with_gemini(model, question, previous_chats, system_prompt, max_tokens, temperature, top_p, top_k)
@@ -310,7 +428,6 @@ class AiService:
             temperature: float = 0.6,
             top_p: float = 0.8,
             top_k: int = 16) -> str:
-
         if previous_chats is None:
             previous_chats = []
         if env.GEMINI_API_KEY is None or env.GEMINI_API_KEY.strip() == "":

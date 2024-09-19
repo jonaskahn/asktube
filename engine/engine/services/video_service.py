@@ -6,7 +6,6 @@ from concurrent.futures.thread import ThreadPoolExecutor
 
 import iso639
 import tiktoken
-from lingua import LanguageDetectorBuilder
 from playhouse.shortcuts import model_to_dict
 from sanic.log import logger
 
@@ -16,8 +15,6 @@ from engine.services.ai_service import AiService
 from engine.supports import constants
 from engine.supports.errors import VideoError, AiError
 from engine.supports.prompts import SUMMARY_PROMPT
-
-detector = LanguageDetectorBuilder.from_all_spoken_languages().build()
 
 
 class VideoService:
@@ -63,22 +60,6 @@ class VideoService:
 
     @staticmethod
     async def analysis_video(vid: int):
-        """
-        Analyzes a video by its ID and updates its analysis status.
-
-        Fetches all chapter transcripts of the video and embeds them using the specified provider.
-        After that, all embeddings are stored in the database.
-
-        Args:
-            vid (int): The ID of the video to be analyzed.
-
-        Returns:
-            Video: The analyzed video object.
-
-        Raises:
-            VideoError: If the video is not found.
-            Exception: If an error occurs during the analysis process.
-        """
         video: Video = VideoService.find_video_by_id(vid)
         if video is None:
             raise VideoError("video is not found")
@@ -104,27 +85,6 @@ class VideoService:
 
     @staticmethod
     def __prepare_video_transcript(video: Video, video_chapters: list[VideoChapter]):
-        """
-        Prepares the transcript for a given video.
-
-        Args:
-            video (Video): The video object.
-            video_chapters (list[VideoChapter]): The list of video chapters.
-
-        Returns:
-            None
-
-        Raises:
-            None
-
-        This function checks if the video does not have a raw transcript. If it doesn't, it starts the process of recognizing the transcript. It uses a ThreadPoolExecutor with a maximum of 4 workers to submit speech-to-text tasks for each chapter in the video. The results of these tasks are stored in transcripts and predict_langs. Once all the tasks are completed, the transcripts are sorted based on the start_time and stored in sorted_transcripts. The function then sets the raw_transcript of the video to the sorted_transcripts in JSON format. It also determines the most common language and sets the language of the video accordingly. Finally, the function pairs the video chapters with the transcripts, calculates the number of transcript tokens, and sets the transcript_tokens attribute of the video.
-
-        Note:
-        - This function assumes that the AiService.speech_to_text function is defined and returns a tuple of the predicted language and the transcript.
-        - The tiktoken.get_encoding function is assumed to be defined and returns an encoding object.
-        - The constants.ANALYSIS_STAGE_INITIAL, constants.ANALYSIS_STAGE_PROCESSING, and constants.ANALYSIS_STAGE_COMPLETED are assumed to be defined.
-        """
-
         if not video.raw_transcript:
             logger.debug("start to recognize video transcript")
             with ThreadPoolExecutor(max_workers=4) as executor:
@@ -148,21 +108,6 @@ class VideoService:
 
     @staticmethod
     def __merge_transcript_to_chapter(video: Video, video_chapters: list[VideoChapter], transcripts: [{}]):
-        """
-        Pairs video chapters with their corresponding transcripts.
-
-        Args:
-            video (Video): The video object containing the chapters.
-            video_chapters (list[VideoChapter]): A list of video chapters.
-            transcripts ([{}]): A list of transcript dictionaries.
-
-        Raises:
-            VideoError: If the transcripts list is empty.
-
-        Returns:
-            None
-        """
-
         if len(transcripts) == 0:
             raise VideoError("transcript should never be empty")
         for chapter in video_chapters:
@@ -211,20 +156,6 @@ class VideoService:
 
     @staticmethod
     async def __analysis_chapters(video_chapters: list[VideoChapter], provider: str) -> int:
-        """
-        Analyzes video chapters using a specified provider.
-
-        Args:
-            video_chapters (list[VideoChapter]): A list of video chapters to be analyzed.
-            provider (str): The provider to use for analysis. Can be one of "gemini", "openai", "voyageai", "mistral", or "local".
-
-        Returns:
-            int: The total number of parts analyzed.
-
-        Raises:
-            AiError: If the provider is unknown.
-        """
-
         with ThreadPoolExecutor(max_workers=len(video_chapters)) as executor:
             if provider == "gemini":
                 futures = [executor.submit(VideoService.__analysis_video_with_gemini, chapter) for chapter in
@@ -302,22 +233,6 @@ class VideoService:
 
     @staticmethod
     async def summary_video(vid: int, lang_code: str, provider: str, model: str = None) -> str:
-        """
-        Generates a summary of a video.
-
-        Args:
-            vid (int): The ID of the video.
-            lang_code (str): The language code of the summary.
-            provider (str): The provider of the video.
-            model (str, optional): The model to use for generating the summary. Defaults to None.
-
-        Returns:
-            str: The summary of the video.
-
-        Raises:
-            VideoError: If the video is not found.
-        """
-
         video: Video = VideoService.find_video_by_id(vid)
         if video is None:
             raise VideoError("video is not found")
@@ -366,23 +281,6 @@ class VideoService:
 
     @staticmethod
     def delete(video_id: int):
-        """
-        Deletes a video by its ID.
-
-        This function deletes a video from the database and also removes its associated chapters.
-        It uses a transaction to ensure that either all changes are committed or none are,
-        in case of an exception.
-
-        Parameters:
-            video_id (int): The ID of the video to be deleted.
-
-        Returns:
-            None
-
-        Raises:
-            Exception: If any error occurs during the deletion process.
-        """
-
         with sqlite_client.atomic() as transaction:
             try:
                 video = VideoService.find_video_by_id(video_id)
