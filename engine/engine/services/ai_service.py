@@ -24,6 +24,7 @@ from engine.supports import env
 from engine.supports.env import MISTRAL_API_KEY
 from engine.supports.errors import AiError
 from engine.supports.prompts import SYSTEM_PROMPT
+from engine.supports.utils import sha256
 
 has_cuda = torch.cuda.is_available()
 has_mps = torch.backends.mps.is_available()
@@ -368,13 +369,13 @@ class AiService:
         collection.add(ids=ids, embeddings=embeddings, documents=texts)
 
     @staticmethod
-    def query_embeddings(table: str, query: list[list[float]], fetch_size: int = 10, thresholds: list[float] = None):
+    def query_embeddings(table: str, queries: list[list[list[float]]], fetch_size: int = 3, thresholds: list[float] = None) -> tuple[int, list[str]]:
         """
         Queries embeddings in a ChromaDB collection.
 
         Args:
             table (str): The name of the collection to query the embeddings from.
-            query (list[list[float]]): The list of query embeddings.
+            queries (list[list[float]]): The list of query embeddings.
             fetch_size (int, optional): The number of results to fetch. Defaults to 10.
             thresholds (list[float], optional): The list of thresholds to filter the results by. Defaults to [env.QUERY_SIMILAR_THRESHOLD].
 
@@ -385,28 +386,34 @@ class AiService:
         if thresholds is None:
             thresholds = [env.QUERY_SIMILAR_THRESHOLD]
         collection = chromadb_client.get_or_create_collection(table)
-        results = collection.query(query_embeddings=query, n_results=fetch_size, include=['documents', 'distances'])
-
-        distances = results['distances']
-        documents = results['documents']
-        flat_distances = [dist for sublist in distances for dist in sublist]
-        flat_documents = [doc for sublist in documents for doc in sublist]
-
-        distance_doc_pairs = list(zip(flat_distances, flat_documents))
+        n_result = collection.count()
         top_closest = []
-        for threshold in thresholds:
-            filtered_pairs = [pair for pair in distance_doc_pairs if pair[0] <= threshold]
-            sorted_pairs = sorted(filtered_pairs, key=lambda pair: pair[0])
-            top_closest.extend(sorted_pairs[:max(1, fetch_size)])
-
-        unique_documents = []
         seen_docs = set()
-        for _, doc in top_closest:
-            doc_id = id(doc)
-            if doc_id not in seen_docs:
-                unique_documents.append(doc)
-                seen_docs.add(doc_id)
-        return len(unique_documents), "\n".join(unique_documents)
+        for query in queries:
+            if not query:
+                continue
+            results = collection.query(query_embeddings=query, n_results=n_result, include=['documents', 'distances'])
+
+            distances = results['distances']
+            documents = results['documents']
+            flat_distances = [dist for sublist in distances for dist in sublist]
+            flat_documents = [doc for sublist in documents for doc in sublist]
+
+            distance_doc_pairs = list(zip(flat_distances, flat_documents))
+            for threshold in thresholds:
+                filtered_pairs = [pair for pair in distance_doc_pairs if pair[0] <= threshold]
+                sorted_pairs = sorted(filtered_pairs, key=lambda pair: pair[0])
+                for data in sorted_pairs:
+                    doc_id = sha256(data[1])
+                    if doc_id not in seen_docs:
+                        seen_docs.add(doc_id)
+                        top_closest.append(data)
+
+        docs = []
+        potential_result = sorted(top_closest, key=lambda pair: pair[0])
+        for _, doc in potential_result[:max(1, fetch_size)]:
+            docs.append(doc)
+        return len(docs), docs
 
     @staticmethod
     def chat_with_ai(

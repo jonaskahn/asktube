@@ -96,18 +96,27 @@ const onChat = async () => {
       'provider': selectedChatProvider.value,
       'model': selectedChatModel.value
     })
+    console.debug(JSON.stringify(chatResponse))
+    if (chatResponse.status_code >= 400) {
+      chats.value.pop()
+      useNuxtApp().$toast.error("Fail to get answer from server, please try again", {
+        autoClose: 2000
+      })
+      return
+    }
     chats.value.pop()
     chats.value.push(chatResponse.payload)
     chatMessage.value = null
-    await nextTick();
-    scrollToBottom();
   } catch (e) {
-    useNuxtApp().$toast.error("Something went wrong, try later", {
+    console.debug(e)
+    chats.value.pop()
+    useNuxtApp().$toast.error("Something went wrong, try again", {
       autoClose: 2000
     })
   } finally {
     onHoldMessageResponse.value = false
     await nextTick()
+    scrollToBottom();
     chatRef.value.focus()
   }
 
@@ -156,15 +165,15 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex flex-row">
-    <div class="basis-1/2 border-amber-300 w-full h-screen">
+  <div class="flex flex-col md:flex-row">
+    <div class="basis-2/5 border-amber-300 w-full h-screen">
       <div class="card bg-base-100 shadow-xl w-full ">
         <figure class="w-full">
           <iframe :src="video.play_url" class="w-full rounded-lg shadow-2xl" height="400" />
         </figure>
         <div class="card-body rounded-2xl">
           <h1 class="card-title"> {{ shortenWord(video.title) }}</h1>
-          <div class="collapse collapse-arrow bg-base-200">
+          <div class="collapse collapse-arrow bg-base-300">
             <input type="checkbox" />
             <div class="collapse-title text-xl font-medium rounded-2xl">Summary Settings</div>
             <div class="collapse-content">
@@ -194,19 +203,31 @@ onMounted(async () => {
             </div>
           </div>
           <div class="divider">🌟</div>
-          <article v-if="summary" class="prose overflow-auto h-96">
-            <MDCRenderer :body="summary.body" :data="summary.data" />
-          </article>
+          <div class="collapse collapse-arrow bg-base-200 md:hidden">
+            <input type="checkbox" />
+            <div class="collapse-title text-xl font-medium rounded-2xl">Read Summary</div>
+            <div class="collapse-content">
+              <article v-if="summary" class="prose overflow-auto h-96">
+                <MDCRenderer :body="summary.body" :data="summary.data" />
+              </article>
+            </div>
+          </div>
+          <div class="hidden md:block">
+            <article v-if="summary" class="prose overflow-auto h-96">
+              <MDCRenderer :body="summary.body" :data="summary.data" />
+            </article>
+          </div>
+
 
         </div>
       </div>
     </div>
-    <div class="divider divider-horizontal">🌟</div>
-    <div class="basis-1/2">
+    <div class="divider lg:divider-horizontal">🌟</div>
+    <div class="basis-3/5">
       <div class="h-screen flex items-start justify-center border-amber-300">
         <div class="card w-full h-3/4 shadow-xl flex flex-col">
           <div class="card-header p-4">
-            <div class="collapse collapse-arrow bg-base-200">
+            <div class="collapse collapse-arrow bg-base-300">
               <input type="checkbox" />
               <div class="collapse-title text-xl font-medium rounded-2xl">Chat Settings</div>
               <div class="collapse-content">

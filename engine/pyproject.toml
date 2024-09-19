@@ -32,6 +32,7 @@ ujson = "^5.10.0"
 urllib3 = "^2.2.2"
 voyageai = "^0.2.3"
 torch = "^2.4.1"
+retry2 = "^0.9.5"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"

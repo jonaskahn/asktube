@@ -1,11 +1,13 @@
 from playhouse.shortcuts import model_to_dict
+from retry import retry
+from sanic.log import logger
 
 from engine.database.models import Video, Chat
 from engine.services.ai_service import AiService
 from engine.services.video_service import VideoService
 from engine.supports import env
 from engine.supports.errors import ChatError
-from engine.supports.prompts import ASKING_PROMPT_WITH_RAG, ASKING_PROMPT_WITHOUT_RAG
+from engine.supports.prompts import ASKING_PROMPT_WITH_RAG, ASKING_PROMPT_WITHOUT_RAG, MULTI_QUERY_PROMPT
 
 
 class ChatService:
@@ -124,19 +126,14 @@ class ChatService:
 
     @staticmethod
     async def __ask_with_rag(question: str, video: Video, chats: list[Chat], provider: str, model: str = None) -> dict[object]:
-        _, embedding_question = AiService.get_texts_embedding(video.embedding_provider, question)
-
-        amount, document = AiService.query_embeddings(
-            table=f"video_{video.id}",
-            query=embedding_question,
-            fetch_size=video.total_parts
-        )
-
+        context_document = ChatService.__get_relevant_doc(provider=provider, model=model, video=video, question=question)
+        logger.debug(f"Relevant docs: {context_document}")
         context = ASKING_PROMPT_WITH_RAG.format(**{
             "title": video.title,
             "url": video.url,
-            "context": document
-        }) if document else "No information, just answer me in your ability"
+            "context": context_document
+        }) if context_document else "No video information related, just answer me in your ability"
+
         match provider:
             case "gemini":
                 result = await ChatService.__ask_gemini_with_rag(model=model, question=question, context=context, chats=chats)
@@ -156,12 +153,48 @@ class ChatService:
             question=question,
             refined_question="Not Implemented Yet",
             answer=result,
-            context=document if document else "",
+            context="document if document else """,
             prompt=context if context else "",
             provider=provider
         )
         chat.save()
         return model_to_dict(chat)
+
+    @staticmethod
+    def __get_relevant_doc(provider: str, model: str, video: Video, question: str, ) -> str | None:
+        implementation = env.RAG_QUERY_IMPLEMENTATION
+        match implementation:
+            case "multiquery":
+                return ChatService.__get_relevant_doc_by_multiquery(provider, model, video, question)
+            case _:
+                raise ChatError(f"not support {implementation} yet")
+
+    @staticmethod
+    def __get_relevant_doc_by_multiquery(provider: str, model: str, video: Video, question: str, ) -> str | None:
+        multi_query_prompt = MULTI_QUERY_PROMPT.format(**{
+            "question": question,
+            "title": video.title,
+            "language": video.language
+        })
+
+        questions = AiService.chat_with_ai(provider, model, multi_query_prompt).split("\n")
+        if questions[0].lower().strip() == question.lower().strip():
+            return None
+        return ChatService.__query_document_by_multi_query(questions, video)
+
+    @staticmethod
+    @retry(tries=5)
+    def __query_document_by_multi_query(questions, video):
+        embedding_questions = []
+        for relevant_question in questions:
+            if relevant_question.strip():
+                _, embedding_question = AiService.get_texts_embedding(video.embedding_provider, relevant_question)
+                embedding_questions.append(embedding_question)
+        _, documents = AiService.query_embeddings(
+            table=f"video_{video.id}",
+            queries=embedding_questions
+        )
+        return "\n".join(documents) if documents else None
 
     @staticmethod
     async def __ask_gemini_with_rag(model: str, question: str, context: str, chats: list[Chat]) -> str:

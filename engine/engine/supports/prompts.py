@@ -61,7 +61,7 @@ OUTPUT:
 No yapping!!!
 """
 
-ASKING_PROMPT_WITH_RAG = """This is a related video information:
+ASKING_PROMPT_WITH_RAG = """This is a additional related video information:
 1. Title: {title}
 
 2. URL: {url}
@@ -82,4 +82,12 @@ ASKING_PROMPT_WITHOUT_RAG = """ Please read carefully the video information and 
 
 4. Transcript: 
 {context}
+"""
+
+MULTI_QUERY_PROMPT = """Generate five variations of the user's question to help retrieve relevant segments from a YouTube video. First, assess if the question relates to the video title. If unrelated, return only the original question. If related, provide five alternatives separated by newlines.
+Youtube Video: {title}
+Original question: {question}
+Output in {language}
+Do not include any instructions or meta-text in your response, provide output directly.
+No yapping!!!
 """
