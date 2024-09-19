@@ -9,6 +9,7 @@ import google.generativeai as genai
 import tiktoken
 import torch
 import voyageai
+from anthropic import NOT_GIVEN
 from audio_extract import extract_audio
 from faster_whisper import WhisperModel
 from future.backports.datetime import timedelta
@@ -371,7 +372,7 @@ class AiService:
             model: str,
             question: str,
             previous_chats: list[dict] = None,
-            system_prompt: str = SYSTEM_PROMPT,
+            system_prompt: str | None = SYSTEM_PROMPT,
             max_tokens: int = 4096,
             temperature: float = 0.6,
             top_p: float = 0.8,
@@ -423,7 +424,7 @@ class AiService:
             model: str,
             question: str,
             previous_chats: list[dict] = None,
-            system_prompt: str = SYSTEM_PROMPT,
+            system_prompt: str | None = SYSTEM_PROMPT,
             max_tokens: int = 4096,
             temperature: float = 0.6,
             top_p: float = 0.8,
@@ -458,7 +459,7 @@ class AiService:
             model: str,
             question: str,
             previous_chats: list[dict] = None,
-            system_prompt: str = SYSTEM_PROMPT,
+            system_prompt: str | None = SYSTEM_PROMPT,
             max_tokens: int = 4096,
             temperature: float = 0.7,
             top_p: float = 0.8) -> str:
@@ -469,10 +470,11 @@ class AiService:
             raise AiError("openai api key is not set or is empty.")
         client = OpenAI(api_key=env.OPENAI_API_KEY)
         chat_messages = previous_chats[:]
-        chat_messages.insert(0, {
-            "role": "system",
-            "content": system_prompt
-        })
+        if system_prompt:
+            chat_messages.insert(0, {
+                "role": "system",
+                "content": system_prompt
+            })
         chat_messages.append({
             "role": "user",
             "content": question
@@ -491,7 +493,7 @@ class AiService:
             model: str,
             question: str,
             previous_chats: list[dict] = None,
-            system_prompt: str = SYSTEM_PROMPT,
+            system_prompt: str | None = SYSTEM_PROMPT,
             max_tokens: int = 4096,
             temperature: float = 0.6,
             top_p: float = 0.7,
@@ -508,7 +510,7 @@ class AiService:
         })
         response = client.messages.create(
             model=model if model is not None or model else "claude-3-haiku-20240307",
-            system=system_prompt,
+            system=NOT_GIVEN if not system_prompt else system_prompt,
             messages=chat_messages,
             max_tokens=max_tokens,
             temperature=temperature,
@@ -522,7 +524,7 @@ class AiService:
             model: str,
             question: str,
             previous_chats: list[dict] = None,
-            system_prompt: str = SYSTEM_PROMPT,
+            system_prompt: str | None = SYSTEM_PROMPT,
             max_tokens: int = 2048,
             temperature: float = 0.6,
             top_p: float = 0.8) -> str:
@@ -533,9 +535,10 @@ class AiService:
             raise AiError("mistral api key is not set or is empty.")
         client = Mistral(api_key=env.MISTRAL_API_KEY)
         chat_messages = previous_chats[:]
-        chat_messages.insert(0, {
-            "role": "system", "content": system_prompt
-        })
+        if system_prompt:
+            chat_messages.insert(0, {
+                "role": "system", "content": system_prompt
+            })
         chat_messages.append({
             "role": "user", "content": question
         })
@@ -553,7 +556,7 @@ class AiService:
             model: str,
             question: str,
             previous_chats: list[dict] = None,
-            system_prompt: str = SYSTEM_PROMPT,
+            system_prompt: str | None = SYSTEM_PROMPT,
             temperature: float = 0.6,
             top_p: float = 0.8,
             top_k: int = 16) -> str:
@@ -562,9 +565,10 @@ class AiService:
             previous_chats = []
         client = Client(host=env.LOCAL_OLLAMA_HOST)
         chat_messages = previous_chats[:]
-        chat_messages.insert(0, {
-            "role": "system", "content": system_prompt
-        })
+        if system_prompt:
+            chat_messages.insert(0, {
+                "role": "system", "content": system_prompt
+            })
         chat_messages.append({
             "role": "user", "content": question
         })

@@ -1,6 +1,6 @@
 SYSTEM_PROMPT = (
-    "You are AskTube, an helpful AI that analyzes YouTube videos to answer questions, summarize content - powered by [JonasKahn](https://github.com/jonaskahn), an open source developer."
-    "Always respond in same language as use input if user do not mention specific target language."
+    "You are AskTube, an helpful AI that analyzes YouTube videos to answer questions, summarize content - powered by [Jonas Kahn](https://github.com/jonaskahn), an open source developer."
+    "Always respond in same language as use input if user do not mention specific target language in friendly way."
     "If you have ability, otherwise say I do not know or something like that.Do not try to make up. No yapping!!!"
 )
 
@@ -75,13 +75,26 @@ ASKING_PROMPT_WITHOUT_RAG = """ Please read carefully the video information and 
 {context}
 """
 
-MULTI_QUERY_PROMPT = """You are an AI language model assistant. Your task is to generate five different versions of the given user question, based on the provided YouTube video title & question.
-By creating multiple variations of the user question, you aim to enhance the search effectiveness when retrieving relevant video content from a vector database. 
-Your goal is to help the user overcome potential limitations of distance-based similarity search in the context of video content.
-Now assess if the question relates to the video title. If unrelated, return only the original question. If related, provide five precise and concise alternatives follow instruction above, separated by newlines.
-YouTube Video: {title}
-Original question: {question}
-Output in: {language}
-Do not include any instructions or meta-text in your response, provide output directly.
-No yapping!!!
+MULTI_QUERY_PROMPT = """You are an AI language model assistant. Analyze the relationship between the original question and the YouTube video title:
+
+YouTube Video: "{title}"
+Original question: "{question}"
+
+# TASK:
+----
+1. Determine if the original question is directly related to the video title's main topic or content.
+2. If related:
+   - Generate five different versions of the original question, seperated by lines that are :
+     a) More specific to the video's content
+     b) Using relevant keywords from the title
+     c) Focusing on potential subtopics within the main theme
+     d) Addressing different aspects or angles of the video's subject
+     e) Phrased to elicit more detailed responses about the video's content
+   - Ensure each question is distinct and adds value to the search
+3. If not related:
+   - Respond with only "NO"
+
+Output language: {language}
+
+IMPORTANT: Provide output directly without any explanations, instructions, or meta-text
 """

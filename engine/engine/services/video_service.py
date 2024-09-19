@@ -251,7 +251,7 @@ class VideoService:
             "transcript": video.transcript,
             "language": language,
         })
-        return AiService.chat_with_ai(provider=provider, model=model, question=prompt)
+        return AiService.chat_with_ai(provider=provider, model=model, question=prompt, system_prompt=SUMMARY_PROMPT)
 
     @staticmethod
     async def analysis_summary_video(vid: int, model: str, provider: str):

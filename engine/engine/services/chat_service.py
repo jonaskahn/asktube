@@ -1,3 +1,4 @@
+import iso639
 from playhouse.shortcuts import model_to_dict
 from retry import retry
 from sanic.log import logger
@@ -7,7 +8,7 @@ from engine.services.ai_service import AiService
 from engine.services.video_service import VideoService
 from engine.supports import env
 from engine.supports.errors import ChatError
-from engine.supports.prompts import ASKING_PROMPT_WITH_RAG, ASKING_PROMPT_WITHOUT_RAG, MULTI_QUERY_PROMPT
+from engine.supports.prompts import ASKING_PROMPT_WITH_RAG, ASKING_PROMPT_WITHOUT_RAG, MULTI_QUERY_PROMPT, SYSTEM_PROMPT
 
 
 class ChatService:
@@ -295,11 +296,11 @@ class ChatService:
         multi_query_prompt = MULTI_QUERY_PROMPT.format(**{
             "question": question,
             "title": video.title,
-            "language": video.language
+            "language": iso639.Language.from_part1(video.language).name
         })
-
-        questions = AiService.chat_with_ai(provider, model, multi_query_prompt).split("\n")
-        if len(question) == 1 and questions[0].lower().strip() == question.lower().strip():
+        logger.debug(f"Multiquery generated:```\n{multi_query_prompt}\n```")
+        questions = AiService.chat_with_ai(provider=provider, model=model, question=multi_query_prompt, system_prompt=None).split("\n")
+        if len(questions) == 1 and questions[0].lower().strip() == "no":
             return None
         return ChatService.__query_document_by_multi_query(questions, video)
 
@@ -341,7 +342,7 @@ class ChatService:
     @staticmethod
     async def __ask_gemini_with_rag(model: str, question: str, context: str, chats: list[Chat]) -> str:
         previous_chats = ChatService.__build_gemini_rag_chat_histories(question=question, chats=chats)
-        return AiService.chat_with_gemini(model=model, question=context, previous_chats=previous_chats)
+        return AiService.chat_with_gemini(model=model, question=context, previous_chats=previous_chats, system_prompt=SYSTEM_PROMPT)
 
     @staticmethod
     def __build_gemini_rag_chat_histories(question: str, chats: list[Chat]) -> list[dict]:
@@ -362,7 +363,7 @@ class ChatService:
     @staticmethod
     async def __ask_openai_with_rag(model: str, question: str, context: str, chats: list[Chat]) -> str:
         previous_chats = ChatService.__build_openai_rag_chat_histories(question=question, chats=chats)
-        return AiService.chat_with_openai(model=model, question=context, previous_chats=previous_chats)
+        return AiService.chat_with_openai(model=model, question=context, previous_chats=previous_chats, system_prompt=SYSTEM_PROMPT)
 
     @staticmethod
     def __build_openai_rag_chat_histories(question: str, chats: list[Chat]) -> list[dict]:
@@ -385,17 +386,17 @@ class ChatService:
     @staticmethod
     async def __ask_claude_with_rag(model: str, question: str, context: str, chats: list[Chat]) -> str:
         previous_chats = ChatService.__build_openai_rag_chat_histories(question=question, chats=chats)
-        return AiService.chat_with_claude(model=model, question=context, previous_chats=previous_chats)
+        return AiService.chat_with_claude(model=model, question=context, previous_chats=previous_chats, system_prompt=SYSTEM_PROMPT)
 
     @staticmethod
     async def __ask_mistral_with_rag(model: str, question: str, context: str, chats: list[Chat]) -> str:
         previous_chats = ChatService.__build_openai_rag_chat_histories(question=question, chats=chats)
-        return AiService.chat_with_mistral(model=model, question=context, previous_chats=previous_chats)
+        return AiService.chat_with_mistral(model=model, question=context, previous_chats=previous_chats, system_prompt=SYSTEM_PROMPT)
 
     @staticmethod
     async def __ask_ollama_with_rag(model: str, question: str, context: str, chats: list[Chat]) -> str:
         previous_chats = ChatService.__build_openai_rag_chat_histories(question=question, chats=chats)
-        return AiService.chat_with_mistral(model=model, question=context, previous_chats=previous_chats)
+        return AiService.chat_with_mistral(model=model, question=context, previous_chats=previous_chats, system_prompt=SYSTEM_PROMPT)
 
     @staticmethod
     def get_chat_histories(video_id: int) -> list[{}]:
