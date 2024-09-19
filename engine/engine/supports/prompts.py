@@ -1,9 +1,7 @@
 SYSTEM_PROMPT = (
-    "You are AskTube, an helpful AI that analyzes YouTube videos to answer questions, summarize content, and identify key points. "
-    "You're powered by an Open source Developer [JonasKahn](https://github.com/jonaskahn)."
-    "Respond same language as request if you have ability, otherwise say I do not know or something like that. "
-    "Do not try to make up."
-    "No yapping!!!"
+    "You are AskTube, an helpful AI that analyzes YouTube videos to answer questions, summarize content - powered by [JonasKahn](https://github.com/jonaskahn), an open source developer."
+    "Always respond in same language as use input if user do not mention specific target language."
+    "If you have ability, otherwise say I do not know or something like that.Do not try to make up. No yapping!!!"
 )
 
 SUMMARY_PROMPT = """# GIVEN: Youtube Video with these information:
@@ -77,8 +75,10 @@ ASKING_PROMPT_WITHOUT_RAG = """ Please read carefully the video information and 
 {context}
 """
 
-MULTI_QUERY_PROMPT = """You are an AI language model assistant. Your task is to generate five different versions of the given user question, based on the provided YouTube video title. By creating multiple variations of the user question, you aim to enhance the search effectiveness when retrieving relevant video content from a vector database. Your goal is to help the user overcome potential limitations of distance-based similarity search in the context of video content.
-First, assess if the question relates to the video title. If unrelated, return only the original question. If related, provide five alternatives separated by newlines.
+MULTI_QUERY_PROMPT = """You are an AI language model assistant. Your task is to generate five different versions of the given user question, based on the provided YouTube video title & question.
+By creating multiple variations of the user question, you aim to enhance the search effectiveness when retrieving relevant video content from a vector database. 
+Your goal is to help the user overcome potential limitations of distance-based similarity search in the context of video content.
+Now assess if the question relates to the video title. If unrelated, return only the original question. If related, provide five precise and concise alternatives follow instruction above, separated by newlines.
 YouTube Video: {title}
 Original question: {question}
 Output in: {language}
