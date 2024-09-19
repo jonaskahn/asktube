@@ -53,6 +53,11 @@
   - [x] ~Skip using RAG for short videos~
   - [ ] Chat prompts, chat messages by context limit
   - [ ] RAG: Implement Query Translation
+    - [x] ~Multiquery~
+    - [ ] Fusion
+    - [ ] Decomposition
+    - [ ] Step back
+    - [ ] HyDE
 
 ---
 
