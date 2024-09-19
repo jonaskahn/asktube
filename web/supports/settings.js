@@ -6,5 +6,5 @@ export default {
     "background-color": "oklch(var(--b3))",
     width: 64,
     height: 64,
-  }
+  },
 };
