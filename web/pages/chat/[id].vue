@@ -214,7 +214,7 @@ onMounted(async () => {
             height="400"
           />
         </figure>
-        <div class="card-body">
+        <div class="card-body-mobile md:card-body">
           <h1 class="card-title">{{ shortenWord(video.title) }}</h1>
           <div class="collapse collapse-arrow bg-base-300">
             <input type="checkbox" />
@@ -271,7 +271,11 @@ onMounted(async () => {
               <div class="divider md:hidden">🌟</div>
               <div class="md:hidden">
                 <article v-if="summary" class="overflow-auto h-86">
-                  <MDCRenderer :body="summary.body" :data="summary.data" />
+                  <MDCRenderer
+                    :body="summary.body"
+                    :data="summary.data"
+                    class="prose"
+                  />
                 </article>
               </div>
             </div>
@@ -344,7 +348,7 @@ onMounted(async () => {
           <div class="card-body flex-grow flex flex-col overflow-hidden p-4">
             <div
               id="chatContainer"
-              class="flex-grow overflow-y-auto space-y-4 p-4 mb-4"
+              class="flex-grow overflow-y-auto md:space-y-2 md:p-4 md:mb-2"
             >
               <div v-for="chat in chats" :key="chat.id">
                 <div class="chat chat-end">
