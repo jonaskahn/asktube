@@ -10,6 +10,7 @@ from sanic.worker.manager import WorkerManager
 from engine.cors import add_cors_headers
 from engine.database.models import Video, VideoChapter, Chat
 from engine.database.specs import sqlite_client
+from engine.services.chat_service import ChatService
 from engine.services.video_service import VideoService
 from engine.services.youtube_service import YoutubeService
 from engine.supports.errors import LogicError
@@ -177,7 +178,7 @@ async def opts_list_videos(request: Request, page: int):
 
 @app.get("/api/videos/<page>")
 async def list_videos(request: Request, page: int):
-    total, data = VideoService.get(page)
+    total, data = VideoService.get_videos_with_paging(page)
     return json({
         "status_code": 200,
         "message": "Successfully",
@@ -199,7 +200,7 @@ async def chat(request: Request):
     question = request.json['question']
     provider = request.json['provider']
     model = request.json.get("model", None)
-    data = await asyncio.create_task(VideoService.ask(question, vid, provider, model))
+    data = await asyncio.create_task(ChatService.ask(question, vid, provider, model))
     return json({
         "status_code": 200,
         "message": "Successfully",
@@ -214,7 +215,7 @@ async def opts_chat_history(request: Request, video_id: int):
 
 @app.get("/api/chat/history/<video_id>")
 async def chat_history(request: Request, video_id: int):
-    chat_histories = VideoService.get_chat_histories(video_id=video_id)
+    chat_histories = ChatService.get_chat_histories(video_id=video_id)
     return json({
         "status_code": 200,
         "message": "Successfully",
@@ -229,8 +230,9 @@ async def opts_clear_chat(request: Request, video_id: int):
 
 @app.delete("/api/chat/clear/<video_id>")
 async def clear_chat(request: Request, video_id: int):
-    VideoService.clear_chat(video_id)
+    ChatService.clear_chat(video_id)
     return response.HTTPResponse(status=200)
+
 
 if __name__ == '__main__':
     setup_log()
