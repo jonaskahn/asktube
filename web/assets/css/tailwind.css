@@ -1,3 +1,15 @@
 @tailwind base;
 @tailwind components;
+
+.card-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  padding: var(--padding-card, 1rem);
+  gap: 0.5rem;
+}
+.prose {
+  color: var(--tw-prose-body);
+  max-width: 100%;
+}
 @tailwind utilities;

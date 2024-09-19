@@ -17,10 +17,10 @@ export default defineNuxtConfig({
   css: ["vue-loading-overlay/dist/css/index.css", "assets/css/global.css"],
   mdc: {
     highlight: {
-      theme: "catppuccin-frappe",
+      theme: "material-theme-darker",
     },
     components: {
-      prose: false,
+      prose: true,
       map: {
         h1: "h3",
         h2: "h4",

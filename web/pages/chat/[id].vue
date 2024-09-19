@@ -204,7 +204,7 @@ onMounted(async () => {
 <template>
   <div class="flex flex-col md:flex-row">
     <div
-      class="transition-none md:transition ease-in-out hover:-translate-y-1 hover:scale-110 hover:basis-4/5 duration-1000 basis-2/5 border-amber-300 w-full h-screen"
+      class="transition-none md:transition ease-in-out md:hover:-translate-y-1 md:hover:scale-110 md:hover:basis-4/5 duration-1000 basis-2/5 border-amber-300 w-full h-screen"
     >
       <div class="card bg-base-100 shadow-xl w-full">
         <figure class="w-full">
@@ -218,9 +218,7 @@ onMounted(async () => {
           <h1 class="card-title">{{ shortenWord(video.title) }}</h1>
           <div class="collapse collapse-arrow bg-base-300">
             <input type="checkbox" />
-            <div class="collapse-title text-xl font-sans">
-              Summary Settings
-            </div>
+            <div class="collapse-title text-xl font-sans">Summary Settings</div>
             <div class="collapse-content">
               <div class="flex flex-col lg:flex-row">
                 <div class="md:basis-1/3 p-2">
@@ -270,24 +268,25 @@ onMounted(async () => {
                   Summary
                 </button>
               </div>
+              <div class="divider md:hidden">🌟</div>
+              <div class="md:hidden">
+                <article v-if="summary" class="overflow-auto h-86">
+                  <MDCRenderer :body="summary.body" :data="summary.data" />
+                </article>
+              </div>
             </div>
           </div>
-          <div class="divider">🌟</div>
-          <div class="collapse collapse-arrow bg-base-200 md:hidden">
-            <input type="checkbox" />
-            <div class="collapse-title text-xl font-sans">Read Summary</div>
-            <div class="collapse-content">
-              <article v-if="summary" class="prose overflow-auto h-86">
-                <MDCRenderer :body="summary.body" :data="summary.data" />
-              </article>
-            </div>
-          </div>
+
           <div class="hidden md:block">
             <article
               v-if="summary"
-              class="transition-none md:transition ease-in-out hover:h-full duration-1000 prose overflow-y-auto h-86"
+              class="transition-none md:transition ease-in-out md:hover:-translate-y-1 md:hover:h-full md:hover:w-full duration-1000 overflow-y-auto h-86"
             >
-              <MDCRenderer :body="summary.body" :data="summary.data" />
+              <MDCRenderer
+                :body="summary.body"
+                :data="summary.data"
+                class="prose prose-fuchsia p-4"
+              />
             </article>
           </div>
         </div>
@@ -300,9 +299,7 @@ onMounted(async () => {
           <div class="card-header">
             <div class="collapse collapse-arrow bg-base-300">
               <input type="checkbox" />
-              <div class="collapse-title text-xl font-sans">
-                Chat Settings
-              </div>
+              <div class="collapse-title text-xl font-sans">Chat Settings</div>
               <div class="collapse-content">
                 <div class="flex flex-col lg:flex-row">
                   <div class="md:basis-1/2 p-2">
@@ -357,7 +354,7 @@ onMounted(async () => {
                 </div>
                 <div v-if="chat.answer" class="chat chat-start">
                   <div class="chat-bubble bg-base-100 text-base-content">
-                    <MDC :value="chat.answer" tag="article" />
+                    <MDC :value="chat.answer" tag="article" class="prose" />
                   </div>
                   <div class="chat-footer opacity-90 mt-1 ml-2">
                     <div class="badge badge-primary gap-2">
