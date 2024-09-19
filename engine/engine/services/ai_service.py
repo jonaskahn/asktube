@@ -20,7 +20,6 @@ from sentence_transformers import SentenceTransformer
 
 from engine.database.specs import chromadb_client
 from engine.supports import env
-from engine.supports.env import MISTRAL_API_KEY
 from engine.supports.errors import AiError
 from engine.supports.prompts import SYSTEM_PROMPT
 from engine.supports.utils import sha256
@@ -223,7 +222,7 @@ class AiService:
         if env.MISTRAL_API_KEY is None or env.MISTRAL_API_KEY.strip() == "":
             raise AiError("mistral api key is not set or is empty.")
         texts = AiService.__chunk_text(text, max_tokens)
-        client = Mistral(api_key=MISTRAL_API_KEY)
+        client = Mistral(api_key=env.MISTRAL_API_KEY)
         return texts, [client.embeddings.create(inputs=[text], model=env.MISTRAL_EMBEDDING_MODEL).data[0].embedding for
                        text in texts]
 
