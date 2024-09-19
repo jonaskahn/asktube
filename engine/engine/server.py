@@ -13,6 +13,7 @@ from engine.database.specs import sqlite_client
 from engine.services.chat_service import ChatService
 from engine.services.video_service import VideoService
 from engine.services.youtube_service import YoutubeService
+from engine.supports import env
 from engine.supports.errors import LogicError
 from engine.supports.logger import setup_log
 
@@ -191,4 +192,5 @@ async def clear_chat(request: Request, video_id: int):
 
 if __name__ == '__main__':
     setup_log()
-    app.run(host="0.0.0.0", port=8000, access_log=True, dev=True, debug=True, workers=10)
+    app_debug_mode = True if env.DEBUG_MODE in ["on", "yes", "enabled"] else False
+    app.run(host="0.0.0.0", port=8000, access_log=True, dev=app_debug_mode, debug=app_debug_mode, workers=10)

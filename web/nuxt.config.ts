@@ -16,6 +16,9 @@ export default defineNuxtConfig({
     },
     css: ['vue-loading-overlay/dist/css/index.css', 'assets/css/global.css'],
     mdc: {
+        highlight: {
+          theme: 'catppuccin-frappe'
+        },
         components: {
             prose: false,
             map: {

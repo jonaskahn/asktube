@@ -1,10 +1,10 @@
 <script lang="js" setup>
-import { useRoute } from "#app";
-import { request, shortenWord } from "~/supports/request";
+import {useRoute} from "#app";
+import {request, shortenWord} from "~/supports/request";
 import settings from "~/supports/settings";
 import ISO6391 from 'iso-639-1'
-import { useLoading } from "vue-loading-overlay";
-import { parseMarkdown } from '@nuxtjs/mdc/runtime'
+import {useLoading} from "vue-loading-overlay";
+import {parseMarkdown} from '@nuxtjs/mdc/runtime'
 
 const config = useRuntimeConfig()
 
@@ -40,7 +40,7 @@ watch(selectedSummaryProvider, (newValue, oldValue) => {
   summaryModels.value = aiModels[newValue]
 })
 
-const $loading = useLoading({ ...settings.LOADING_PROPERTIES });
+const $loading = useLoading({...settings.LOADING_PROPERTIES});
 const doSummary = async () => {
   const loader = $loading.show({});
   try {
@@ -166,16 +166,16 @@ onMounted(async () => {
 
 <template>
   <div class="flex flex-col md:flex-row">
-    <div class="basis-2/5 border-amber-300 w-full h-screen">
+    <div class="transition-none md:transition ease-in-out hover:-translate-y-1 hover:scale-110 hover:basis-4/5 duration-1000 basis-2/5 border-amber-300 w-full h-screen">
       <div class="card bg-base-100 shadow-xl w-full ">
         <figure class="w-full">
-          <iframe :src="video.play_url" class="w-full rounded-lg shadow-2xl" height="400" />
+          <iframe :src="video.play_url" class="w-full shadow-2xl" height="400"/>
         </figure>
-        <div class="card-body rounded-2xl">
+        <div class="card-body">
           <h1 class="card-title"> {{ shortenWord(video.title) }}</h1>
           <div class="collapse collapse-arrow bg-base-300">
-            <input type="checkbox" />
-            <div class="collapse-title text-xl font-medium rounded-2xl">Summary Settings</div>
+            <input type="checkbox"/>
+            <div class="collapse-title text-xl font-medium ">Summary Settings</div>
             <div class="collapse-content">
               <div class="flex flex-col lg:flex-row ">
                 <div class="md:basis-1/3 p-2">
@@ -204,17 +204,17 @@ onMounted(async () => {
           </div>
           <div class="divider">🌟</div>
           <div class="collapse collapse-arrow bg-base-200 md:hidden">
-            <input type="checkbox" />
-            <div class="collapse-title text-xl font-medium rounded-2xl">Read Summary</div>
+            <input type="checkbox"/>
+            <div class="collapse-title text-xl font-medium">Read Summary</div>
             <div class="collapse-content">
-              <article v-if="summary" class="prose overflow-auto h-96">
-                <MDCRenderer :body="summary.body" :data="summary.data" />
+              <article v-if="summary" class="prose overflow-auto h-86">
+                <MDCRenderer :body="summary.body" :data="summary.data"/>
               </article>
             </div>
           </div>
           <div class="hidden md:block">
-            <article v-if="summary" class="prose overflow-auto h-96">
-              <MDCRenderer :body="summary.body" :data="summary.data" />
+            <article v-if="summary" class="transition-none md:transition ease-in-out hover:h-full duration-1000 prose overflow-y-auto h-86">
+              <MDCRenderer :body="summary.body" :data="summary.data"/>
             </article>
           </div>
 
@@ -226,14 +226,14 @@ onMounted(async () => {
     <div class="basis-3/5">
       <div class="h-screen flex items-start justify-center border-amber-300">
         <div class="card w-full h-3/4 shadow-xl flex flex-col">
-          <div class="card-header p-4">
+          <div class="card-header">
             <div class="collapse collapse-arrow bg-base-300">
-              <input type="checkbox" />
-              <div class="collapse-title text-xl font-medium rounded-2xl">Chat Settings</div>
+              <input type="checkbox"/>
+              <div class="collapse-title text-xl font-medium">Chat Settings</div>
               <div class="collapse-content">
                 <div class="flex flex-col lg:flex-row ">
                   <div class="md:basis-1/2 p-2">
-                    <select v-model="selectedChatProvider" class="select select-bordered  w-full">
+                    <select v-model="selectedChatProvider" class="select select-bordered w-full">
                       <option disabled selected>Provider</option>
                       <option v-for="item in providers" :value="item">{{ item }}</option>
                     </select>
@@ -253,14 +253,14 @@ onMounted(async () => {
             </div>
           </div>
           <div class="card-body flex-grow flex flex-col overflow-hidden p-4">
-            <div id="chatContainer" class="flex-grow overflow-y-auto space-y-4 rounded-2xl p-4 mb-4">
+            <div id="chatContainer" class="flex-grow overflow-y-auto space-y-4 p-4 mb-4">
               <div v-for="chat in chats">
                 <div class="chat chat-end">
                   <div class="chat-bubble bg-base-300 text-base-content">{{ chat.question }}</div>
                 </div>
                 <div v-if="chat.answer" class="chat chat-start">
                   <div class="chat-bubble bg-base-100 text-base-content">
-                    <MDC :value="chat.answer" tag="article" />
+                    <MDC :value="chat.answer" tag="article"/>
                   </div>
                   <div class="chat-footer opacity-90 mt-1 ml-2">
                     <div class="badge badge-primary gap-2">{{ chat.provider }}</div>
@@ -277,8 +277,8 @@ onMounted(async () => {
 
             <div class="flex mt-auto">
               <input ref="chatRef" v-model="chatMessage" :disabled="onHoldMessageResponse"
-                class="input input-bordered flex-grow " placeholder="Type your message here..." type="text"
-                @keydown.enter="onChat" />
+                     class="input input-bordered flex-grow " placeholder="Type your message here..." type="text"
+                     @keydown.enter="onChat"/>
               <button :disabled="onHoldMessageResponse" class="ml-5 btn btn-primary " @click="onChat">Send
               </button>
             </div>
