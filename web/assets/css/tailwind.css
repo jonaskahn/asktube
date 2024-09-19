@@ -39,4 +39,9 @@
   --tw-text-opacity: 1;
   color: var(--fallback-nc, oklch(var(--nc) / var(--tw-text-opacity)));
 }
+
+.h-108 {
+  height: 27rem;
+}
+
 @tailwind utilities;

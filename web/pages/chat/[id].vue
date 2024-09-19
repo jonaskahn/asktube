@@ -281,10 +281,10 @@ onMounted(async () => {
             </div>
           </div>
 
-          <div class="hidden md:block">
+          <div class="hidden md:block overflow-y-auto h-108">
             <article
               v-if="summary"
-              class="transition-none md:transition ease-in-out md:hover:-translate-y-1 md:hover:h-full md:hover:w-full duration-1000 overflow-y-auto h-86"
+              class="transition-none md:transition ease-in-out md:hover:-translate-y-1 md:hover:h-full md:hover:w-full duration-1000"
             >
               <MDCRenderer
                 :body="summary.body"
