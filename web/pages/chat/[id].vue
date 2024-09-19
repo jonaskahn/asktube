@@ -218,7 +218,7 @@ onMounted(async () => {
           <h1 class="card-title">{{ shortenWord(video.title) }}</h1>
           <div class="collapse collapse-arrow bg-base-300">
             <input type="checkbox" />
-            <div class="collapse-title text-xl font-medium">
+            <div class="collapse-title text-xl font-sans">
               Summary Settings
             </div>
             <div class="collapse-content">
@@ -275,7 +275,7 @@ onMounted(async () => {
           <div class="divider">🌟</div>
           <div class="collapse collapse-arrow bg-base-200 md:hidden">
             <input type="checkbox" />
-            <div class="collapse-title text-xl font-medium">Read Summary</div>
+            <div class="collapse-title text-xl font-sans">Read Summary</div>
             <div class="collapse-content">
               <article v-if="summary" class="prose overflow-auto h-86">
                 <MDCRenderer :body="summary.body" :data="summary.data" />
@@ -300,7 +300,7 @@ onMounted(async () => {
           <div class="card-header">
             <div class="collapse collapse-arrow bg-base-300">
               <input type="checkbox" />
-              <div class="collapse-title text-xl font-medium">
+              <div class="collapse-title text-xl font-sans">
                 Chat Settings
               </div>
               <div class="collapse-content">
