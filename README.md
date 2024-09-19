@@ -216,11 +216,6 @@ docker compose -f compose/ideal.yaml pull && docker compose -f compose/ideal.yam
 ### Update 09/19/2004
 
 - New UI, mobile responsive
-
-<p align="center">
-  <img src="docs/images/mobile.png" alt="Demo mobile 1"/>
-</p>
-
 <p align="center">
   <img src="docs/images/new-ui.png" alt="Demo newui 1"/>
 </p>
