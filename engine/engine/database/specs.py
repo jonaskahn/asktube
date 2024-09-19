@@ -1,11 +1,7 @@
-from pathlib import Path
-
 import chromadb
 from peewee import SqliteDatabase
 
-from engine.supports import env, constants
-
-Path(env.APP_DIR).mkdir(parents=True, exist_ok=True)
+from engine.supports import constants
 
 sqlite_client = SqliteDatabase(database=constants.SQL_DATABASE)
 

@@ -1,5 +1,6 @@
 import os
 import tempfile
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -8,7 +9,8 @@ load_dotenv()
 DEBUG_MODE = os.getenv("AT_DEBUG_MODE", "on")
 APP_DIR = os.path.abspath(os.getenv("AT_APP_DIR", os.path.join(tempfile.gettempdir(), "asktube")))
 LANGUAGE_PREFER_USAGE: str = os.getenv("AT_LANGUAGE_PREFER_USAGE", "en")
-AUDIO_CHUNK_DETECT_DURATION: int = int(os.getenv("AT_AUDIO_CHUNK_DETECT_DURATION", 30))
+AUDIO_CHUNK_RECOGNIZE_DURATION: int = int(os.getenv("AT_AUDIO_CHUNK_RECOGNIZE_DURATION", 30))
+AUDIO_CHUNK_RECOGNIZE_THRESHOLD: int = int(os.getenv("AT_AUDIO_CHUNK_RECOGNIZE_THRESHOLD", 120))
 AUDIO_CHUNK_CHAPTER_DURATION: int = int(os.getenv("AT_AUDIO_CHUNK_CHAPTER_DURATION", 600))
 QUERY_SIMILAR_THRESHOLD: float = float(os.getenv("AT_QUERY_SIMILAR_THRESHOLD", 0.4))
 TOKEN_CONTEXT_THRESHOLD: int = int(os.getenv("AT_TOKEN_CONTEXT_THRESHOLD", 2048))
@@ -36,3 +38,6 @@ LOCAL_WHISPER_DEVICE = os.getenv("AT_LOCAL_WHISPER_DEVICE", "auto")
 
 LOCAL_OLLAMA_HOST = os.getenv("AT_LOCAL_OLLAMA_HOST", "http://localhost:11434")
 LOCAL_OLLAMA_MODEL = os.getenv("AT_LOCAL_OLLAMA_MODEL", "qwen2")
+
+# Initial directory
+Path(APP_DIR).mkdir(parents=True, exist_ok=True)
