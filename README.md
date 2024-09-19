@@ -213,6 +213,18 @@ docker compose -f compose/ideal.yaml pull && docker compose -f compose/ideal.yam
   <img src="docs/images/demo1.png" alt="Demo image 1"/>
 </p>
 
+### Update 09/19/2004
+
+- New UI, mobile responsive
+
+<p align="center">
+  <img src="docs/images/mobile.png" alt="Demo mobile 1"/>
+</p>
+
+<p align="center">
+  <img src="docs/images/new-ui.png" alt="Demo newui 1"/>
+</p>
+
 ## [Watch "AskTube First Demo" on YouTube](https://www.youtube.com/watch?v=S5T0nVjYRbQ)
 
 ## ✍🏿 For development
