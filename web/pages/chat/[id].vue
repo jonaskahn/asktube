@@ -202,9 +202,9 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex flex-col md:flex-row">
+  <div class="flex flex-col lg:flex-row">
     <div
-      class="transition-none md:transition ease-in-out md:hover:-translate-y-1 md:hover:scale-110 md:hover:basis-4/5 duration-1000 basis-2/5 border-amber-300 w-full h-screen"
+      class="transition-none lg:transition ease-in-out lg:hover:-translate-y-1 lg:hover:scale-110 lg:hover:basis-4/5 duration-1000 basis-2/5 border-amber-300 w-full h-screen"
     >
       <div class="card bg-base-100 shadow-xl w-full">
         <figure class="w-full">
@@ -214,14 +214,14 @@ onMounted(async () => {
             height="400"
           />
         </figure>
-        <div class="card-body-mobile md:card-body">
+        <div class="card-body-mobile lg:card-body">
           <h1 class="card-title">{{ shortenWord(video.title) }}</h1>
           <div class="collapse collapse-arrow bg-base-300">
             <input type="checkbox" />
             <div class="collapse-title text-xl font-sans">Summary Settings</div>
             <div class="collapse-content">
               <div class="flex flex-col lg:flex-row">
-                <div class="md:basis-1/3 p-2">
+                <div class="lg:basis-1/3 p-2">
                   <select
                     v-model="selectedSummaryProvider"
                     class="select select-bordered w-full"
@@ -232,7 +232,7 @@ onMounted(async () => {
                     </option>
                   </select>
                 </div>
-                <div class="md:basis-1/3 p-2">
+                <div class="lg:basis-1/3 p-2">
                   <select
                     v-model="selectedSummaryModel"
                     class="select select-bordered w-full"
@@ -247,7 +247,7 @@ onMounted(async () => {
                     </option>
                   </select>
                 </div>
-                <div class="md:basis-1/3 p-2">
+                <div class="lg:basis-1/3 p-2">
                   <select
                     v-model="selectedSummaryLang"
                     class="select select-bordered w-full"
@@ -268,8 +268,8 @@ onMounted(async () => {
                   Summary
                 </button>
               </div>
-              <div class="divider md:hidden">🌟</div>
-              <div class="md:hidden">
+              <div class="divider lg:hidden">🌟</div>
+              <div class="lg:hidden">
                 <article v-if="summary" class="overflow-auto h-86">
                   <MDCRenderer
                     :body="summary.body"
@@ -281,11 +281,10 @@ onMounted(async () => {
             </div>
           </div>
 
-          <div class="hidden md:block overflow-y-auto h-108">
-            <article
-              v-if="summary"
-              class="transition-none md:transition ease-in-out md:hover:-translate-y-1 md:hover:h-full md:hover:w-full duration-1000"
-            >
+          <div
+            class="transition-none lg:transition ease-in-out lg:hover:-translate-y-1 lg:hover:h-full lg:hover:w-full duration-1000 hidden lg:block overflow-y-auto h-108"
+          >
+            <article v-if="summary">
               <MDCRenderer
                 :body="summary.body"
                 :data="summary.data"
@@ -306,7 +305,7 @@ onMounted(async () => {
               <div class="collapse-title text-xl font-sans">Chat Settings</div>
               <div class="collapse-content">
                 <div class="flex flex-col lg:flex-row">
-                  <div class="md:basis-1/2 p-2">
+                  <div class="lg:basis-1/2 p-2">
                     <select
                       v-model="selectedChatProvider"
                       class="select select-bordered w-full"
@@ -321,7 +320,7 @@ onMounted(async () => {
                       </option>
                     </select>
                   </div>
-                  <div class="md:basis-1/2 p-2">
+                  <div class="lg:basis-1/2 p-2">
                     <select
                       v-model="selectedChatModel"
                       class="select select-bordered w-full"
@@ -348,7 +347,7 @@ onMounted(async () => {
           <div class="card-body flex-grow flex flex-col overflow-hidden p-4">
             <div
               id="chatContainer"
-              class="flex-grow overflow-y-auto md:space-y-2 md:p-4 md:mb-2"
+              class="flex-grow overflow-y-auto lg:space-y-2 lg:p-4 lg:mb-2"
             >
               <div v-for="chat in chats" :key="chat.id">
                 <div class="chat chat-end">

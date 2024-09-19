@@ -74,26 +74,34 @@
     - Or use `conda`
   - [Poetry](https://python-poetry.org/docs/#installation)
     - **Windows User** open `Powershell` and run:
+
     ```shell
     (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
     ```
+
     - **Linux, MacOS User** open `Terminal` and run:
+
     ```shell
     curl -sSL https://install.python-poetry.org | python3 -
     ```
+
   - [Bun](https://bun.sh/)
   - [ffmpeg](https://www.ffmpeg.org/download.html)
     - **MacOS User**
+
     ```shell
     brew install ffmpeg
     ```
+
     - **Linux User**
+
     ```shell
     # Ubuntu
     sudo apt install ffmpeg
     # Fedora
     sudo dnf install -y ffmpeg
     ```
+
     - **Windows**, please follow this tutorial [Install ffmpeg for Windows](https://phoenixnap.com/kb/ffmpeg-windows)
 - Clone repostiory
 
@@ -213,11 +221,19 @@ docker compose -f compose/ideal.yaml pull && docker compose -f compose/ideal.yam
   <img src="docs/images/demo1.png" alt="Demo image 1"/>
 </p>
 
-### Update 09/19/2004
+### Start from v0.2.2
 
 - New UI, mobile responsive
+
 <p align="center">
-  <img src="docs/images/new-ui.png" alt="Demo newui 1"/>
+  <img src="docs/images/demo-21.png" alt="Demo 21"/>
+</p>
+<p align="center">
+  <img src="docs/images/demo-22.png" alt="Demo 22"/>
+</p>
+
+<p align="center">
+  <img src="docs/images/demo-23.png" alt="Demo 23"/>
 </p>
 
 ## [Watch "AskTube First Demo" on YouTube](https://www.youtube.com/watch?v=S5T0nVjYRbQ)
