@@ -54,13 +54,6 @@ Transcript:
 No yapping!!!
 """
 
-REFINED_QUESTION_PROMPT = """TASK:
-- Translate a original input "{question}" to "{video_lang}"
-OUTPUT:
-- Do not include any instructions, provide output directly.
-No yapping!!!
-"""
-
 ASKING_PROMPT_WITH_RAG = """This is a additional related video information:
 1. Title: {title}
 
@@ -84,10 +77,11 @@ ASKING_PROMPT_WITHOUT_RAG = """ Please read carefully the video information and 
 {context}
 """
 
-MULTI_QUERY_PROMPT = """Generate five variations of the user's question to help retrieve relevant segments from a YouTube video. First, assess if the question relates to the video title. If unrelated, return only the original question. If related, provide five alternatives separated by newlines.
-Youtube Video: {title}
+MULTI_QUERY_PROMPT = """You are an AI language model assistant. Your task is to generate five different versions of the given user question, based on the provided YouTube video title. By creating multiple variations of the user question, you aim to enhance the search effectiveness when retrieving relevant video content from a vector database. Your goal is to help the user overcome potential limitations of distance-based similarity search in the context of video content.
+First, assess if the question relates to the video title. If unrelated, return only the original question. If related, provide five alternatives separated by newlines.
+YouTube Video: {title}
 Original question: {question}
-Output in {language}
+Output in: {language}
 Do not include any instructions or meta-text in your response, provide output directly.
 No yapping!!!
 """

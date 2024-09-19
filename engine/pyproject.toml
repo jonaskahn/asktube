@@ -33,6 +33,7 @@ voyageai = "^0.2.3"
 torch = "^2.4.1"
 retry2 = "^0.9.5"
 numba = "^0.60.0"
+sanic-cors = "^2.2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"

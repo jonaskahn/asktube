@@ -299,7 +299,7 @@ class ChatService:
         })
 
         questions = AiService.chat_with_ai(provider, model, multi_query_prompt).split("\n")
-        if questions[0].lower().strip() == question.lower().strip():
+        if len(question) == 1 and questions[0].lower().strip() == question.lower().strip():
             return None
         return ChatService.__query_document_by_multi_query(questions, video)
 

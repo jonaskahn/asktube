@@ -6,8 +6,8 @@ from sanic import Sanic, Request, response
 from sanic import json, text
 from sanic.log import logger
 from sanic.worker.manager import WorkerManager
+from sanic_cors import CORS
 
-from engine.cors import add_cors_headers
 from engine.database.models import Video, VideoChapter, Chat
 from engine.database.specs import sqlite_client
 from engine.services.chat_service import ChatService
@@ -17,8 +17,8 @@ from engine.supports.errors import LogicError
 from engine.supports.logger import setup_log
 
 app = Sanic("AskTube", dumps=dumps)
-app.register_middleware(add_cors_headers, "response")
 app.config.KEEP_ALIVE = False
+CORS(app)
 
 WorkerManager.THRESHOLD = 600
 if platform.system() == "Linux":
@@ -71,11 +71,6 @@ async def health(request: Request):
     return text("API is running!!!")
 
 
-@app.options("/api/youtube/prefetch")
-async def opts_fetch_youtube_video_info(request: Request):
-    return response.HTTPResponse(status=200)
-
-
 @app.post("/api/youtube/prefetch")
 async def fetch_youtube_video_info(request: Request):
     url = request.json['url']
@@ -86,11 +81,6 @@ async def fetch_youtube_video_info(request: Request):
         "message": "Successfully fetch video info",
         "payload": data
     })
-
-
-@app.options("/api/youtube/process")
-async def opts_process_youtube_video(request: Request):
-    return response.HTTPResponse(status=200)
 
 
 @app.post("/api/youtube/process")
@@ -104,11 +94,6 @@ async def process_youtube_video(request: Request):
         "message": "Successfully fetch video data, analyze video in processing.",
         "payload": data
     })
-
-
-@app.options("/api/video/analysis")
-async def opts_analysis_youtube_video(request: Request):
-    return response.HTTPResponse(status=200)
 
 
 @app.post("/api/video/analysis")
@@ -137,11 +122,6 @@ async def get_video_detail(request: Request, video_id: int):
     })
 
 
-@app.options("/api/video/summary")
-async def opts_summary(request: Request):
-    return response.HTTPResponse(status=200)
-
-
 @app.post("/api/video/summary")
 async def summary(request: Request):
     vid = request.json['video_id']
@@ -157,11 +137,6 @@ async def summary(request: Request):
     })
 
 
-@app.options("/api/video/<video_id>")
-async def opts_list_video(request: Request):
-    return response.HTTPResponse(status=200)
-
-
 @app.delete("/api/video/<video_id>")
 async def delete_video(request: Request, video_id: int):
     VideoService.delete(video_id)
@@ -169,11 +144,6 @@ async def delete_video(request: Request, video_id: int):
         "status_code": 200,
         "message": f"Successfully delete video {video_id}"
     })
-
-
-@app.options("/api/videos/<page>")
-async def opts_list_videos(request: Request, page: int):
-    return response.HTTPResponse(status=200)
 
 
 @app.get("/api/videos/<page>")
@@ -187,11 +157,6 @@ async def list_videos(request: Request, page: int):
             "videos": data
         }
     })
-
-
-@app.options("/api/chat")
-async def opts_chat(request: Request):
-    return response.HTTPResponse(status=200)
 
 
 @app.post("/api/chat")
@@ -208,11 +173,6 @@ async def chat(request: Request):
     })
 
 
-@app.options("/api/chat/history/<video_id>")
-async def opts_chat_history(request: Request, video_id: int):
-    return response.HTTPResponse(status=200)
-
-
 @app.get("/api/chat/history/<video_id>")
 async def chat_history(request: Request, video_id: int):
     chat_histories = ChatService.get_chat_histories(video_id=video_id)
@@ -221,11 +181,6 @@ async def chat_history(request: Request, video_id: int):
         "message": "Successfully",
         "payload": chat_histories
     })
-
-
-@app.options("/api/chat/clear/<video_id>")
-async def opts_clear_chat(request: Request, video_id: int):
-    return response.HTTPResponse(status=200)
 
 
 @app.delete("/api/chat/clear/<video_id>")
