@@ -19,6 +19,9 @@ from engine.supports.logger import setup_log
 
 app = Sanic("AskTube", dumps=dumps)
 app.config.KEEP_ALIVE = False
+app.config.REQUEST_TIMEOUT = 600
+app.config.RESPONSE_TIMEOUT = 600
+
 CORS(app)
 
 WorkerManager.THRESHOLD = 600
