@@ -52,15 +52,8 @@ Transcript:
 No yapping!!!
 """
 
-ASKING_PROMPT_WITH_RAG = """This is a additional related video information:
-1. Title: {title}
-
-2. URL: {url}
-
-3. Related Information: 
+ASKING_PROMPT_WITH_RAG = """Here is related video information for question you can reference:
 {context}
-
-Read carefully information and answer me".
 """
 
 ASKING_PROMPT_WITHOUT_RAG = """ Please read carefully the video information and answer me some question.
@@ -75,26 +68,31 @@ ASKING_PROMPT_WITHOUT_RAG = """ Please read carefully the video information and 
 {context}
 """
 
-MULTI_QUERY_PROMPT = """You are an AI language model assistant. Analyze the relationship between the original question and the YouTube video title:
+MULTI_QUERY_PROMPT = """You are an AI assistant. Your task is to create 5 alternative versions of the following question:
 
-YouTube Video: "{title}"
-Original question: "{question}"
+**Title**: {title}
+**Description**:
+{description}
+**Previous Question**:
+{previous_questions}
+**Original question**: "{question}"
 
 # TASK:
 ----
-1. Determine if the original question is directly related to the video title's main topic or content.
-2. If related:
-   - Generate five different versions of the original question, seperated by newlines that are :
-     a) More specific to the video's content
-     b) Using relevant keywords from the title
-     c) Focusing on potential subtopics within the main theme
-     d) Addressing different aspects or angles of the video's subject
-     e) Phrased to elicit more detailed responses about the video's content
-   - Ensure each question is distinct and adds value to the search
-3. If not related:
-   - Respond with only "NO"
+1. Generate 5 variations of the original question:
+   - Include the exact original question as one variation.
+   - Create 2 variations using synonyms.
+   - Rephrase the structure in at least 1 variation.
+   - Provide 1 more general version or 1 more specific version.
+
+2. Ensure all variations:
+   - Maintain the original question's intent.
+   - Explore different perspectives.
+   - Vary in complexity or specificity.
 
 Output language: {language}
 
-IMPORTANT: Provide output directly without any explanations, instructions, or meta-text
+# Output:
+----
+- Provide only the 5 alternative questions, one per line or "0" without any additional introductions.
 """
