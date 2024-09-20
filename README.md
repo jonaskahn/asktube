@@ -123,7 +123,7 @@
   - Open `terminal/cmd/powershell` in `asktube/engine` directory, then run:
 
   ```shell
-  poetry install && poetry python engine/server.py
+  poetry install && poetry run python engine/server.py
   ```
 
   - Open `terminal/cmd/powershell` in `asktube/web` directory, then run:
