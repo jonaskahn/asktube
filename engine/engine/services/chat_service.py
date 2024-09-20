@@ -337,7 +337,7 @@ class ChatService:
         """
         embedding_questions = []
         for relevant_question in questions:
-            if relevant_question.strip():
+            if relevant_question and relevant_question.strip():
                 logger.debug(f"question: {relevant_question}")
                 _, embedding_question = AiService.get_texts_embedding(video.embedding_provider, relevant_question)
                 embedding_questions.append(embedding_question)

@@ -55,15 +55,15 @@ class YoutubeService:
             duration=self.__agent.length,
             embedding_provider=provider
         )
-        video_chapters = self.__extract_chapters()
         language, transcript = self.__extract_transcript()
+        video_chapters = self.__extract_chapters(len(transcript) == 0)
         video.language = language
         video.raw_transcript = json.dumps(transcript, ensure_ascii=False) if transcript else None
         video.amount_chapters = len(video_chapters)
         VideoService.save(video, video_chapters)
         return model_to_dict(video)
 
-    def __extract_chapters(self) -> list[VideoChapter]:
+    def __extract_chapters(self, required_audio: bool) -> list[VideoChapter]:
         chapters: list[pytubefix.Chapter] = self.__agent.chapters
         video_chapters: list[VideoChapter] = []
         if chapters is not None and chapters:
@@ -81,7 +81,7 @@ class YoutubeService:
 
         # Auto chunk chapter by predefine duration length
         predict_parts = self.__get_predict_chapters_range()
-        audio_path_file = self.__download_audio()
+        audio_path_file = self.__download_audio() if required_audio else None
         has_captions = self.__agent.captions is not None and len(self.__agent.captions) != 0
         for index, _ in enumerate(predict_parts):
             if len(predict_parts) == index + 1:
@@ -101,10 +101,10 @@ class YoutubeService:
                         audio_path_file=audio_path_file,
                         start_time=str(timedelta(seconds=current_start_seconds)),
                         duration=(next_start_seconds - current_start_seconds - 10)
-                    )
+                    ) if required_audio else None
                 )
             )
-        if Path(audio_path_file).exists():
+        if audio_path_file and Path(audio_path_file).exists():
             os.remove(audio_path_file)
         return video_chapters
 

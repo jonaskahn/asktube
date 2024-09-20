@@ -97,7 +97,7 @@ watch(selectedChatProvider, (newValue) => {
   chatModels.value = aiModels[newValue];
 });
 
-const chatMessage = ref(null);
+const chatMessage = ref("");
 const chats = ref([]);
 const chatRef = ref({});
 
@@ -146,6 +146,7 @@ const onChat = async () => {
     await nextTick();
     scrollToBottom();
     chatRef.value.focus();
+    chatRef.value.style.height = "auto";
   }
 };
 
@@ -199,6 +200,16 @@ onMounted(async () => {
     });
   }
 });
+
+const autoResize = (event) => {
+  const textarea = event.target;
+  textarea.style.height = "auto";
+  textarea.style.height = textarea.scrollHeight + "px";
+};
+
+const enableChatButton = () => {
+  return !chatMessage.value || onHoldMessageResponse.value;
+};
 </script>
 
 <template>
@@ -357,7 +368,7 @@ onMounted(async () => {
                 </div>
                 <div v-if="chat.answer" class="chat chat-start">
                   <div class="chat-bubble bg-base-100 text-base-content">
-                    <MDC :value="chat.answer" tag="article" class="prose" />
+                    <MDC :value="chat.answer" class="prose" tag="article" />
                   </div>
                   <div class="chat-footer opacity-90 mt-1 ml-2">
                     <div class="badge badge-primary gap-2">
@@ -374,17 +385,17 @@ onMounted(async () => {
             </div>
 
             <div class="flex mt-auto">
-              <input
+              <textarea
                 ref="chatRef"
                 v-model="chatMessage"
                 :disabled="onHoldMessageResponse"
-                class="input input-bordered flex-grow"
+                class="input input-bordered flex-grow resize-y"
                 placeholder="Type your message here..."
-                type="text"
+                @input="autoResize"
                 @keydown.enter="onChat"
               />
               <button
-                :disabled="onHoldMessageResponse"
+                :disabled="enableChatButton()"
                 class="ml-5 btn btn-primary"
                 @click="onChat"
               >

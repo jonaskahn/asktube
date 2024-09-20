@@ -312,7 +312,7 @@ class AiService:
         collection.add(ids=ids, embeddings=embeddings, documents=texts)
 
     @staticmethod
-    def query_embeddings(table: str, queries: list[list[list[float]]], fetch_size: int = 5, thresholds: list[float] = None) -> tuple[int, list[str]]:
+    def query_embeddings(table: str, queries: list[list[list[float]]], thresholds: list[float] = None) -> tuple[int, list[str]]:
         """
         Queries the Chroma database for similar embeddings.
 
@@ -322,7 +322,6 @@ class AiService:
         Args:
             table (str): The name of the collection to query.
             queries (list[list[list[float]]]): A list of query embedding vectors.
-            fetch_size (int, optional): The maximum number of results to return. Defaults to 3.
             thresholds (list[float], optional): A list of similarity thresholds to apply.
                                                 If None, uses a default threshold. Defaults to None.
 
@@ -362,9 +361,20 @@ class AiService:
 
         docs = []
         potential_result = sorted(top_closest, key=lambda pair: pair[0])
+        fetch_size = int(len(top_closest) * AiService.__get_ration_fetch(len(top_closest)))
         for _, doc in potential_result[:max(1, fetch_size)]:
             docs.append(doc)
         return len(docs), docs
+
+    @staticmethod
+    def __get_ration_fetch(amount_total_closet: int) -> float:
+        if amount_total_closet < 10:
+            return 0.5
+        elif amount_total_closet < 20:
+            return 0.4
+        elif amount_total_closet < 50:
+            return 0.2
+        return 0.1
 
     @staticmethod
     def chat_with_ai(
