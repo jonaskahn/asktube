@@ -102,9 +102,9 @@ class ChatService:
         chat = Chat.create(
             video=video,
             question=question,
-            refined_question="No refined question",
+            refined_question="Not implemented yet",
             answer=result,
-            context="No context provided",
+            context="No context without RAG",
             prompt=context,
             provider=provider
         )
@@ -211,19 +211,24 @@ class ChatService:
             "title": video.title,
             "url": video.url,
             "context": context_document
-        }) if context_document else "No video information related, just answer me in your ability"
+        }) if context_document else None
 
+        if not context and env.RAG_AUTO_SWITCH in ["on", "yes", "enabled"]:
+            logger.debug("RAG is required, but none relevant information found, auto switch")
+            return await ChatService.__ask_without_rag(question=question, video=video, chats=chats, provider=provider, model=model)
+
+        awareness_context = context if context else "No video information related, just answer me in your ability"
         match provider:
             case "gemini":
-                result = await ChatService.__ask_gemini_with_rag(model=model, question=question, context=context, chats=chats)
+                result = await ChatService.__ask_gemini_with_rag(model=model, question=question, context=awareness_context, chats=chats)
             case "openai":
-                result = await ChatService.__ask_openai_with_rag(model=model, question=question, context=context, chats=chats)
+                result = await ChatService.__ask_openai_with_rag(model=model, question=question, context=awareness_context, chats=chats)
             case "claude":
-                result = await ChatService.__ask_claude_with_rag(model=model, question=question, context=context, chats=chats)
+                result = await ChatService.__ask_claude_with_rag(model=model, question=question, context=awareness_context, chats=chats)
             case "mistral":
-                result = await ChatService.__ask_mistral_with_rag(model=model, question=question, context=context, chats=chats)
+                result = await ChatService.__ask_mistral_with_rag(model=model, question=question, context=awareness_context, chats=chats)
             case "ollama":
-                result = await ChatService.__ask_ollama_with_rag(model=model, question=question, context=context, chats=chats)
+                result = await ChatService.__ask_ollama_with_rag(model=model, question=question, context=awareness_context, chats=chats)
             case _:
                 raise ChatError("unknown chat provider")
 
@@ -232,8 +237,8 @@ class ChatService:
             question=question,
             refined_question="Not Implemented Yet",
             answer=result,
-            context="document if document else """,
-            prompt=context if context else "",
+            context=context_document if context else "No context doc found",
+            prompt=awareness_context if awareness_context else "No prompt found",
             provider=provider
         )
         chat.save()

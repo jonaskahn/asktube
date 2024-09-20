@@ -1,6 +1,7 @@
 import asyncio
 import concurrent.futures
 import json
+import uuid
 from collections import Counter
 from concurrent.futures.thread import ThreadPoolExecutor
 
@@ -71,14 +72,25 @@ class VideoService:
         if video.analysis_state in [constants.ANALYSIS_STAGE_COMPLETED, constants.ANALYSIS_STAGE_PROCESSING]:
             return
         try:
-            logger.debug("start analysis video")
+            trace_id = uuid.uuid4()
+            logger.debug(f"[{trace_id}] start analysis video: {video.title}")
+
+            logger.debug(f"[{trace_id}] start get video chapters")
             video_chapters = VideoService.__get_video_chapters(video)
+            logger.debug(f"[{trace_id}] finish get video chapters")
+
             VideoService.__update_analysis_content_state(video, constants.ANALYSIS_STAGE_PROCESSING)
+
+            logger.debug(f"[{trace_id}] start prepare video chapters")
             VideoService.__prepare_video_transcript(video, video_chapters)
+            logger.debug(f"[{trace_id}] finish prepare video chapters")
+
+            logger.debug(f"[{trace_id}] start embedding video transcript")
             video.total_parts = await VideoService.__analysis_chapters(video_chapters, video.embedding_provider)
             video.analysis_state = constants.ANALYSIS_STAGE_COMPLETED
             VideoService.save(video, video_chapters)
-            logger.debug("finish analysis video")
+            logger.debug(f"[{trace_id}] finish embedding video transcript")
+            logger.debug(f"finish analysis video: {video.title}")
         except Exception as e:
             VideoService.__update_analysis_content_state(video, constants.ANALYSIS_STAGE_INITIAL)
             raise e
