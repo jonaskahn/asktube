@@ -9,6 +9,12 @@
 </p>
 
 ---
+## 💤 Features
+- [x] Work even with unsubtitle video
+- [x] No limit video time
+- [x] Support multiple AI vendors
+- [x] Focus on RAG implemetation
+- [x] Fully run on your local machine 
 
 ## 🤷🏽 Why does this project exist?
 
