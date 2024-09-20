@@ -205,13 +205,11 @@ class ChatService:
         Raises:
             ChatError: If an unsupported provider is specified.
         """
-        context_document = ChatService.__get_relevant_doc(provider=provider, model=model, video=video, question=question)
+        previous_chats = list(Chat.select().where(Chat.video == video).limit(5).order_by(Chat.id.asc()))
+        previous_questions = "\n".join([chat.question for chat in previous_chats])
+        context_document = ChatService.__get_relevant_doc(provider=provider, model=model, video=video, question=question, previous_questions=previous_questions)
         logger.debug(f"Relevant docs: {context_document}")
-        context = ASKING_PROMPT_WITH_RAG.format(**{
-            "title": video.title,
-            "url": video.url,
-            "context": context_document
-        }) if context_document else None
+        context = ASKING_PROMPT_WITH_RAG.format(**{"context": context_document}) if context_document else None
 
         if not context and env.RAG_AUTO_SWITCH in ["on", "yes", "enabled"]:
             logger.debug("RAG is required, but none relevant information found, auto switch")
@@ -245,7 +243,7 @@ class ChatService:
         return model_to_dict(chat)
 
     @staticmethod
-    def __get_relevant_doc(provider: str, model: str, video: Video, question: str, ) -> str | None:
+    def __get_relevant_doc(provider: str, model: str, video: Video, question: str, previous_questions: str) -> str | None:
         """
         Retrieves relevant document snippets based on the question and video content.
 
@@ -271,12 +269,12 @@ class ChatService:
         implementation = env.RAG_QUERY_IMPLEMENTATION
         match implementation:
             case "multiquery":
-                return ChatService.__get_relevant_doc_by_multiquery(provider, model, video, question)
+                return ChatService.__get_relevant_doc_by_multiquery(provider, model, video, question, previous_questions)
             case _:
                 raise ChatError(f"not support {implementation} yet")
 
     @staticmethod
-    def __get_relevant_doc_by_multiquery(provider: str, model: str, video: Video, question: str, ) -> str | None:
+    def __get_relevant_doc_by_multiquery(provider: str, model: str, video: Video, question: str, previous_questions: str) -> str | None:
         """
         Retrieves relevant document snippets using the multi-query approach.
 
@@ -299,14 +297,18 @@ class ChatService:
             str | None: A string containing relevant document snippets, or None if no relevant snippets are found.
         """
         multi_query_prompt = MULTI_QUERY_PROMPT.format(**{
-            "question": question,
             "title": video.title,
+            "description": video.description,
+            "previous_questions": previous_questions if previous_questions else "NO PREVIOUS QUESTIONS",
+            "question": question,
             "language": iso639.Language.from_part1(video.language).name
         })
         logger.debug(f"Multiquery generated:```\n{multi_query_prompt}\n```")
         questions = AiService.chat_with_ai(provider=provider, model=model, question=multi_query_prompt, system_prompt=None).split("\n")
-        if len(questions) == 1 and questions[0].lower().strip() == "no":
+        if len(questions) == 1 and questions[0].lower() == "0":
             return None
+
+        questions.append(question)
         return ChatService.__query_document_by_multi_query(questions, video)
 
     @staticmethod
@@ -336,6 +338,7 @@ class ChatService:
         embedding_questions = []
         for relevant_question in questions:
             if relevant_question.strip():
+                logger.debug(f"question: {relevant_question}")
                 _, embedding_question = AiService.get_texts_embedding(video.embedding_provider, relevant_question)
                 embedding_questions.append(embedding_question)
         _, documents = AiService.query_embeddings(

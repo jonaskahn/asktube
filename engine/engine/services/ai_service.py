@@ -312,7 +312,7 @@ class AiService:
         collection.add(ids=ids, embeddings=embeddings, documents=texts)
 
     @staticmethod
-    def query_embeddings(table: str, queries: list[list[list[float]]], fetch_size: int = 3, thresholds: list[float] = None) -> tuple[int, list[str]]:
+    def query_embeddings(table: str, queries: list[list[list[float]]], fetch_size: int = 5, thresholds: list[float] = None) -> tuple[int, list[str]]:
         """
         Queries the Chroma database for similar embeddings.
 
