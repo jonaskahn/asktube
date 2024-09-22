@@ -52,7 +52,7 @@ Transcript:
 No yapping!!!
 """
 
-ASKING_PROMPT_WITH_RAG = """Here is related video information for question you can reference:
+ASKING_PROMPT_WITH_RAG = """Here is related video information can be used for question that you can reference:
 {context}
 """
 

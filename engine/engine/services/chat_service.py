@@ -209,13 +209,13 @@ class ChatService:
         previous_questions = "\n".join([chat.question for chat in previous_chats])
         context_document = ChatService.__get_relevant_doc(provider=provider, model=model, video=video, question=question, previous_questions=previous_questions)
         logger.debug(f"Relevant docs: {context_document}")
-        context = ASKING_PROMPT_WITH_RAG.format(**{"context": context_document}) if context_document else None
+        prompt_context = ASKING_PROMPT_WITH_RAG.format(**{"context": context_document}) if context_document else None
 
-        if not context and env.RAG_AUTO_SWITCH in ["on", "yes", "enabled"]:
+        if not prompt_context and env.RAG_AUTO_SWITCH in ["on", "yes", "enabled"]:
             logger.debug("RAG is required, but none relevant information found, auto switch")
             return await ChatService.__ask_without_rag(question=question, video=video, chats=chats, provider=provider, model=model)
 
-        awareness_context = context if context else "No video information related, just answer me in your ability"
+        awareness_context = prompt_context if prompt_context else "No video information related, just answer me in your ability"
         match provider:
             case "gemini":
                 result = await ChatService.__ask_gemini_with_rag(model=model, question=question, context=awareness_context, chats=chats)
@@ -235,8 +235,8 @@ class ChatService:
             question=question,
             refined_question="Not Implemented Yet",
             answer=result,
-            context=context_document if context else "No context doc found",
-            prompt=awareness_context if awareness_context else "No prompt found",
+            relevant_docs=context_document if context_document else "No context doc found",
+            prompt=prompt_context if prompt_context else "No prompt found",
             provider=provider
         )
         chat.save()

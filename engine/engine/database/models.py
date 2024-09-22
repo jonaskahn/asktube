@@ -59,7 +59,7 @@ class Chat(Model):
     question = TextField(null=False)
     refined_question = TextField(null=False)
     answer = TextField(null=False)
-    context = TextField(null=False, default=""),
+    relevant_docs = TextField(null=False, default="")
     prompt = TextField(null=False, default="")
     provider = TextField(null=False)
 
