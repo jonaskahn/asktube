@@ -3,7 +3,7 @@ authors = ["Jonas <me@ifelse.com>"]
 description = "Engine to handle application logic"
 name = "engine"
 readme = "README.md"
-version = "v0.2.4"
+version = "v0.2.5"
 
 [tool.poetry.dependencies]
 anthropic = "^0.34.2"
