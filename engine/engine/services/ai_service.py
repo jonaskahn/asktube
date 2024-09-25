@@ -269,7 +269,7 @@ class AiService:
                        text in texts]
 
     @staticmethod
-    def embed_document_with_voyageai(text: str, max_tokens=16000) -> tuple[list[str], list[list[float]]]:
+    def embed_document_with_voyageai(text: str, max_tokens=32000) -> tuple[list[str], list[list[float]]]:
         if env.VOYAGEAI_API_KEY is None or env.VOYAGEAI_API_KEY.strip() == "":
             raise AiError("voyageai api key is not set or is empty.")
         texts = AiService.__chunk_text(text, max_tokens)
