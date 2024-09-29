@@ -358,6 +358,7 @@ class AiService:
         n_result = collection.count()
         top_closest = []
         seen_docs = set()
+        # TODO REDUCE FOR LOOP. I know  (^_^)
         for query in queries:
             if not query:
                 continue
