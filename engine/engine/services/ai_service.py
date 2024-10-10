@@ -324,7 +324,7 @@ class AiService:
         Note:
             The lengths of ids, texts, and embeddings lists must be the same.
         """
-        collection = chromadb_client.get_or_create_collection(table)
+        collection = chromadb_client.get_or_create_collection(name=table, metadata={"hnsw:space": "cosine"})
         collection.add(ids=ids, embeddings=embeddings, documents=texts)
 
     @staticmethod
@@ -354,7 +354,7 @@ class AiService:
 
         if thresholds is None:
             thresholds = [env.QUERY_SIMILAR_THRESHOLD]
-        collection = chromadb_client.get_or_create_collection(table)
+        collection = chromadb_client.get_or_create_collection(name=table, metadata={"hnsw:space": "cosine"})
         n_result = collection.count()
         top_closest = []
         seen_docs = set()
