@@ -9,6 +9,31 @@
 </p>
 
 ---
+## 🏃🏽‍➡️ Demo & Screenshot
+
+<p align="center">
+  <img src="docs/images/demo-21.png" alt="Demo 21"/>
+</p>
+<p align="center">
+  <img src="docs/images/demo-22.png" alt="Demo 22"/>
+</p>
+
+<p align="center">
+  <img src="docs/images/demo-23.png" alt="Demo 23"/>
+</p>
+
+## [Watch "AskTube First Demo" on YouTube](https://www.youtube.com/watch?v=S5T0nVjYRbQ)
+
+
+https://github.com/user-attachments/assets/610ec00b-e25a-4ac5-900c-145c8485675f
+
+---
+## 💤 Features
+- [x] Work even with unsubtitle video
+- [x] No limit video time
+- [x] Support multiple AI vendors
+- [x] Focus on RAG implemetation
+- [x] Fully run on your local machine 
 
 ## 🤷🏽 Why does this project exist?
 
@@ -209,34 +234,6 @@ docker compose -f compose/ideal.yaml pull && docker compose -f compose/ideal.yam
 > 1. Do not use this for production. This aimed for end-users on their local machines.
 > 2. Do not request any advanced features for management.
 
----
-
-## 🏃🏽‍➡️ Demo & Screenshot
-
-<p align="center">
-  <img src="docs/images/demo2.png" alt="Demo image 2"/>
-</p>
-
-<p align="center">
-  <img src="docs/images/demo1.png" alt="Demo image 1"/>
-</p>
-
-### Start from v0.2.2
-
-- New UI, mobile responsive
-
-<p align="center">
-  <img src="docs/images/demo-21.png" alt="Demo 21"/>
-</p>
-<p align="center">
-  <img src="docs/images/demo-22.png" alt="Demo 22"/>
-</p>
-
-<p align="center">
-  <img src="docs/images/demo-23.png" alt="Demo 23"/>
-</p>
-
-## [Watch "AskTube First Demo" on YouTube](https://www.youtube.com/watch?v=S5T0nVjYRbQ)
 
 ## ✍🏿 For development
 

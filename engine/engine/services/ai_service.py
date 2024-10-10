@@ -2,6 +2,8 @@ import os.path
 import random
 import tempfile
 from collections import Counter
+from concurrent.futures import as_completed
+from concurrent.futures.thread import ThreadPoolExecutor
 from uuid import uuid4
 
 import anthropic
@@ -267,7 +269,7 @@ class AiService:
                        text in texts]
 
     @staticmethod
-    def embed_document_with_voyageai(text: str, max_tokens=16000) -> tuple[list[str], list[list[float]]]:
+    def embed_document_with_voyageai(text: str, max_tokens=32000) -> tuple[list[str], list[list[float]]]:
         if env.VOYAGEAI_API_KEY is None or env.VOYAGEAI_API_KEY.strip() == "":
             raise AiError("voyageai api key is not set or is empty.")
         texts = AiService.__chunk_text(text, max_tokens)
@@ -286,11 +288,25 @@ class AiService:
                        text in texts]
 
     @staticmethod
-    def embed_document_with_local(text: str, max_tokens=16000) -> tuple[list[str], list[list[float]]]:
+    def embed_document_with_local(text: str, max_tokens=512) -> tuple[list[str], list[list[float]]]:
         texts = AiService.__chunk_text(text, max_tokens)
+        embedding_texts = []
+        embedding_vectors = []
+
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = [executor.submit(AiService.__internal_local_embed_text, text) for text in texts]
+
+        for future in as_completed(futures):
+            t1, e1 = future.result()
+            embedding_texts.append(t1)
+            embedding_vectors.append(e1)
+
+        return embedding_texts, embedding_vectors
+
+    @staticmethod
+    def __internal_local_embed_text(text: str) -> tuple[str, list[float]]:
         encoder = AiService.__get_local_embedding_encoder()
-        return texts, [encoder.encode([text], normalize_embeddings=True, convert_to_numpy=True).tolist()[0] for text in
-                       texts]
+        return text, encoder.encode([text], normalize_embeddings=True, convert_to_numpy=True).tolist()[0]
 
     @staticmethod
     def store_embeddings(table: str, ids: list[str], texts: list[str], embeddings: list[list[float]]):
@@ -308,7 +324,7 @@ class AiService:
         Note:
             The lengths of ids, texts, and embeddings lists must be the same.
         """
-        collection = chromadb_client.get_or_create_collection(table)
+        collection = chromadb_client.get_or_create_collection(name=table, metadata={"hnsw:space": "cosine"})
         collection.add(ids=ids, embeddings=embeddings, documents=texts)
 
     @staticmethod
@@ -333,12 +349,16 @@ class AiService:
         Note:
             The method ensures that duplicate documents are not returned, even if they match multiple queries or thresholds.
         """
+        if not queries:
+            return 0, []
+
         if thresholds is None:
             thresholds = [env.QUERY_SIMILAR_THRESHOLD]
-        collection = chromadb_client.get_or_create_collection(table)
+        collection = chromadb_client.get_or_create_collection(name=table, metadata={"hnsw:space": "cosine"})
         n_result = collection.count()
         top_closest = []
         seen_docs = set()
+        # TODO REDUCE FOR LOOP. I know  (^_^)
         for query in queries:
             if not query:
                 continue

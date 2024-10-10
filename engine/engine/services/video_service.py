@@ -13,7 +13,7 @@ from sanic.log import logger
 from engine.database.models import Video, VideoChapter
 from engine.database.specs import sqlite_client, chromadb_client
 from engine.services.ai_service import AiService
-from engine.supports import constants
+from engine.supports import constants, env
 from engine.supports.errors import VideoError, AiError
 from engine.supports.prompts import SUMMARY_PROMPT
 
@@ -85,11 +85,17 @@ class VideoService:
             VideoService.__prepare_video_transcript(video, video_chapters)
             logger.debug(f"[{trace_id}] finish prepare video chapters")
 
-            logger.debug(f"[{trace_id}] start embedding video transcript")
-            video.total_parts = await VideoService.__analysis_chapters(video_chapters, video.embedding_provider)
+            if video.transcript_tokens > env.TOKEN_CONTEXT_THRESHOLD:
+                logger.debug(f"[{trace_id}] start embedding video transcript")
+                video.total_parts = await VideoService.__analysis_chapters(video_chapters, video.embedding_provider)
+                logger.debug(f"[{trace_id}] finish embedding video transcript")
+            else:
+                logger.debug("explicitly skip to analysis video")
+                video.total_parts = len(video_chapters)
+
             video.analysis_state = constants.ANALYSIS_STAGE_COMPLETED
             VideoService.save(video, video_chapters)
-            logger.debug(f"[{trace_id}] finish embedding video transcript")
+
             logger.debug(f"finish analysis video: {video.title}")
         except Exception as e:
             VideoService.__update_analysis_content_state(video, constants.ANALYSIS_STAGE_INITIAL)
@@ -168,7 +174,7 @@ class VideoService:
 
     @staticmethod
     async def __analysis_chapters(video_chapters: list[VideoChapter], provider: str) -> int:
-        with ThreadPoolExecutor(max_workers=len(video_chapters)) as executor:
+        with ThreadPoolExecutor(max_workers=5) as executor:
             if provider == "gemini":
                 futures = [executor.submit(VideoService.__analysis_video_with_gemini, chapter) for chapter in
                            video_chapters]
@@ -271,6 +277,10 @@ class VideoService:
         if video is None:
             raise VideoError("video is not found")
         if video.analysis_summary_state in [constants.ANALYSIS_STAGE_COMPLETED, constants.ANALYSIS_STAGE_PROCESSING]:
+            return
+        if video.transcript_tokens <= env.TOKEN_CONTEXT_THRESHOLD:
+            logger.debug("explicitly skip to analysis video summary")
+            VideoService.__update_analysis_summary_state(video, constants.ANALYSIS_STAGE_COMPLETED)
             return
         logger.debug("start analysis summary video")
         VideoService.__update_analysis_summary_state(video, constants.ANALYSIS_STAGE_PROCESSING)
