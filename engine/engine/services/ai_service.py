@@ -356,9 +356,8 @@ class AiService:
             thresholds = [env.QUERY_SIMILAR_THRESHOLD]
         collection = chromadb_client.get_or_create_collection(name=table, metadata={"hnsw:space": "cosine"})
         n_result = collection.count()
-        top_closest = []
-        seen_docs = set()
-        # TODO REDUCE FOR LOOP. I know  (^_^)
+
+        distance_doc_pairs = []
         for query in queries:
             if not query:
                 continue
@@ -368,16 +367,18 @@ class AiService:
             documents = results['documents']
             flat_distances = [dist for sublist in distances for dist in sublist]
             flat_documents = [doc for sublist in documents for doc in sublist]
+            distance_doc_pairs.extend(list(zip(flat_distances, flat_documents)))
 
-            distance_doc_pairs = list(zip(flat_distances, flat_documents))
-            for threshold in thresholds:
-                filtered_pairs = [pair for pair in distance_doc_pairs if pair[0] <= threshold]
-                sorted_pairs = sorted(filtered_pairs, key=lambda pair: pair[0])
-                for data in sorted_pairs:
-                    doc_id = sha256(data[1])
-                    if doc_id not in seen_docs:
-                        seen_docs.add(doc_id)
-                        top_closest.append(data)
+        top_closest = []
+        seen_docs = set()
+        for threshold in thresholds:
+            filtered_pairs = [pair for pair in distance_doc_pairs if pair[0] <= threshold]
+            sorted_pairs = sorted(filtered_pairs, key=lambda pair: pair[0])
+            for data in sorted_pairs:
+                doc_id = sha256(data[1])
+                if doc_id not in seen_docs:
+                    seen_docs.add(doc_id)
+                    top_closest.append(data)
 
         docs = []
         potential_result = sorted(top_closest, key=lambda pair: pair[0])
@@ -388,13 +389,13 @@ class AiService:
 
     @staticmethod
     def __get_ration_fetch(amount_total_closet: int) -> float:
-        if amount_total_closet < 10:
-            return 0.5
-        elif amount_total_closet < 20:
-            return 0.4
-        elif amount_total_closet < 50:
+        if amount_total_closet <= 10:
+            return 0.3
+        elif amount_total_closet <= 20:
             return 0.2
-        return 0.1
+        elif amount_total_closet <= 50:
+            return 0.1
+        return 0.05
 
     @staticmethod
     def chat_with_ai(
@@ -406,7 +407,7 @@ class AiService:
             max_tokens: int = 4096,
             temperature: float = 0.6,
             top_p: float = 0.8,
-            top_k: int = 16
+            top_k: int = 32
     ) -> str:
         """
         Interacts with various AI chat models to generate responses.

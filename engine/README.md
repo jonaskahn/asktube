@@ -92,7 +92,7 @@ poetry run python engine/server.py
 | AT_AUDIO_CHUNK_RECOGNIZE_THRESHOLD | 120 ( seconds)                | If audios is shorter than x seconds, do not chunk to detect language                               |
 | AT_AUDIO_CHUNK_CHAPTER_DURATION    | 600 ( seconds)                | Time to chunk audio segments, use to automatically split a long audio file                         |
 | AT_LANGUAGE_PREFER_USAGE           | en                            | Default subtitle language that will be chosen                                                      |
-| AT_QUERY_SIMILAR_THRESHOLD         | 0.3                           | Default threshold to query similar documents for each question                                     |
+| AT_QUERY_SIMILAR_THRESHOLD         | 0.2                           | Default threshold to query similar documents for each question                                     |
 | AT_TOKEN_CONTEXT_THRESHOLD         | 2048                          | Default threshold to use whole transcript if context is not found                                  |
 | AT_AUDIO_ENHANCE_ENABLED           | off                           | Using enhance audio process (experiment)                                                           |
 | AT_RAG_QUERY_IMPLEMENTATION        | multiquery                    | Select your RAG enhance query type ("multiquery", "fusion", "decomposition", "step_back", "hy_de") |
