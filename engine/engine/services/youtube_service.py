@@ -25,18 +25,20 @@ class YoutubeService:
             url=url,
             on_progress_callback=on_progress,
             use_oauth=False,
-            allow_oauth_cache=True
+            allow_oauth_cache=True,
         )
 
     def fetch_basic_info(self):
-        captions = list(map(lambda c: {'name': c.name, 'value': c.code}, self.__agent.captions))
+        captions = list(
+            map(lambda c: {"name": c.name, "value": c.code}, self.__agent.captions)
+        )
         return {
-            'title': self.__agent.title,
-            'description': self.__agent.description,
-            'duration': str(timedelta(seconds=self.__agent.length)),
-            'author': self.__agent.author,
-            'thumbnail': self.__agent.thumbnail_url,
-            'captions': captions
+            "title": self.__agent.title,
+            "description": self.__agent.description,
+            "duration": str(timedelta(seconds=self.__agent.length)),
+            "author": self.__agent.author,
+            "thumbnail": self.__agent.thumbnail_url,
+            "captions": captions,
         }
 
     async def fetch_video_data(self, provider: str) -> Video:
@@ -53,12 +55,14 @@ class YoutubeService:
             description=self.__agent.description,
             thumbnail=self.__agent.thumbnail_url,
             duration=self.__agent.length,
-            embedding_provider=provider
+            embedding_provider=provider,
         )
         language, transcript = self.__extract_transcript()
         video_chapters = self.__extract_chapters(len(transcript) == 0)
         video.language = language
-        video.raw_transcript = json.dumps(transcript, ensure_ascii=False) if transcript else None
+        video.raw_transcript = (
+            json.dumps(transcript, ensure_ascii=False) if transcript else None
+        )
         video.amount_chapters = len(video_chapters)
         VideoService.save(video, video_chapters)
         return model_to_dict(video)
@@ -73,7 +77,7 @@ class YoutubeService:
                     title=f"Chapter {index + 1} : {chapter.title} ({timedelta(seconds=chapter.start_seconds)} - {timedelta(seconds=chapter.start_seconds + chapter.duration)})",
                     start_time=chapter.start_seconds,
                     start_label=chapter.start_label,
-                    duration=chapter.duration
+                    duration=chapter.duration,
                 )
                 for index, chapter in enumerate(chapters)
             )
@@ -82,7 +86,9 @@ class YoutubeService:
         # Auto chunk chapter by predefine duration length
         predict_parts = self.__get_predict_chapters_range()
         audio_path_file = self.__download_audio() if required_audio else None
-        has_captions = self.__agent.captions is not None and len(self.__agent.captions) != 0
+        has_captions = (
+            self.__agent.captions is not None and len(self.__agent.captions) != 0
+        )
         for index, _ in enumerate(predict_parts):
             if len(predict_parts) == index + 1:
                 break
@@ -96,12 +102,16 @@ class YoutubeService:
                     start_time=current_start_seconds,
                     start_label=str(timedelta(seconds=current_start_seconds)),
                     duration=(next_start_seconds - current_start_seconds),
-                    audio_path=self.__chunk_audio_task(
-                        has_captions=has_captions,
-                        audio_path_file=audio_path_file,
-                        start_time=str(timedelta(seconds=current_start_seconds)),
-                        duration=(next_start_seconds - current_start_seconds - 10)
-                    ) if required_audio else None
+                    audio_path=(
+                        self.__chunk_audio_task(
+                            has_captions=has_captions,
+                            audio_path_file=audio_path_file,
+                            start_time=str(timedelta(seconds=current_start_seconds)),
+                            duration=(next_start_seconds - current_start_seconds - 10),
+                        )
+                        if required_audio
+                        else None
+                    ),
                 )
             )
         if audio_path_file and Path(audio_path_file).exists():
@@ -109,7 +119,9 @@ class YoutubeService:
         return video_chapters
 
     @staticmethod
-    def __chunk_audio_task(has_captions: bool, audio_path_file: str, start_time: str, duration: int) -> str | None:
+    def __chunk_audio_task(
+        has_captions: bool, audio_path_file: str, start_time: str, duration: int
+    ) -> str | None:
         if has_captions:
             return None
         output_path = os.path.join(TEMP_AUDIO_DIR, f"{uuid.uuid4()}.wav")
@@ -119,7 +131,7 @@ class YoutubeService:
             start_time=start_time,
             duration=duration,
             output_format="wav",
-            overwrite=True
+            overwrite=True,
         )
         return output_path
 
@@ -147,44 +159,54 @@ class YoutubeService:
             prefer_lang = env.LANGUAGE_PREFER_USAGE
             for transcript in transcripts:
                 if prefer_lang in transcript.code:
-                    return transcript.code.replace("a.", ""), self.__combine_youtube_caption_data(transcript)
+                    return transcript.code.replace(
+                        "a.", ""
+                    ), self.__combine_youtube_caption_data(transcript)
             transcript = transcripts[0]
-            return transcript.code.replace("a.", ""), self.__combine_youtube_caption_data(transcript)
+            return transcript.code.replace(
+                "a.", ""
+            ), self.__combine_youtube_caption_data(transcript)
         return None, []
 
     @staticmethod
     def __combine_youtube_caption_data(caption: Caption):
-        events = caption.json_captions['events']
+        events = caption.json_captions["events"]
         result = []
         for e in events:
-            subs = e.get('segs', [])
+            subs = e.get("segs", [])
             if len(subs) == 0:
                 continue
-            text = ''.join(item.get('utf8', '') for item in subs)
-            if text is not None and text.strip() != '':
-                start_time = e.get('tStartMs')
-                duration = e.get('dDurationMs')
+            text = "".join(item.get("utf8", "") for item in subs)
+            if text is not None and text.strip() != "":
+                start_time = e.get("tStartMs")
+                duration = e.get("dDurationMs")
                 if start_time is None or duration is None:
                     logger.debug("Cannot get start_time or duration")
                     continue
-                result.append({
-                    'start_time': start_time,
-                    'duration': duration,
-                    'text': text.replace("\n", " ")
-                })
+                result.append(
+                    {
+                        "start_time": start_time,
+                        "duration": duration,
+                        "text": text.replace("\n", " "),
+                    }
+                )
         return result
 
     def __extract_audio(self):
         logger.debug(f"start to download audio {self.__agent.title}")
         output_audio_file = self.__download_audio()
         language = AiService.recognize_audio_language(
-            audio_path=output_audio_file,
-            duration=self.__agent.length
+            audio_path=output_audio_file, duration=self.__agent.length
         )
         return language, output_audio_file
 
     def __download_audio(self) -> str:
         ys = self.__agent.streams.get_audio_only()
         tmp_audio_file_name = f"{uuid.uuid4()}"
-        ys.download(mp3=True, output_path=TEMP_AUDIO_DIR, filename=tmp_audio_file_name, skip_existing=True)
+        ys.download(
+            mp3=True,
+            output_path=TEMP_AUDIO_DIR,
+            filename=tmp_audio_file_name,
+            skip_existing=True,
+        )
         return process_audio(os.path.join(TEMP_AUDIO_DIR, f"{tmp_audio_file_name}.mp3"))

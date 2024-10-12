@@ -8,7 +8,12 @@ from engine.services.ai_service import AiService
 from engine.services.video_service import VideoService
 from engine.supports import env
 from engine.supports.errors import ChatError
-from engine.supports.prompts import ASKING_PROMPT_WITH_RAG, ASKING_PROMPT_WITHOUT_RAG, MULTI_QUERY_PROMPT, SYSTEM_PROMPT
+from engine.supports.prompts import (
+    ASKING_PROMPT_WITH_RAG,
+    ASKING_PROMPT_WITHOUT_RAG,
+    MULTI_QUERY_PROMPT,
+    SYSTEM_PROMPT,
+)
 
 
 class ChatService:
@@ -22,7 +27,9 @@ class ChatService:
         pass
 
     @staticmethod
-    async def ask(question: str, vid: int, provider: str, model: str = None) -> dict[object]:
+    async def ask(
+        question: str, vid: int, provider: str, model: str = None
+    ) -> dict[object]:
         """
         Processes a user's question about a specific video using the specified AI provider and model.
 
@@ -47,14 +54,22 @@ class ChatService:
             May raise exceptions related to video retrieval or AI processing.
         """
         video: Video = VideoService.get_analyzed_video(vid)
-        chats: list[Chat] = list(Chat.select().where(Chat.video == video).limit(20).order_by(Chat.id.asc()))
+        chats: list[Chat] = list(
+            Chat.select().where(Chat.video == video).limit(20).order_by(Chat.id.asc())
+        )
         if video.transcript_tokens <= env.TOKEN_CONTEXT_THRESHOLD:
-            return await ChatService.__ask_without_rag(question, video, chats, provider, model)
+            return await ChatService.__ask_without_rag(
+                question, video, chats, provider, model
+            )
         else:
-            return await ChatService.__ask_with_rag(question, video, chats, provider, model)
+            return await ChatService.__ask_with_rag(
+                question, video, chats, provider, model
+            )
 
     @staticmethod
-    async def __ask_without_rag(question: str, video: Video, chats: list[Chat], provider: str, model: str = None) -> dict[object]:
+    async def __ask_without_rag(
+        question: str, video: Video, chats: list[Chat], provider: str, model: str = None
+    ) -> dict[object]:
         """
         Processes a question about a video without using RAG, suitable for shorter transcripts.
 
@@ -79,23 +94,35 @@ class ChatService:
         Raises:
             ChatError: If an unsupported provider is specified.
         """
-        context = ASKING_PROMPT_WITHOUT_RAG.format(**{
-            "title": video.title,
-            "url": video.url,
-            "description": video.description,
-            "context": video.transcript
-        })
+        context = ASKING_PROMPT_WITHOUT_RAG.format(
+            **{
+                "title": video.title,
+                "url": video.url,
+                "description": video.description,
+                "context": video.transcript,
+            }
+        )
         match provider:
             case "gemini":
-                result = await ChatService.__ask_gemini_without_rag(model=model, question=question, context=context, chats=chats)
+                result = await ChatService.__ask_gemini_without_rag(
+                    model=model, question=question, context=context, chats=chats
+                )
             case "openai":
-                result = await ChatService.__ask_openai_without_rag(model=model, question=question, context=context, chats=chats)
+                result = await ChatService.__ask_openai_without_rag(
+                    model=model, question=question, context=context, chats=chats
+                )
             case "claude":
-                result = await ChatService.__ask_claude_without_rag(model=model, question=question, context=context, chats=chats)
+                result = await ChatService.__ask_claude_without_rag(
+                    model=model, question=question, context=context, chats=chats
+                )
             case "mistral":
-                result = await ChatService.__ask_mistral_without_rag(model=model, question=question, context=context, chats=chats)
+                result = await ChatService.__ask_mistral_without_rag(
+                    model=model, question=question, context=context, chats=chats
+                )
             case "ollama":
-                result = await ChatService.__ask_ollama_without_rag(model=model, question=question, context=context, chats=chats)
+                result = await ChatService.__ask_ollama_without_rag(
+                    model=model, question=question, context=context, chats=chats
+                )
             case _:
                 raise ChatError("provider is not supported")
 
@@ -106,18 +133,24 @@ class ChatService:
             answer=result,
             context="No context without RAG",
             prompt=context,
-            provider=provider
+            provider=provider,
         )
         chat.save()
         return model_to_dict(chat)
 
     @staticmethod
     async def __ask_gemini_without_rag(model, question, context, chats):
-        previous_chats = ChatService.__build_gemini_without_rag_chat_histories(context=context, chats=chats)
-        return AiService.chat_with_gemini(model=model, question=question, previous_chats=previous_chats)
+        previous_chats = ChatService.__build_gemini_without_rag_chat_histories(
+            context=context, chats=chats
+        )
+        return AiService.chat_with_gemini(
+            model=model, question=question, previous_chats=previous_chats
+        )
 
     @staticmethod
-    def __build_gemini_without_rag_chat_histories(context: str, chats: list[Chat]) -> list[dict]:
+    def __build_gemini_without_rag_chat_histories(
+        context: str, chats: list[Chat]
+    ) -> list[dict]:
         chat_histories = [
             {
                 "role": "user",
@@ -126,20 +159,26 @@ class ChatService:
             {
                 "role": "model",
                 "parts": "I read carefully the video information and what you provided, let's go QA",
-            }
+            },
         ]
         if chats is not None:
             for chat in chats:
-                chat_histories.extend((
-                    {"role": "user", "parts": chat.question},
-                    {"role": "model", "parts": chat.answer},
-                ))
+                chat_histories.extend(
+                    (
+                        {"role": "user", "parts": chat.question},
+                        {"role": "model", "parts": chat.answer},
+                    )
+                )
         return chat_histories
 
     @staticmethod
     async def __ask_openai_without_rag(model, question, context, chats) -> str:
-        previous_chats = ChatService.__build_openai_without_rag_chat_histories(context=context, chats=chats)
-        return AiService.chat_with_gemini(model=model, question=question, previous_chats=previous_chats)
+        previous_chats = ChatService.__build_openai_without_rag_chat_histories(
+            context=context, chats=chats
+        )
+        return AiService.chat_with_gemini(
+            model=model, question=question, previous_chats=previous_chats
+        )
 
     @staticmethod
     def __build_openai_without_rag_chat_histories(context, chats) -> list[dict]:
@@ -151,7 +190,7 @@ class ChatService:
             {
                 "role": "assistant",
                 "content": "I read carefully the video information and what you provided, let's go QA",
-            }
+            },
         ]
         if chats is not None:
             for chat in chats:
@@ -165,21 +204,35 @@ class ChatService:
 
     @staticmethod
     async def __ask_claude_without_rag(model, question, context, chats):
-        previous_chats = ChatService.__build_openai_without_rag_chat_histories(context=context, chats=chats)
-        return AiService.chat_with_claude(model=model, question=question, previous_chats=previous_chats)
+        previous_chats = ChatService.__build_openai_without_rag_chat_histories(
+            context=context, chats=chats
+        )
+        return AiService.chat_with_claude(
+            model=model, question=question, previous_chats=previous_chats
+        )
 
     @staticmethod
     async def __ask_mistral_without_rag(model, question, context, chats):
-        previous_chats = ChatService.__build_openai_without_rag_chat_histories(context=context, chats=chats)
-        return AiService.chat_with_mistral(model=model, question=question, previous_chats=previous_chats)
+        previous_chats = ChatService.__build_openai_without_rag_chat_histories(
+            context=context, chats=chats
+        )
+        return AiService.chat_with_mistral(
+            model=model, question=question, previous_chats=previous_chats
+        )
 
     @staticmethod
     async def __ask_ollama_without_rag(model, question, context, chats):
-        previous_chats = ChatService.__build_openai_without_rag_chat_histories(context=context, chats=chats)
-        return AiService.chat_with_ollama(model=model, question=question, previous_chats=previous_chats)
+        previous_chats = ChatService.__build_openai_without_rag_chat_histories(
+            context=context, chats=chats
+        )
+        return AiService.chat_with_ollama(
+            model=model, question=question, previous_chats=previous_chats
+        )
 
     @staticmethod
-    async def __ask_with_rag(question: str, video: Video, chats: list[Chat], provider: str, model: str = None) -> dict[object]:
+    async def __ask_with_rag(
+        question: str, video: Video, chats: list[Chat], provider: str, model: str = None
+    ) -> dict[object]:
         """
         Processes a question about a video using RAG, suitable for longer transcripts.
 
@@ -205,28 +258,77 @@ class ChatService:
         Raises:
             ChatError: If an unsupported provider is specified.
         """
-        previous_chats = list(Chat.select().where(Chat.video == video).limit(5).order_by(Chat.id.asc()))
+        previous_chats = list(
+            Chat.select().where(Chat.video == video).limit(5).order_by(Chat.id.asc())
+        )
         previous_questions = "\n".join([chat.question for chat in previous_chats])
-        context_document = ChatService.__get_relevant_doc(provider=provider, model=model, video=video, question=question, previous_questions=previous_questions)
+        context_document = ChatService.__get_relevant_doc(
+            provider=provider,
+            model=model,
+            video=video,
+            question=question,
+            previous_questions=previous_questions,
+        )
         logger.debug(f"Relevant docs: {context_document}")
-        prompt_context = ASKING_PROMPT_WITH_RAG.format(**{"context": context_document}) if context_document else None
+        prompt_context = (
+            ASKING_PROMPT_WITH_RAG.format(**{"context": context_document})
+            if context_document
+            else None
+        )
 
         if not prompt_context and env.RAG_AUTO_SWITCH in ["on", "yes", "enabled"]:
-            logger.debug("RAG is required, but none relevant information found, auto switch")
-            return await ChatService.__ask_without_rag(question=question, video=video, chats=chats, provider=provider, model=model)
+            logger.debug(
+                "RAG is required, but none relevant information found, auto switch"
+            )
+            return await ChatService.__ask_without_rag(
+                question=question,
+                video=video,
+                chats=chats,
+                provider=provider,
+                model=model,
+            )
 
-        awareness_context = prompt_context if prompt_context else "No video information related, just answer me in your ability"
+        awareness_context = (
+            prompt_context
+            if prompt_context
+            else "No video information related, just answer me in your ability"
+        )
         match provider:
             case "gemini":
-                result = await ChatService.__ask_gemini_with_rag(model=model, question=question, context=awareness_context, chats=chats)
+                result = await ChatService.__ask_gemini_with_rag(
+                    model=model,
+                    question=question,
+                    context=awareness_context,
+                    chats=chats,
+                )
             case "openai":
-                result = await ChatService.__ask_openai_with_rag(model=model, question=question, context=awareness_context, chats=chats)
+                result = await ChatService.__ask_openai_with_rag(
+                    model=model,
+                    question=question,
+                    context=awareness_context,
+                    chats=chats,
+                )
             case "claude":
-                result = await ChatService.__ask_claude_with_rag(model=model, question=question, context=awareness_context, chats=chats)
+                result = await ChatService.__ask_claude_with_rag(
+                    model=model,
+                    question=question,
+                    context=awareness_context,
+                    chats=chats,
+                )
             case "mistral":
-                result = await ChatService.__ask_mistral_with_rag(model=model, question=question, context=awareness_context, chats=chats)
+                result = await ChatService.__ask_mistral_with_rag(
+                    model=model,
+                    question=question,
+                    context=awareness_context,
+                    chats=chats,
+                )
             case "ollama":
-                result = await ChatService.__ask_ollama_with_rag(model=model, question=question, context=awareness_context, chats=chats)
+                result = await ChatService.__ask_ollama_with_rag(
+                    model=model,
+                    question=question,
+                    context=awareness_context,
+                    chats=chats,
+                )
             case _:
                 raise ChatError("unknown chat provider")
 
@@ -235,15 +337,19 @@ class ChatService:
             question=question,
             refined_question="Not Implemented Yet",
             answer=result,
-            relevant_docs=context_document if context_document else "No context doc found",
+            relevant_docs=(
+                context_document if context_document else "No context doc found"
+            ),
             prompt=prompt_context if prompt_context else "No prompt found",
-            provider=provider
+            provider=provider,
         )
         chat.save()
         return model_to_dict(chat)
 
     @staticmethod
-    def __get_relevant_doc(provider: str, model: str, video: Video, question: str, previous_questions: str) -> str | None:
+    def __get_relevant_doc(
+        provider: str, model: str, video: Video, question: str, previous_questions: str
+    ) -> str | None:
         """
         Retrieves relevant document snippets based on the question and video content.
 
@@ -269,12 +375,16 @@ class ChatService:
         implementation = env.RAG_QUERY_IMPLEMENTATION
         match implementation:
             case "multiquery":
-                return ChatService.__get_relevant_doc_by_multiquery(provider, model, video, question, previous_questions)
+                return ChatService.__get_relevant_doc_by_multiquery(
+                    provider, model, video, question, previous_questions
+                )
             case _:
                 raise ChatError(f"not support {implementation} yet")
 
     @staticmethod
-    def __get_relevant_doc_by_multiquery(provider: str, model: str, video: Video, question: str, previous_questions: str) -> str | None:
+    def __get_relevant_doc_by_multiquery(
+        provider: str, model: str, video: Video, question: str, previous_questions: str
+    ) -> str | None:
         """
         Retrieves relevant document snippets using the multi-query approach.
 
@@ -296,15 +406,26 @@ class ChatService:
         Returns:
             str | None: A string containing relevant document snippets, or None if no relevant snippets are found.
         """
-        multi_query_prompt = MULTI_QUERY_PROMPT.format(**{
-            "title": video.title,
-            "description": video.description,
-            "previous_questions": previous_questions if previous_questions else "NO PREVIOUS QUESTIONS",
-            "question": question,
-            "language": iso639.Language.from_part1(video.language).name
-        })
+        multi_query_prompt = MULTI_QUERY_PROMPT.format(
+            **{
+                "title": video.title,
+                "description": video.description,
+                "previous_questions": (
+                    previous_questions
+                    if previous_questions
+                    else "NO PREVIOUS QUESTIONS"
+                ),
+                "question": question,
+                "language": iso639.Language.from_part1(video.language).name,
+            }
+        )
         logger.debug(f"Multiquery generated:```\n{multi_query_prompt}\n```")
-        questions = AiService.chat_with_ai(provider=provider, model=model, question=multi_query_prompt, system_prompt=None).split("\n")
+        questions = AiService.chat_with_ai(
+            provider=provider,
+            model=model,
+            question=multi_query_prompt,
+            system_prompt=None,
+        ).split("\n")
         if len(questions) == 1 and questions[0].lower() == "0":
             return None
 
@@ -339,42 +460,71 @@ class ChatService:
         for relevant_question in questions:
             if relevant_question and relevant_question.strip():
                 logger.debug(f"question: {relevant_question}")
-                _, embedding_question = AiService.get_texts_embedding(video.embedding_provider, relevant_question)
+                _, embedding_question = AiService.get_texts_embedding(
+                    video.embedding_provider, relevant_question
+                )
                 embedding_questions.append(embedding_question)
         _, documents = AiService.query_embeddings(
-            table=f"video_{video.id}",
-            queries=embedding_questions
+            table=f"video_{video.id}", queries=embedding_questions
         )
         return "\n".join(documents) if documents else None
 
     @staticmethod
-    async def __ask_gemini_with_rag(model: str, question: str, context: str, chats: list[Chat]) -> str:
-        previous_chats = ChatService.__build_gemini_rag_chat_histories(question=question, chats=chats)
-        return AiService.chat_with_gemini(model=model, question=context, previous_chats=previous_chats, system_prompt=SYSTEM_PROMPT)
+    async def __ask_gemini_with_rag(
+        model: str, question: str, context: str, chats: list[Chat]
+    ) -> str:
+        previous_chats = ChatService.__build_gemini_rag_chat_histories(
+            question=question, chats=chats
+        )
+        return AiService.chat_with_gemini(
+            model=model,
+            question=context,
+            previous_chats=previous_chats,
+            system_prompt=SYSTEM_PROMPT,
+        )
 
     @staticmethod
-    def __build_gemini_rag_chat_histories(question: str, chats: list[Chat]) -> list[dict]:
+    def __build_gemini_rag_chat_histories(
+        question: str, chats: list[Chat]
+    ) -> list[dict]:
         chat_histories = []
         if chats is not None:
             for chat in chats:
-                chat_histories.extend((
-                    {"role": "user", "parts": chat.question},
-                    {"role": "model", "parts": chat.answer},
-                ))
-        chat_histories.extend((
-            {"role": "user", "parts": question},
-            {"role": "model", "parts": "Could you provide me related information for your request"}
-
-        ))
+                chat_histories.extend(
+                    (
+                        {"role": "user", "parts": chat.question},
+                        {"role": "model", "parts": chat.answer},
+                    )
+                )
+        chat_histories.extend(
+            (
+                {"role": "user", "parts": question},
+                {
+                    "role": "model",
+                    "parts": "Could you provide me related information for your request",
+                },
+            )
+        )
         return chat_histories
 
     @staticmethod
-    async def __ask_openai_with_rag(model: str, question: str, context: str, chats: list[Chat]) -> str:
-        previous_chats = ChatService.__build_openai_rag_chat_histories(question=question, chats=chats)
-        return AiService.chat_with_openai(model=model, question=context, previous_chats=previous_chats, system_prompt=SYSTEM_PROMPT)
+    async def __ask_openai_with_rag(
+        model: str, question: str, context: str, chats: list[Chat]
+    ) -> str:
+        previous_chats = ChatService.__build_openai_rag_chat_histories(
+            question=question, chats=chats
+        )
+        return AiService.chat_with_openai(
+            model=model,
+            question=context,
+            previous_chats=previous_chats,
+            system_prompt=SYSTEM_PROMPT,
+        )
 
     @staticmethod
-    def __build_openai_rag_chat_histories(question: str, chats: list[Chat]) -> list[dict]:
+    def __build_openai_rag_chat_histories(
+        question: str, chats: list[Chat]
+    ) -> list[dict]:
         chat_histories = []
         if chats is not None:
             for chat in chats:
@@ -384,27 +534,58 @@ class ChatService:
                         {"role": "assistant", "content": chat.answer},
                     )
                 )
-        chat_histories.extend((
-            {"role": "user", "content": question},
-            {"role": "assistant", "content": "Could you provide me related information for your request"}
-
-        ))
+        chat_histories.extend(
+            (
+                {"role": "user", "content": question},
+                {
+                    "role": "assistant",
+                    "content": "Could you provide me related information for your request",
+                },
+            )
+        )
         return chat_histories
 
     @staticmethod
-    async def __ask_claude_with_rag(model: str, question: str, context: str, chats: list[Chat]) -> str:
-        previous_chats = ChatService.__build_openai_rag_chat_histories(question=question, chats=chats)
-        return AiService.chat_with_claude(model=model, question=context, previous_chats=previous_chats, system_prompt=SYSTEM_PROMPT)
+    async def __ask_claude_with_rag(
+        model: str, question: str, context: str, chats: list[Chat]
+    ) -> str:
+        previous_chats = ChatService.__build_openai_rag_chat_histories(
+            question=question, chats=chats
+        )
+        return AiService.chat_with_claude(
+            model=model,
+            question=context,
+            previous_chats=previous_chats,
+            system_prompt=SYSTEM_PROMPT,
+        )
 
     @staticmethod
-    async def __ask_mistral_with_rag(model: str, question: str, context: str, chats: list[Chat]) -> str:
-        previous_chats = ChatService.__build_openai_rag_chat_histories(question=question, chats=chats)
-        return AiService.chat_with_mistral(model=model, question=context, previous_chats=previous_chats, system_prompt=SYSTEM_PROMPT)
+    async def __ask_mistral_with_rag(
+        model: str, question: str, context: str, chats: list[Chat]
+    ) -> str:
+        previous_chats = ChatService.__build_openai_rag_chat_histories(
+            question=question, chats=chats
+        )
+        return AiService.chat_with_mistral(
+            model=model,
+            question=context,
+            previous_chats=previous_chats,
+            system_prompt=SYSTEM_PROMPT,
+        )
 
     @staticmethod
-    async def __ask_ollama_with_rag(model: str, question: str, context: str, chats: list[Chat]) -> str:
-        previous_chats = ChatService.__build_openai_rag_chat_histories(question=question, chats=chats)
-        return AiService.chat_with_mistral(model=model, question=context, previous_chats=previous_chats, system_prompt=SYSTEM_PROMPT)
+    async def __ask_ollama_with_rag(
+        model: str, question: str, context: str, chats: list[Chat]
+    ) -> str:
+        previous_chats = ChatService.__build_openai_rag_chat_histories(
+            question=question, chats=chats
+        )
+        return AiService.chat_with_mistral(
+            model=model,
+            question=context,
+            previous_chats=previous_chats,
+            system_prompt=SYSTEM_PROMPT,
+        )
 
     @staticmethod
     def get_chat_histories(video_id: int) -> list[{}]:
@@ -429,7 +610,9 @@ class ChatService:
             The returned dictionaries are created using model_to_dict, which converts model instances to dictionaries.
         """
         selected_video: Video = VideoService.find_video_by_id(video_id)
-        chat_histories = list(Chat.select().where(Chat.video == selected_video).order_by(Chat.id.asc()))
+        chat_histories = list(
+            Chat.select().where(Chat.video == selected_video).order_by(Chat.id.asc())
+        )
         result = []
         for chat in chat_histories:
             chat.video = None

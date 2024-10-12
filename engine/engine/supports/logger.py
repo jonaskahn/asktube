@@ -20,7 +20,7 @@ class CustomFormatter(logging.Formatter):
         logging.INFO: green + log_format + reset,
         logging.WARNING: yellow + log_format + reset,
         logging.ERROR: red + log_format + reset,
-        logging.CRITICAL: bold_red + log_format + reset
+        logging.CRITICAL: bold_red + log_format + reset,
     }
 
     def format(self, record):
@@ -46,7 +46,7 @@ def setup_log():
     logger.setLevel(logging.DEBUG)
 
     # Logging for external libraries
-    external_loggers = ['sentence_transformers', 'faster_whisper', 'sanic']
+    external_loggers = ["sentence_transformers", "faster_whisper", "sanic"]
 
     for logger_name in external_loggers:
         lib_logger = logging.getLogger(logger_name)
