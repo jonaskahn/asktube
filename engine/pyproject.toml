@@ -35,6 +35,7 @@ torch = "^2.4.1"
 ujson = "^5.10.0"
 urllib3 = "^2.2.3"
 voyageai = "^0.2.3"
+librosa = "^0.10.2.post1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
