@@ -19,7 +19,7 @@ class __AudioChainProcessor:
     def __init__(self):
         self.filters: List[Callable[[str], str]] = []
 
-    def add_filter(self, func: Callable[[str], str]) -> '__AudioChainProcessor':
+    def add_filter(self, func: Callable[[str], str]) -> "__AudioChainProcessor":
         self.filters.append(func)
         return self
 
@@ -43,10 +43,8 @@ def mp4_to_wav(audio_input_path: str) -> str:
 
 
 def __sound_converter(
-        audio_input_path: str,
-        input_format: str,
-        output_format: str,
-        codec: str = None) -> str:
+    audio_input_path: str, input_format: str, output_format: str, codec: str = None
+) -> str:
     audio_output_file = os.path.join(TEMP_AUDIO_DIR, f"{uuid4()}.{output_format}")
     sound = AudioSegment.from_file(audio_input_path, format=input_format)
     sound.export(audio_output_file, format=output_format, codec=codec)
@@ -85,7 +83,12 @@ def denoise(audio_path: str) -> str:
 
 def process_audio(audio_path: str) -> str:
     if env.AUDIO_ENHANCE_ENABLED in ["yes", "on", "enabled"]:
-        return __AudioChainProcessor().add_filter(mp4_to_wav).add_filter(denoise).add_filter(remove_music).filter(
-            audio_path)
+        return (
+            __AudioChainProcessor()
+            .add_filter(mp4_to_wav)
+            .add_filter(denoise)
+            .add_filter(remove_music)
+            .filter(audio_path)
+        )
     else:
         return __AudioChainProcessor().add_filter(mp4_to_wav).filter(audio_path)
