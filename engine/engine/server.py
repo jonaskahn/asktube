@@ -2,12 +2,6 @@ import asyncio
 import platform
 from json import dumps
 
-from sanic import Sanic, Request, response
-from sanic import json, text
-from sanic.log import logger
-from sanic.worker.manager import WorkerManager
-from sanic_cors import CORS
-
 from engine.database.models import Video, VideoChapter, Chat
 from engine.database.specs import sqlite_client
 from engine.services.chat_service import ChatService
@@ -16,6 +10,11 @@ from engine.services.youtube_service import YoutubeService
 from engine.supports import env
 from engine.supports.errors import LogicError
 from engine.supports.logger import setup_log
+from sanic import Sanic, Request, response
+from sanic import json, text
+from sanic.log import logger
+from sanic.worker.manager import WorkerManager
+from sanic_cors import CORS
 
 app = Sanic("AskTube", dumps=dumps)
 app.config.KEEP_ALIVE = False
@@ -102,9 +101,7 @@ async def process_youtube_video(request: Request):
 async def analysis_youtube_video(request: Request):
     video_id: int = int(request.json["video_id"])
     data = await asyncio.create_task(VideoService.analysis_video(video_id))
-    return json(
-        {"status_code": 200, "message": "Analyze video in processing.", "payload": data}
-    )
+    return json({"status_code": 200, "message": "Analyze video in processing.", "payload": data})
 
 
 @app.options("/api/video/detail/<video_id>")
@@ -130,21 +127,15 @@ async def summary(request: Request):
     lang_code = request.json["lang_code"]
     provider = request.json["provider"]
     model = request.json.get("model", None)
-    data = await asyncio.create_task(
-        VideoService.summary_video(vid, lang_code, provider, model)
-    )
+    data = await asyncio.create_task(VideoService.summary_video(vid, lang_code, provider, model))
     asyncio.create_task(VideoService.analysis_summary_video(vid, model, provider))
-    return json(
-        {"status_code": 200, "message": "Successfully summary video", "payload": data}
-    )
+    return json({"status_code": 200, "message": "Successfully summary video", "payload": data})
 
 
 @app.delete("/api/video/<video_id>")
 async def delete_video(request: Request, video_id: int):
     VideoService.delete(video_id)
-    return json(
-        {"status_code": 200, "message": f"Successfully delete video {video_id}"}
-    )
+    return json({"status_code": 200, "message": f"Successfully delete video {video_id}"})
 
 
 @app.get("/api/videos/<page>")
@@ -172,9 +163,7 @@ async def chat(request: Request):
 @app.get("/api/chat/history/<video_id>")
 async def chat_history(request: Request, video_id: int):
     chat_histories = ChatService.get_chat_histories(video_id=video_id)
-    return json(
-        {"status_code": 200, "message": "Successfully", "payload": chat_histories}
-    )
+    return json({"status_code": 200, "message": "Successfully", "payload": chat_histories})
 
 
 @app.delete("/api/chat/clear/<video_id>")

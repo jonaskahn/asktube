@@ -14,3 +14,19 @@ ANALYSIS_STAGE_PROCESSING = 2
 
 TEMP_AUDIO_DIR = os.path.join(APP_DIR, "temp-audio")
 os.makedirs(TEMP_AUDIO_DIR, exist_ok=True)
+
+FUNCTION_CALL_DEFINITION = {
+    "name": "get_relevant_data_from_video",
+    "description": "Access relevant data from the target video for answer question",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "question": {
+                "type": "string",
+                "description": "Explain what do you want to get from video by giving concise question",
+            }
+        },
+        "required": ["question"],
+        "additionalProperties": false,
+    },
+}

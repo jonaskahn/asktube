@@ -1,8 +1,7 @@
 import logging
 
-from sanic.log import logger
-
 from engine.supports import env
+from sanic.log import logger
 
 log_format = "%(asctime)s - %(name)s - %(levelname)s - [%(threadName)s] - %(message)s"
 

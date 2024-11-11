@@ -6,17 +6,16 @@ from pathlib import Path
 
 import pytubefix
 from audio_extract import extract_audio
-from playhouse.shortcuts import model_to_dict
-from pytubefix import YouTube, Caption
-from pytubefix.cli import on_progress
-from sanic.log import logger
-
 from engine.database.models import VideoChapter, Video
 from engine.processors.audio_processor import process_audio
 from engine.services.ai_service import AiService
 from engine.services.video_service import VideoService
 from engine.supports import env
 from engine.supports.constants import TEMP_AUDIO_DIR
+from playhouse.shortcuts import model_to_dict
+from pytubefix import YouTube, Caption
+from pytubefix.cli import on_progress
+from sanic.log import logger
 
 
 class YoutubeService:
@@ -29,9 +28,7 @@ class YoutubeService:
         )
 
     def fetch_basic_info(self):
-        captions = list(
-            map(lambda c: {"name": c.name, "value": c.code}, self.__agent.captions)
-        )
+        captions = list(map(lambda c: {"name": c.name, "value": c.code}, self.__agent.captions))
         return {
             "title": self.__agent.title,
             "description": self.__agent.description,
@@ -60,9 +57,7 @@ class YoutubeService:
         language, transcript = self.__extract_transcript()
         video_chapters = self.__extract_chapters(len(transcript) == 0)
         video.language = language
-        video.raw_transcript = (
-            json.dumps(transcript, ensure_ascii=False) if transcript else None
-        )
+        video.raw_transcript = json.dumps(transcript, ensure_ascii=False) if transcript else None
         video.amount_chapters = len(video_chapters)
         VideoService.save(video, video_chapters)
         return model_to_dict(video)
@@ -86,9 +81,7 @@ class YoutubeService:
         # Auto chunk chapter by predefine duration length
         predict_parts = self.__get_predict_chapters_range()
         audio_path_file = self.__download_audio() if required_audio else None
-        has_captions = (
-            self.__agent.captions is not None and len(self.__agent.captions) != 0
-        )
+        has_captions = self.__agent.captions is not None and len(self.__agent.captions) != 0
         for index, _ in enumerate(predict_parts):
             if len(predict_parts) == index + 1:
                 break
@@ -119,9 +112,7 @@ class YoutubeService:
         return video_chapters
 
     @staticmethod
-    def __chunk_audio_task(
-        has_captions: bool, audio_path_file: str, start_time: str, duration: int
-    ) -> str | None:
+    def __chunk_audio_task(has_captions: bool, audio_path_file: str, start_time: str, duration: int) -> str | None:
         if has_captions:
             return None
         output_path = os.path.join(TEMP_AUDIO_DIR, f"{uuid.uuid4()}.wav")
@@ -159,13 +150,9 @@ class YoutubeService:
             prefer_lang = env.LANGUAGE_PREFER_USAGE
             for transcript in transcripts:
                 if prefer_lang in transcript.code:
-                    return transcript.code.replace(
-                        "a.", ""
-                    ), self.__combine_youtube_caption_data(transcript)
+                    return transcript.code.replace("a.", ""), self.__combine_youtube_caption_data(transcript)
             transcript = transcripts[0]
-            return transcript.code.replace(
-                "a.", ""
-            ), self.__combine_youtube_caption_data(transcript)
+            return transcript.code.replace("a.", ""), self.__combine_youtube_caption_data(transcript)
         return None, []
 
     @staticmethod
@@ -195,9 +182,7 @@ class YoutubeService:
     def __extract_audio(self):
         logger.debug(f"start to download audio {self.__agent.title}")
         output_audio_file = self.__download_audio()
-        language = AiService.recognize_audio_language(
-            audio_path=output_audio_file, duration=self.__agent.length
-        )
+        language = AiService.recognize_audio_language(audio_path=output_audio_file, duration=self.__agent.length)
         return language, output_audio_file
 
     def __download_audio(self) -> str:

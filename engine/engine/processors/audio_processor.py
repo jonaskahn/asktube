@@ -7,12 +7,11 @@ import librosa
 import noisereduce as nr
 import numpy as np
 import soundfile as sf
+from engine.supports import env
+from engine.supports.constants import TEMP_AUDIO_DIR
 from pydub import AudioSegment
 from sanic.log import logger
 from scipy.io import wavfile
-
-from engine.supports import env
-from engine.supports.constants import TEMP_AUDIO_DIR
 
 
 class __AudioChainProcessor:
@@ -42,9 +41,7 @@ def mp4_to_wav(audio_input_path: str) -> str:
     return __sound_converter(audio_input_path, "mp4", "wav")
 
 
-def __sound_converter(
-    audio_input_path: str, input_format: str, output_format: str, codec: str = None
-) -> str:
+def __sound_converter(audio_input_path: str, input_format: str, output_format: str, codec: str = None) -> str:
     audio_output_file = os.path.join(TEMP_AUDIO_DIR, f"{uuid4()}.{output_format}")
     sound = AudioSegment.from_file(audio_input_path, format=input_format)
     sound.export(audio_output_file, format=output_format, codec=codec)
@@ -83,12 +80,7 @@ def denoise(audio_path: str) -> str:
 
 def process_audio(audio_path: str) -> str:
     if env.AUDIO_ENHANCE_ENABLED in ["yes", "on", "enabled"]:
-        return (
-            __AudioChainProcessor()
-            .add_filter(mp4_to_wav)
-            .add_filter(denoise)
-            .add_filter(remove_music)
-            .filter(audio_path)
-        )
+        return __AudioChainProcessor().add_filter(mp4_to_wav).add_filter(denoise).add_filter(remove_music).filter(
+            audio_path)
     else:
         return __AudioChainProcessor().add_filter(mp4_to_wav).filter(audio_path)
