@@ -1,4 +1,5 @@
 import iso639
+from google.ai.generativelanguage_v1beta import FunctionDeclaration
 from playhouse.shortcuts import model_to_dict
 from retry import retry
 from sanic.log import logger
@@ -7,6 +8,7 @@ from engine.database.models import Video, Chat
 from engine.services.ai_service import AiService
 from engine.services.video_service import VideoService
 from engine.supports import env
+from engine.supports.constants import FUNCTION_CALL
 from engine.supports.errors import ChatError
 from engine.supports.prompts import (
     ASKING_PROMPT_WITH_RAG,
@@ -278,7 +280,7 @@ class ChatService:
 
         if not prompt_context and env.RAG_AUTO_SWITCH in ["on", "yes", "enabled"]:
             logger.debug(
-                "RAG is required, but none relevant information found, auto switch"
+                "RAG is required, but none relevant information found, auto switched by settings"
             )
             return await ChatService.__ask_without_rag(
                 question=question,
@@ -298,35 +300,30 @@ class ChatService:
                 result = await ChatService.__ask_gemini_with_rag(
                     model=model,
                     question=question,
-                    context=awareness_context,
                     chats=chats,
                 )
             case "openai":
                 result = await ChatService.__ask_openai_with_rag(
                     model=model,
                     question=question,
-                    context=awareness_context,
                     chats=chats,
                 )
             case "claude":
                 result = await ChatService.__ask_claude_with_rag(
                     model=model,
                     question=question,
-                    context=awareness_context,
                     chats=chats,
                 )
             case "mistral":
                 result = await ChatService.__ask_mistral_with_rag(
                     model=model,
                     question=question,
-                    context=awareness_context,
                     chats=chats,
                 )
             case "ollama":
                 result = await ChatService.__ask_ollama_with_rag(
                     model=model,
                     question=question,
-                    context=awareness_context,
                     chats=chats,
                 )
             case _:
@@ -471,22 +468,23 @@ class ChatService:
 
     @staticmethod
     async def __ask_gemini_with_rag(
-        model: str, question: str, context: str, chats: list[Chat]
+        model: str, question: str, chats: list[Chat]
     ) -> str:
-        previous_chats = ChatService.__build_gemini_rag_chat_histories(
-            question=question, chats=chats
+        previous_chats = ChatService.__build_gemini_rag_chat_histories(chats=chats)
+        fn_get_relevant_video_content = FunctionDeclaration(
+            name=FUNCTION_CALL["name"],
+            description=FUNCTION_CALL["description"],
+            parameters=FUNCTION_CALL["parameters"],
         )
-        return AiService.chat_with_gemini(
+        response = AiService.chat_with_gemini(
             model=model,
-            question=context,
+            question=question,
             previous_chats=previous_chats,
             system_prompt=SYSTEM_PROMPT,
         )
 
     @staticmethod
-    def __build_gemini_rag_chat_histories(
-        question: str, chats: list[Chat]
-    ) -> list[dict]:
+    def __build_gemini_rag_chat_histories(chats: list[Chat]) -> list[dict]:
         chat_histories = []
         if chats is not None:
             for chat in chats:
@@ -496,35 +494,22 @@ class ChatService:
                         {"role": "model", "parts": chat.answer},
                     )
                 )
-        chat_histories.extend(
-            (
-                {"role": "user", "parts": question},
-                {
-                    "role": "model",
-                    "parts": "Could you provide me related information for your request",
-                },
-            )
-        )
         return chat_histories
 
     @staticmethod
     async def __ask_openai_with_rag(
-        model: str, question: str, context: str, chats: list[Chat]
+        model: str, question: str, chats: list[Chat]
     ) -> str:
-        previous_chats = ChatService.__build_openai_rag_chat_histories(
-            question=question, chats=chats
-        )
+        previous_chats = ChatService.__build_openai_like_rag_chat_histories(chats=chats)
         return AiService.chat_with_openai(
             model=model,
-            question=context,
+            question=question,
             previous_chats=previous_chats,
             system_prompt=SYSTEM_PROMPT,
         )
 
     @staticmethod
-    def __build_openai_rag_chat_histories(
-        question: str, chats: list[Chat]
-    ) -> list[dict]:
+    def __build_openai_like_rag_chat_histories(chats: list[Chat]) -> list[dict]:
         chat_histories = []
         if chats is not None:
             for chat in chats:
@@ -534,55 +519,40 @@ class ChatService:
                         {"role": "assistant", "content": chat.answer},
                     )
                 )
-        chat_histories.extend(
-            (
-                {"role": "user", "content": question},
-                {
-                    "role": "assistant",
-                    "content": "Could you provide me related information for your request",
-                },
-            )
-        )
         return chat_histories
 
     @staticmethod
     async def __ask_claude_with_rag(
-        model: str, question: str, context: str, chats: list[Chat]
+        model: str, question: str, chats: list[Chat]
     ) -> str:
-        previous_chats = ChatService.__build_openai_rag_chat_histories(
-            question=question, chats=chats
-        )
+        previous_chats = ChatService.__build_openai_like_rag_chat_histories(chats=chats)
         return AiService.chat_with_claude(
             model=model,
-            question=context,
+            question=question,
             previous_chats=previous_chats,
             system_prompt=SYSTEM_PROMPT,
         )
 
     @staticmethod
     async def __ask_mistral_with_rag(
-        model: str, question: str, context: str, chats: list[Chat]
+        model: str, question: str, chats: list[Chat]
     ) -> str:
-        previous_chats = ChatService.__build_openai_rag_chat_histories(
-            question=question, chats=chats
-        )
+        previous_chats = ChatService.__build_openai_like_rag_chat_histories(chats=chats)
         return AiService.chat_with_mistral(
             model=model,
-            question=context,
+            question=question,
             previous_chats=previous_chats,
             system_prompt=SYSTEM_PROMPT,
         )
 
     @staticmethod
     async def __ask_ollama_with_rag(
-        model: str, question: str, context: str, chats: list[Chat]
+        model: str, question: str, chats: list[Chat]
     ) -> str:
-        previous_chats = ChatService.__build_openai_rag_chat_histories(
-            question=question, chats=chats
-        )
+        previous_chats = ChatService.__build_openai_like_rag_chat_histories(chats=chats)
         return AiService.chat_with_mistral(
             model=model,
-            question=context,
+            question=question,
             previous_chats=previous_chats,
             system_prompt=SYSTEM_PROMPT,
         )

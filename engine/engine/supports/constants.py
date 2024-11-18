@@ -14,3 +14,18 @@ ANALYSIS_STAGE_PROCESSING = 2
 
 TEMP_AUDIO_DIR = os.path.join(APP_DIR, "temp-audio")
 os.makedirs(TEMP_AUDIO_DIR, exist_ok=True)
+
+FUNCTION_CALL = {
+    "name": "get_relevant_video_content",
+    "description": "Find the video content parts that related to the user question",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "description": {
+                "type": "string",
+                "description": "Describe the user question to get exact the video part contents",
+            },
+        },
+        "required": ["description"],
+    },
+}

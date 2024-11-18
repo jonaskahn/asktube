@@ -15,6 +15,7 @@ from anthropic import NOT_GIVEN
 from audio_extract import extract_audio
 from faster_whisper import WhisperModel
 from future.backports.datetime import timedelta
+from google.generativeai.types import FunctionDeclaration
 from mistralai import Mistral
 from ollama import Client
 from openai import OpenAI
@@ -574,6 +575,7 @@ class AiService:
         question: str,
         previous_chats: list[dict] = None,
         system_prompt: str | None = SYSTEM_PROMPT,
+        function_call: FunctionDeclaration | None,
         max_tokens: int = 4096,
         temperature: float = 0.6,
         top_p: float = 0.8,
